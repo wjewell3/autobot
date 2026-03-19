@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 // ── CONFIG ─────────────────────────────────────────────
 // Update this to your current trycloudflare URL
 // In future this will be stable once you have a domain
-const KAGENT_API = "https://permalink-acquisition-collectors-tribes.trycloudflare.com";
+const KAGENT_API = "https://ct0nsvobr7.localto.net";
 const POLL_MS = 3000;
 // ───────────────────────────────────────────────────────
 
