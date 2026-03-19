@@ -1,0 +1,106 @@
+# ── 1. NAMESPACE ─────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kagent
+
+---
+# ── 2. LITELLM CONFIG ────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: litellm-config
+  namespace: kagent
+data:
+  config.yaml: |
+    model_list:
+      - model_name: gpt-4.1
+        litellm_params:
+          model: github_copilot/gpt-4.1
+
+---
+# ── 3. LITELLM DEPLOYMENT ────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: litellm
+  template:
+    metadata:
+      labels:
+        app: litellm
+    spec:
+      containers:
+        - name: litellm
+          image: ghcr.io/berriai/litellm:main-latest
+          args: ["--config", "/app/config.yaml", "--port", "4000"]
+          ports:
+            - containerPort: 4000
+          volumeMounts:
+            - name: litellm-config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+            - name: copilot-token
+              mountPath: /root/.config/litellm/github_copilot
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1.5Gi"
+              cpu: "500m"
+      volumes:
+        - name: litellm-config
+          configMap:
+            name: litellm-config
+        - name: copilot-token
+          hostPath:
+            path: /home/opc/.config/litellm/github_copilot
+            type: DirectoryOrCreate
+
+---
+# ── 4. LITELLM SERVICE ───────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm-service
+  namespace: kagent
+spec:
+  selector:
+    app: litellm
+  ports:
+    - protocol: TCP
+      port: 4000
+      targetPort: 4000
+  type: ClusterIP
+
+---
+# ── 6. KAGENT MODEL CONFIG ────────────────────────────────
+# NOTE: kagent requires an API key secret ref even when using
+# a proxy. We create this imperatively too — never in this file.
+# Run: kubectl create secret generic copilot-api-key \
+#        --namespace kagent \
+#        --from-literal=key=anything
+apiVersion: kagent.dev/v1alpha1
+kind: ModelConfig
+metadata:
+  name: copilot-gpt41
+  namespace: kagent
+spec:
+  apiKeySecretKey: key
+  apiKeySecretRef: copilot-api-key
+  model: gpt-4.1
+  modelInfo:
+    family: unknown
+    functionCalling: true
+    jsonOutput: true
+    multipleSystemMessages: false
+    structuredOutput: true
+    vision: false
+  openAI:
+    baseUrl: http://litellm-service.kagent.svc.cluster.local:4000
