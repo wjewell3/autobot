@@ -60,8 +60,8 @@ export default function App() {
   const poll = async () => {
     try {
       const [agentRes, sessionRes] = await Promise.all([
-        fetch(`${KAGENT_API}/api/v1/agents/kagent`),
-        fetch(`${KAGENT_API}/api/v1/sessions/kagent`),
+        fetch(`${KAGENT_API}/apis/kagent.dev/v1alpha1/namespaces/kagent/agents`),
+        fetch(`${KAGENT_API}/apis/kagent.dev/v1alpha1/namespaces/kagent/sessions`),
       ]);
       if (!agentRes.ok) throw new Error(`Agent API ${agentRes.status}`);
       const agentData   = await agentRes.json();
