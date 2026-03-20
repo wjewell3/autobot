@@ -3,6 +3,7 @@
   "outputDirectory": "agent-viz/dist",
   "rewrites": [
     { "source": "/api/proxy/(.*)", "destination": "/api/proxy" },
+    { "source": "/api/chat", "destination": "/api/chat" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

@@ -1,21 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 
-// ── CONFIG ─────────────────────────────────────────────
-// Update this to your current trycloudflare URL
-// In future this will be stable once you have a domain
-const KAGENT_API = "https://ct0nsvobr7.localto.net";
 const POLL_MS = 3000;
-// ───────────────────────────────────────────────────────
 
-const AGENTS = [
-  { id: "commander-agent",   label: "Commander",  emoji: "👑", x: 300, y: 40  },
-  { id: "number-agent-1",    label: "Agent 1",    emoji: "🎲", x: 100, y: 180 },
-  { id: "number-agent-2",    label: "Agent 2",    emoji: "🎲", x: 250, y: 280 },
-  { id: "number-agent-3",    label: "Agent 3",    emoji: "🎲", x: 400, y: 180 },
-  { id: "sum-agent",         label: "Sum Agent",  emoji: "🧮", x: 300, y: 370 },
-  { id: "k8s-agent",         label: "K8s",        emoji: "⚙️", x: 520, y: 40  },
-  { id: "helm-agent",        label: "Helm",       emoji: "🪖", x: 520, y: 130 },
-  { id: "observability-agent", label: "Observe",  emoji: "📊", x: 520, y: 220 },
+const KNOWN_AGENTS = [
+  { id: "commander-agent",  label: "Commander", emoji: "👑", x: 270, y: 40  },
+  { id: "number-agent-1",   label: "Agent 1",   emoji: "🎲", x: 80,  y: 180 },
+  { id: "number-agent-2",   label: "Agent 2",   emoji: "🎲", x: 220, y: 280 },
+  { id: "number-agent-3",   label: "Agent 3",   emoji: "🎲", x: 360, y: 180 },
+  { id: "sum-agent",        label: "Sum",       emoji: "🧮", x: 270, y: 370 },
+  { id: "k8s-agent",        label: "K8s",       emoji: "⚙️", x: 460, y: 40  },
+  { id: "helm-agent",       label: "Helm",      emoji: "🪖", x: 460, y: 130 },
+  { id: "observability-agent", label: "Obs",   emoji: "📊", x: 460, y: 220 },
 ];
 
 const EDGES = [
@@ -26,143 +21,238 @@ const EDGES = [
   { from: "sum-agent",       to: "commander-agent"},
 ];
 
-const STATUS_COLOR = {
-  idle:    "#334155",
-  active:  "#6366f1",
-  ready:   "#22c55e",
-  error:   "#ef4444",
-  unknown: "#64748b",
-};
-
 function statusColor(s) {
-  if (!s) return STATUS_COLOR.unknown;
-  if (s.toLowerCase().includes("ready") || s.toLowerCase().includes("running")) return STATUS_COLOR.ready;
-  if (s.toLowerCase().includes("error") || s.toLowerCase().includes("fail"))   return STATUS_COLOR.error;
-  if (s.toLowerCase().includes("active") || s.toLowerCase().includes("busy"))  return STATUS_COLOR.active;
-  return STATUS_COLOR.unknown;
+  if (!s) return "#334155";
+  const l = s.toLowerCase();
+  if (l.includes("ready") || l.includes("true") || l.includes("accepted")) return "#22c55e";
+  if (l.includes("error") || l.includes("fail") || l.includes("false"))    return "#ef4444";
+  if (l.includes("active") || l.includes("busy"))  return "#6366f1";
+  return "#64748b";
 }
 
 export default function App() {
-  const [agents, setAgents] = useState([]);
-  const [sessions, setSessions] = useState([]);
-  const [log, setLog]     = useState([]);
-  const [error, setError] = useState(null);
-  const [lastPoll, setLastPoll] = useState(null);
-  const logRef = useRef(null);
+  const [agents, setAgents]       = useState([]);
+  const [error, setError]         = useState(null);
+  const [lastPoll, setLastPoll]   = useState(null);
+  const [messages, setMessages]   = useState([
+    { role: "assistant", text: "👋 Hi! I'm your Commander agent. Tell me about a business opportunity you want to pursue and I'll help create a plan and build an agent army to execute it." }
+  ]);
+  const [input, setInput]         = useState("");
+  const [thinking, setThinking]   = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const chatRef = useRef(null);
+  const pollRef = useRef(null);
 
-  useEffect(() => {
-    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [log]);
-
-  const addLog = (msg, color = "#94a3b8") =>
-    setLog(l => [...l.slice(-50), { msg, color, t: new Date().toLocaleTimeString() }]);
-
+  // ── POLLING ───────────────────────────────────────────
   const poll = async () => {
     try {
-      const [agentRes, sessionRes] = await Promise.all([
-        fetch(`${KAGENT_API}/api/v1/agents/kagent`),
-        fetch(`${KAGENT_API}/api/v1/sessions/kagent`),
-      ]);
-      if (!agentRes.ok) throw new Error(`Agent API ${agentRes.status}`);
-      const agentData   = await agentRes.json();
-      const sessionData = sessionRes.ok ? await sessionRes.json() : [];
-      setAgents(agentData?.agents || agentData || []);
-      setSessions(sessionData?.sessions || sessionData || []);
+      const res = await fetch(`/api/proxy/apis/kagent.dev/v1alpha1/namespaces/kagent/agents`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+      setAgents(Array.isArray(data?.items) ? data.items : []);
       setError(null);
       setLastPoll(new Date().toLocaleTimeString());
-    } catch (e) {
-      setError(e.message);
-    }
+    } catch (e) { setError(e.message); }
   };
 
   useEffect(() => {
     poll();
-    const t = setInterval(poll, POLL_MS);
-    return () => clearInterval(t);
+    pollRef.current = setInterval(poll, POLL_MS);
+    return () => clearInterval(pollRef.current);
   }, []);
 
-  const getAgent = id => agents.find(a => a.name === id || a.metadata?.name === id);
-  const getPos   = id => AGENTS.find(a => a.id === id);
+  useEffect(() => {
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  }, [messages]);
+
+  // ── CHAT ──────────────────────────────────────────────
+  const send = async () => {
+    if (!input.trim() || thinking) return;
+    const userMsg = input.trim();
+    setInput("");
+    setMessages(m => [...m, { role: "user", text: userMsg }]);
+    setThinking(true);
+
+    try {
+      const body = {
+        sessionId,
+        message: userMsg,
+      };
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+      if (data.sessionId) setSessionId(data.sessionId);
+      setMessages(m => [...m, { role: "assistant", text: data.reply || "..." }]);
+    } catch (e) {
+      setMessages(m => [...m, { role: "assistant", text: `Error: ${e.message}` }]);
+    } finally {
+      setThinking(false);
+    }
+  };
+
+  const onKey = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } };
+
+  // ── RENDER ────────────────────────────────────────────
+  const getKnown = id => KNOWN_AGENTS.find(a => a.id === id);
+  const getLive  = id => agents.find(a => a.metadata?.name === id);
+
+  // Build dynamic agents not in KNOWN_AGENTS
+  const dynamicAgents = agents.filter(a => !KNOWN_AGENTS.find(k => k.id === a.metadata?.name));
 
   return (
-    <div style={{ background: "#0f172a", minHeight: "100vh", color: "#e2e8f0", fontFamily: "monospace", padding: 20 }}>
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <h2 style={{ color: "#a78bfa", margin: 0 }}>🤖 Agent Army — Live Dashboard</h2>
-        <p style={{ color: error ? "#ef4444" : "#64748b", fontSize: 11, margin: "4px 0" }}>
-          {error ? `⚠️ ${error}` : `✅ Live · Last poll: ${lastPoll || "..."} · Polling every ${POLL_MS/1000}s`}
+    <div style={{ background: "#0f172a", minHeight: "100vh", color: "#e2e8f0", fontFamily: "monospace", padding: 16, boxSizing: "border-box" }}>
+
+      {/* Header */}
+      <div style={{ textAlign: "center", marginBottom: 12 }}>
+        <h2 style={{ color: "#a78bfa", margin: 0, fontSize: 18 }}>🤖 Autobot — Agent Army Command Center</h2>
+        <p style={{ color: error ? "#ef4444" : "#22c55e", fontSize: 11, margin: "4px 0" }}>
+          {error ? `⚠️ ${error}` : `✅ Live · ${lastPoll || "..."} · ${agents.length} agents`}
         </p>
       </div>
 
-      <div style={{ display: "flex", gap: 16, maxWidth: 1100, margin: "0 auto" }}>
-        {/* SVG diagram */}
-        <div style={{ background: "#1e293b", borderRadius: 12, padding: 12, flex: "0 0 640px" }}>
-          <svg width={640} height={460} viewBox="0 0 640 460">
-            {EDGES.map((e, i) => {
-              const f = getPos(e.from), t = getPos(e.to);
-              if (!f || !t) return null;
-              return (
-                <line key={i}
-                  x1={f.x + 45} y1={f.y + 30}
-                  x2={t.x + 45} y2={t.y + 30}
-                  stroke="#334155" strokeWidth={1.5}
-                />
-              );
-            })}
-            {AGENTS.map(a => {
-              const live  = getAgent(a.id);
-                  const status = live?.status?.conditions?.[0]?.type || live?.status || null;
-              const col   = statusColor(status);
-              return (
-                <g key={a.id} transform={`translate(${a.x}, ${a.y})`}>
-                  <rect width={90} height={60} rx={10}
-                    fill="#0f172a" stroke={col} strokeWidth={live ? 2 : 1} />
-                  <text x={45} y={20} textAnchor="middle" fontSize={16}>{a.emoji}</text>
-                  <text x={45} y={34} textAnchor="middle" fontSize={9} fill="#e2e8f0">{a.label}</text>
-                  <text x={45} y={48} textAnchor="middle" fontSize={8} fill={col}>
-                    {live ? (status || "ready") : "not deployed"}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
+      <div style={{ display: "flex", gap: 12, maxWidth: 1200, margin: "0 auto", height: "calc(100vh - 80px)" }}>
 
-        {/* Right panel */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* Agent list */}
-          <div style={{ background: "#1e293b", borderRadius: 12, padding: 12 }}>
-            <div style={{ color: "#64748b", fontSize: 11, marginBottom: 8 }}>
-              LIVE AGENTS ({agents.length})
-            </div>
-            {agents.length === 0 && (
-              <div style={{ color: "#334155", fontSize: 11 }}>No agents found</div>
-            )}
+        {/* Left — Diagram + Agent List */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: "0 0 560px" }}>
+
+          {/* Diagram */}
+          <div style={{ background: "#1e293b", borderRadius: 12, padding: 10 }}>
+            <svg width={540} height={420} viewBox="0 0 540 420">
+              {EDGES.map((e, i) => {
+                const f = KNOWN_AGENTS.find(a => a.id === e.from);
+                const t = KNOWN_AGENTS.find(a => a.id === e.to);
+                if (!f || !t) return null;
+                const fl = getLive(e.from), tl = getLive(e.to);
+                const active = fl && tl;
+                return (
+                  <line key={i}
+                    x1={f.x + 45} y1={f.y + 30}
+                    x2={t.x + 45} y2={t.y + 30}
+                    stroke={active ? "#6366f1" : "#334155"}
+                    strokeWidth={active ? 2 : 1.5}
+                    strokeDasharray={active ? "6 3" : "none"}
+                  />
+                );
+              })}
+              {KNOWN_AGENTS.map(a => {
+                const live = getLive(a.id);
+                const status = live?.status?.conditions?.[0]?.type || null;
+                const col = live ? statusColor(status) : "#334155";
+                return (
+                  <g key={a.id} transform={`translate(${a.x}, ${a.y})`}>
+                    <rect width={90} height={58} rx={10}
+                      fill="#0f172a" stroke={col} strokeWidth={live ? 2 : 1} />
+                    <text x={45} y={18} textAnchor="middle" fontSize={15}>{a.emoji}</text>
+                    <text x={45} y={32} textAnchor="middle" fontSize={9} fill="#e2e8f0">{a.label}</text>
+                    <text x={45} y={46} textAnchor="middle" fontSize={8} fill={col}>
+                      {live ? (status || "ready") : "not deployed"}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Agent List */}
+          <div style={{ background: "#1e293b", borderRadius: 12, padding: 12, flex: 1, overflowY: "auto" }}>
+            <div style={{ color: "#64748b", fontSize: 11, marginBottom: 8 }}>LIVE AGENTS ({agents.length})</div>
+            {agents.length === 0 && <div style={{ color: "#334155", fontSize: 11 }}>No agents found</div>}
             {agents.map((a, i) => {
-              const name   = a.name || a.metadata?.name || "unknown";
-              const status = a.status?.conditions?.[0]?.type || a.status || "unknown";
+              const name   = a.metadata?.name || "unknown";
+              const status = a.status?.conditions?.[0]?.type || "unknown";
+              const isNew  = !KNOWN_AGENTS.find(k => k.id === name);
               return (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
-                  <span style={{ color: "#e2e8f0" }}>{name}</span>
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5, padding: "4px 6px", borderRadius: 6, background: isNew ? "#1a2744" : "transparent" }}>
+                  <span style={{ color: isNew ? "#60a5fa" : "#e2e8f0" }}>
+                    {isNew ? "✨ " : ""}{name}
+                  </span>
                   <span style={{ color: statusColor(status) }}>{status}</span>
                 </div>
               );
             })}
           </div>
+        </div>
 
-          {/* Sessions */}
-          <div style={{ background: "#1e293b", borderRadius: 12, padding: 12, flex: 1 }}>
-            <div style={{ color: "#64748b", fontSize: 11, marginBottom: 8 }}>
-              ACTIVE SESSIONS ({sessions.length})
-            </div>
-            {sessions.length === 0 && (
-              <div style={{ color: "#334155", fontSize: 11 }}>No active sessions</div>
-            )}
-            {sessions.slice(-10).map((s, i) => (
-              <div key={i} style={{ fontSize: 10, marginBottom: 4, color: "#94a3b8" }}>
-                <span style={{ color: "#6366f1" }}>{s.agent || s.metadata?.name}</span>
-                {" · "}{s.status || "active"}
+        {/* Right — Chat */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#1e293b", borderRadius: 12, padding: 12 }}>
+          <div style={{ color: "#64748b", fontSize: 11, marginBottom: 8 }}>
+            COMMANDER CHAT {sessionId ? `· session: ${sessionId.slice(0, 8)}...` : "· new session"}
+          </div>
+
+          {/* Messages */}
+          <div ref={chatRef} style={{ flex: 1, overflowY: "auto", marginBottom: 10 }}>
+            {messages.map((m, i) => (
+              <div key={i} style={{
+                marginBottom: 10,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: m.role === "user" ? "flex-end" : "flex-start",
+              }}>
+                <div style={{
+                  maxWidth: "85%",
+                  background: m.role === "user" ? "#6366f1" : "#0f172a",
+                  border: m.role === "assistant" ? "1px solid #334155" : "none",
+                  borderRadius: 10,
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  color: "#e2e8f0",
+                  whiteSpace: "pre-wrap",
+                  lineHeight: 1.5,
+                }}>
+                  {m.text}
+                </div>
+                <div style={{ fontSize: 9, color: "#475569", marginTop: 2 }}>
+                  {m.role === "user" ? "you" : "commander"}
+                </div>
               </div>
             ))}
+            {thinking && (
+              <div style={{ color: "#6366f1", fontSize: 12, marginBottom: 8 }}>
+                ⟳ Commander is thinking...
+              </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <div style={{ display: "flex", gap: 8 }}>
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={onKey}
+              placeholder="Tell commander what you want to build... (Enter to send)"
+              style={{
+                flex: 1,
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: 8,
+                color: "#e2e8f0",
+                padding: "8px 10px",
+                fontSize: 12,
+                fontFamily: "monospace",
+                resize: "none",
+                height: 60,
+                outline: "none",
+              }}
+            />
+            <button
+              onClick={send}
+              disabled={thinking || !input.trim()}
+              style={{
+                background: thinking || !input.trim() ? "#1e293b" : "#6366f1",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "0 16px",
+                cursor: thinking ? "not-allowed" : "pointer",
+                fontFamily: "monospace",
+                fontSize: 18,
+              }}
+            >▶</button>
           </div>
         </div>
       </div>
