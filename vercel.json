@@ -1,0 +1,8 @@
+{
+  "buildCommand": "cd agent-viz && npm install && npm run build",
+  "outputDirectory": "agent-viz/dist",
+  "rewrites": [
+    { "source": "/api/proxy/(.*)", "destination": "/api/proxy" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
