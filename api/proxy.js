@@ -9,7 +9,10 @@ export default async function handler(req, res) {
   try {
     const response = await fetch(target, {
       method: req.method,
-      headers: { "Accept": "application/json" },
+      headers: { 
+        "Accept": "application/json",
+        "localtonet-skip-warning": "true"
+      },
     });
 
     console.log("Response status:", response.status);
