@@ -30,6 +30,21 @@ function statusColor(s) {
   return "#64748b";
 }
 
+// Extract numbers and metrics from chat messages
+function extractMetrics(messages) {
+  const metrics = [];
+  messages.forEach(m => {
+    if (m.role !== "assistant") return;
+    const text = m.text || "";
+    // Match patterns like "Agent 1's number: 7" or "picked: 4" or "sum: 19"
+    const picks = [...text.matchAll(/(?:agent\s*\d+[^:]*picked|number[^:]*):?\s*(\d+)/gi)];
+    const sums  = [...text.matchAll(/(?:final\s*sum|total|sum)[^:]*:\s*(\d+)/gi)];
+    picks.forEach(m => metrics.push({ label: "pick", value: parseInt(m[1]) }));
+    sums.forEach(m  => metrics.push({ label: "sum",  value: parseInt(m[1]) }));
+  });
+  return metrics;
+}
+
 export default function App() {
   const [agents, setAgents]       = useState([]);
   const [error, setError]         = useState(null);
@@ -88,7 +103,14 @@ export default function App() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   };
 
-  const getLive = id => agents.find(a => a.metadata?.name === id);
+  const getLive   = id => agents.find(a => a.metadata?.name === id);
+  const isLive    = id => !!getLive(id);
+  const metrics   = extractMetrics(messages);
+  const picks     = metrics.filter(m => m.label === "pick");
+  const lastSum   = metrics.filter(m => m.label === "sum").slice(-1)[0];
+
+  // Only show edges where both ends are live
+  const activeEdges = EDGES.filter(e => isLive(e.from) && isLive(e.to));
 
   return (
     <div style={{ background: "#0f172a", minHeight: "100vh", color: "#e2e8f0", fontFamily: "monospace", padding: 16, boxSizing: "border-box" }}>
@@ -98,42 +120,69 @@ export default function App() {
           {error ? `⚠️ ${error}` : `✅ Live · ${lastPoll || "..."} · ${agents.length} agents`}
         </p>
       </div>
-      <div style={{ display: "flex", gap: 12, maxWidth: 1200, margin: "0 auto", height: "calc(100vh - 80px)" }}>
+
+      <div style={{ display: "flex", gap: 12, maxWidth: 1300, margin: "0 auto", height: "calc(100vh - 80px)" }}>
+
+        {/* LEFT */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: "0 0 560px" }}>
+
+          {/* Diagram — only show live agents */}
           <div style={{ background: "#1e293b", borderRadius: 12, padding: 10 }}>
             <svg width={540} height={420} viewBox="0 0 540 420">
-              {EDGES.map((e, i) => {
+              {activeEdges.map((e, i) => {
                 const f = KNOWN_AGENTS.find(a => a.id === e.from);
                 const t = KNOWN_AGENTS.find(a => a.id === e.to);
                 if (!f || !t) return null;
-                const active = getLive(e.from) && getLive(e.to);
                 return (
                   <line key={i}
                     x1={f.x + 45} y1={f.y + 30}
                     x2={t.x + 45} y2={t.y + 30}
-                    stroke={active ? "#6366f1" : "#334155"}
-                    strokeWidth={active ? 2 : 1.5}
-                    strokeDasharray={active ? "6 3" : "none"}
+                    stroke="#6366f1" strokeWidth={2}
+                    strokeDasharray="6 3"
                   />
                 );
               })}
-              {KNOWN_AGENTS.map(a => {
+              {KNOWN_AGENTS.filter(a => isLive(a.id)).map(a => {
                 const live   = getLive(a.id);
                 const status = live?.status?.conditions?.[0]?.type || null;
-                const col    = live ? statusColor(status) : "#334155";
+                const col    = statusColor(status);
                 return (
                   <g key={a.id} transform={`translate(${a.x}, ${a.y})`}>
-                    <rect width={90} height={58} rx={10} fill="#0f172a" stroke={col} strokeWidth={live ? 2 : 1} />
+                    <rect width={90} height={58} rx={10} fill="#0f172a" stroke={col} strokeWidth={2} />
                     <text x={45} y={18} textAnchor="middle" fontSize={15}>{a.emoji}</text>
                     <text x={45} y={32} textAnchor="middle" fontSize={9} fill="#e2e8f0">{a.label}</text>
                     <text x={45} y={48} textAnchor="middle" fontSize={8} fill={col}>
-                      {live ? (status || "ready") : "not deployed"}
+                      {status || "ready"}
                     </text>
                   </g>
                 );
               })}
             </svg>
           </div>
+
+          {/* Metrics Panel */}
+          <div style={{ background: "#1e293b", borderRadius: 12, padding: 12 }}>
+            <div style={{ color: "#64748b", fontSize: 11, marginBottom: 8 }}>AGENT METRICS</div>
+            {picks.length === 0 && !lastSum && (
+              <div style={{ color: "#334155", fontSize: 11 }}>No metrics yet — run the chain to see results</div>
+            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {picks.map((p, i) => (
+                <div key={i} style={{ background: "#0f172a", border: "1px solid #6366f1", borderRadius: 8, padding: "6px 12px", fontSize: 12 }}>
+                  <span style={{ color: "#64748b" }}>pick {i + 1}: </span>
+                  <span style={{ color: "#a78bfa", fontWeight: "bold" }}>{p.value}</span>
+                </div>
+              ))}
+              {lastSum && (
+                <div style={{ background: "#0f172a", border: "1px solid #22c55e", borderRadius: 8, padding: "6px 12px", fontSize: 12 }}>
+                  <span style={{ color: "#64748b" }}>final sum: </span>
+                  <span style={{ color: "#22c55e", fontWeight: "bold" }}>{lastSum.value}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Agent List */}
           <div style={{ background: "#1e293b", borderRadius: 12, padding: 12, flex: 1, overflowY: "auto" }}>
             <div style={{ color: "#64748b", fontSize: 11, marginBottom: 8 }}>LIVE AGENTS ({agents.length})</div>
             {agents.length === 0 && <div style={{ color: "#334155", fontSize: 11 }}>No agents found</div>}
@@ -154,6 +203,8 @@ export default function App() {
             })}
           </div>
         </div>
+
+        {/* RIGHT — Chat */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#1e293b", borderRadius: 12, padding: 12, minWidth: 0 }}>
           <div style={{ color: "#64748b", fontSize: 11, marginBottom: 8 }}>
             COMMANDER CHAT {sessionId ? `· session: ${sessionId.slice(0, 8)}...` : "· new session"}
