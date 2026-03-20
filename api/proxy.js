@@ -1,27 +1,32 @@
-// Vercel serverless function — proxies requests to kagent API
-// bypassing CORS restrictions entirely
 const KAGENT_URL = "https://ct0nsvobr7.localto.net";
 
-module.exports = async function handler(req, res) {
-  const path = req.url.replace("/api/proxy", "");
+export default async function handler(req, res) {
+  const path = req.url.replace("/api/proxy", "") || "/";
   const target = `${KAGENT_URL}${path}`;
+
+  console.log("Proxying to:", target);
 
   try {
     const response = await fetch(target, {
       method: req.method,
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: req.method !== "GET" && req.method !== "HEAD"
-        ? JSON.stringify(req.body)
-        : undefined,
+      headers: { "Accept": "application/json" },
     });
 
-    const data = await response.json();
-    res.status(response.status).json(data);
+    console.log("Response status:", response.status);
+    const text = await response.text();
+
+    try {
+      const data = JSON.parse(text);
+      res.status(response.status).json(data);
+    } catch {
+      res.status(response.status).send(text);
+    }
   } catch (err) {
-    console.error("Proxy error:", err.message, "target:", target);
-    res.status(500).json({ error: err.message, target });
+    console.error("Fetch error:", err.message);
+    res.status(500).json({ 
+      error: err.message, 
+      target,
+      type: err.constructor.name 
+    });
   }
 }
