@@ -36,21 +36,31 @@ export default async function handler(req, res) {
     );
 
     const data = await response.json();
-    console.log("A2A response:", JSON.stringify(data).slice(0, 1000));
 
-    // Extract reply from A2A response
-    const parts = data?.result?.status?.message?.parts ||
-                  data?.result?.message?.parts ||
-                  data?.result?.parts || [];
+    // Extract text from nested A2A response structure
+    const result = data?.result;
+    const newSessionId = result?.contextId || result?.sessionId || sessionId;
 
-    const reply = parts
-      .filter(p => p.kind === "text" || p.text)
+    // Find the agent reply in history (last agent message)
+    const history = result?.history || [];
+    const agentMessages = history.filter(m => m.role === "agent");
+    const lastAgent = agentMessages[agentMessages.length - 1];
+
+    // Also check artifacts
+    const artifacts = result?.artifacts || [];
+    const artifactText = artifacts
+      .flatMap(a => a.parts || [])
+      .filter(p => p.kind === "text")
       .map(p => p.text)
-      .join("\n") || JSON.stringify(data?.result || data?.error || data);
+      .join("\n");
 
-    const newSessionId = data?.result?.sessionId ||
-                        data?.result?.contextId ||
-                        sessionId;
+    // Get reply from last agent message or artifact
+    const msgText = (lastAgent?.parts || [])
+      .filter(p => p.kind === "text")
+      .map(p => p.text)
+      .join("\n");
+
+    const reply = artifactText || msgText || "No response";
 
     res.status(200).json({ reply, sessionId: newSessionId });
   } catch (err) {
