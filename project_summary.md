@@ -1,8 +1,8 @@
 # Autobot Project Summary
-> Last updated: March 19, 2026
+> Last updated: March 20, 2026
 
 ## Goal
-Build an autonomous AI agent army running on free infrastructure, powered by GitHub Copilot (gpt-4.1), capable of finding and executing business opportunities. Live dashboard at https://wjewell3.github.io/autobot/
+Build an autonomous AI agent army running on free infrastructure, powered by GitHub Copilot (gpt-4.1), capable of finding and executing business opportunities. Live dashboard at https://autobot-chi-tawny.vercel.app
 
 ---
 
@@ -14,19 +14,19 @@ Build an autonomous AI agent army running on free infrastructure, powered by Git
 | Agent runtime | kagent 0.7.23 | Free |
 | Kubernetes | Oracle OKE (ARM) | Free forever |
 | Compute | VM.Standard.A1.Flex (4 OCPU / 24GB RAM) | Free forever |
-| Public tunnel | Cloudflare Quick Tunnel | Free (URL changes on restart) |
-| Dashboard | GitHub Pages | Free |
+| Public tunnel | Localtonet (ct0nsvobr7.localto.net) | Free (persistent URL) |
+| CORS proxy | nginx in-cluster | Free |
+| K8s API proxy | kubectl proxy in-cluster | Free |
+| Dashboard | Vercel (autobot-chi-tawny.vercel.app) | Free |
 
 ---
 
 ## Infrastructure
 
 ### OCI / OKE
-- **Tenancy:** `<your-tenancy-ocid>` — find via OCI Console → Profile → Tenancy
-- **User:** `<your-user-ocid>` — find via OCI Console → Profile → User
 - **Region:** `us-ashburn-1`
-- **Cluster:** `<your-cluster-ocid>` — find via OCI Console → OKE → Clusters
-- **Node:** `10.0.10.201` (private only, no public IP)
+- **Tenancy/User/Cluster OCIDs:** stored in `~/.oci/config` and `~/.kube/config`
+- **Node:** `10.0.10.201` (private subnet, no public IP)
 - **Node shape:** `VM.Standard.A1.Flex` — 4 OCPU, 24GB RAM, Oracle Linux 8 ARM64
 - **K8s version:** `v1.34.2`
 - **CNI:** Flannel Overlay
@@ -37,8 +37,8 @@ Build an autonomous AI agent army running on free infrastructure, powered by Git
 ### OCI Auth
 - Config: `~/.oci/config`
 - Key file: `~/.oci/oci_api_key.pem`
-- Fingerprint: `<your-fingerprint>` — find via OCI Console → Profile → User → API Keys
-- No passphrase on key
+- Fingerprint: stored in `~/.oci/config` under `[DEFAULT]`
+- No passphrase on key — do NOT set `pass_phrase` in config or kubectl breaks
 
 ### kubectl
 ```bash
@@ -61,7 +61,6 @@ kubectl create namespace kagent
 
 ### Secrets (created imperatively — never in files)
 ```bash
-# LiteLLM Copilot token (stored on node hostPath, not secret)
 # kagent OpenAI secret (routes to LiteLLM, value doesn't matter)
 kubectl create secret generic kagent-openai \
   --namespace kagent \
@@ -71,6 +70,11 @@ kubectl create secret generic kagent-openai \
 kubectl create secret generic copilot-api-key \
   --namespace kagent \
   --from-literal=key=anything
+
+# Localtonet auth token
+kubectl create secret generic localtonet-token \
+  --namespace kagent \
+  --from-literal=token=<your-localtonet-token>
 ```
 
 ### kagent Installation
@@ -86,16 +90,7 @@ helm install kagent \
   --set grafana-mcp.enabled=false
 ```
 
-### deploy.yaml
-Key components deployed via `kubectl apply -f deploy.yaml`:
-- **LiteLLM deployment** — image: `ghcr.io/berriai/litellm:main-latest`
-  - Config: `github_copilot/gpt-4.1` model
-  - Token stored on node hostPath: `/home/opc/.config/litellm/github_copilot`
-  - Memory: requests 512Mi, limits 1.5Gi (needs this much or OOMKilled)
-- **LiteLLM service** — ClusterIP on port 4000
-- **ModelConfig** — `copilot-gpt41`, points at `http://litellm-service.kagent.svc.cluster.local:4000`
-
-### ModelConfig (v1alpha2)
+### ModelConfig
 ```bash
 kubectl apply -f - <<EOF
 apiVersion: kagent.dev/v1alpha2
@@ -113,92 +108,155 @@ spec:
 EOF
 ```
 
-### LiteLLM Auth
-- GitHub Copilot token stored at `/home/opc/.config/litellm/github_copilot/api-key.json` on the node
-- Mounted via hostPath into LiteLLM pod
-- First run requires device auth: watch logs for device code, go to https://github.com/login/device
+---
+
+## Key Deployments (deploy.yaml)
+
+### LiteLLM
+- Image: `ghcr.io/berriai/litellm:main-latest`
+- Config: `github_copilot/gpt-4.1` model
+- Memory: requests 512Mi, limits **1.5Gi** (needs this or OOMKilled)
+- Token stored on node hostPath: `/home/opc/.config/litellm/github_copilot`
+- Mounted via hostPath (not PVC — saves OCI block storage quota)
+- **First run requires device auth:** watch logs for device code → go to https://github.com/login/device
 - Token persists across pod restarts via hostPath
 
-### Cloudflare Tunnel (public access)
+### CORS Proxy (nginx)
+- Proxies requests from public internet to kubectl-proxy
+- Adds `Access-Control-Allow-Origin: *` headers
+- Listens on port 8081
+- Config mounted via ConfigMap at `/etc/nginx/nginx-cors.conf`
+- Run with: `nginx -g "daemon off;" -c /etc/nginx/nginx-cors.conf`
+
+### kubectl-proxy
+- Exposes Kubernetes API internally on port 8888
+- Uses `kagent-controller` service account
+- Image: `docker.io/bitnami/kubectl:latest`
+- Allows dashboard to read Agent CRDs directly
+
+### Localtonet Tunnel
+- Provides persistent public URL: `ct0nsvobr7.localto.net`
+- Routes to cors-proxy ClusterIP on port 8081
+- ARM64 binary downloaded via initContainer (Docker image is x86 only)
+- Requires env var: `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`
+- Image: `docker.io/ubuntu:22.04` with binary at `/app/localtonet`
+
+### Cloudflared (replaced by localtonet)
+- Was used for quick tunnel — URL changed on every restart
+- Replaced by localtonet for persistent URL
+- Can be deleted: `kubectl delete deployment cloudflared -n kagent`
+
+---
+
+## Agent Army (agent_army.yaml)
+
+All agents use `kagent.dev/v1alpha2` with `type: Declarative` (capital D).
+
+Key schema notes:
+- `spec.type: Declarative` (not lowercase)
+- `spec.declarative.systemMessage` (not `systemPrompt`)
+- `spec.declarative.modelConfig` references ModelConfig name
+- A2A tools use `type: Agent` with `agent.name/namespace/kind/apiGroup`
+
+### Agents Deployed
+| Agent | Role |
+|---|---|
+| `commander-agent` | Orchestrates the chain, has all others as tools |
+| `number-agent-1` | Picks number, passes to agent 2 |
+| `number-agent-2` | Picks number, passes to agent 3 |
+| `number-agent-3` | Picks number, passes to sum-agent |
+| `sum-agent` | Calculates final sum, ends chain |
+
+### Deploy
 ```bash
-# Deploy cloudflared as a pod (quick tunnel, no domain needed)
+kubectl apply -f ~/Documents/autobot/agent_army.yaml
+kubectl get agents -n kagent
+```
+
+### Trigger Commander Autonomously
+```bash
 kubectl apply -f - <<EOF
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: kagent.dev/v1alpha1
+kind: Task
 metadata:
-  name: cloudflared
+  name: number-chain
   namespace: kagent
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: cloudflared
-  template:
-    metadata:
-      labels:
-        app: cloudflared
-    spec:
-      containers:
-        - name: cloudflared
-          image: docker.io/cloudflare/cloudflared:latest-arm64
-          args:
-            - tunnel
-            - --no-autoupdate
-            - --url
-            - http://kagent-ui.kagent.svc.cluster.local:8080
-          resources:
-            requests:
-              memory: "64Mi"
-              cpu: "100m"
-            limits:
-              memory: "128Mi"
-              cpu: "200m"
+  agent:
+    name: commander-agent
+    namespace: kagent
+  prompt: "Start the number chain. Activate all agents autonomously."
 EOF
-```
-- ⚠️ URL changes on every pod restart — get current URL with:
-```bash
-kubectl logs -n kagent -l app=cloudflared | grep trycloudflare
 ```
 
 ---
 
-## GitHub Repo
+## Dashboard (Vercel)
+
+- **URL:** https://autobot-chi-tawny.vercel.app
 - **Repo:** https://github.com/wjewell3/autobot
-- **Dashboard:** https://wjewell3.github.io/autobot/
-- **Deploy:** GitHub Actions → pushes to `gh-pages` branch automatically on every push to `main`
-- **Workflow permissions:** Read and write (required for gh-pages deploy)
+- **Auto-deploys** from GitHub on every push to `main`
+- **Polls** Kubernetes API every 3 seconds via Vercel serverless proxy
+- **GitHub Pages** also configured at https://wjewell3.github.io/autobot/ (legacy)
+
+### Architecture
+```
+Browser → Vercel (autobot-chi-tawny.vercel.app)
+            ↓ /api/proxy serverless function
+          Localtonet (ct0nsvobr7.localto.net)
+            ↓ tunnel into private cluster
+          nginx cors-proxy (port 8081)
+            ↓ proxy_pass
+          kubectl-proxy (port 8888)
+            ↓ k8s API
+          Agent CRDs in kagent namespace
+```
+
+### Vercel Proxy (api/proxy.js)
+- ES module format (`export default`) — package.json has `"type": "module"`
+- Must include `localtonet-skip-warning: true` header or gets HTML warning page
+- Routes all `/api/proxy/*` requests to localtonet
 
 ---
 
 ## Key Files
 | File | Location | Purpose |
 |---|---|---|
-| `deploy.yaml` | `~/Documents/autobot/` | LiteLLM + ModelConfig k8s manifests |
+| `deploy.yaml` | `~/Documents/autobot/` | LiteLLM + CORS proxy + kubectl-proxy + localtonet k8s manifests |
 | `agent_army.yaml` | `~/Documents/autobot/` | Number chain agent definitions |
 | `autonomous_bot.py` | `~/Documents/autobot/` | Local Python agent (LiteLLM proxy) |
 | `config.yaml` | `~/Documents/autobot/` | LiteLLM config for local use |
-| `src/App.jsx` | `~/Documents/agent-viz/` | React dashboard deployed to GitHub Pages |
+| `api/proxy.js` | `~/Documents/autobot/` | Vercel serverless CORS proxy |
+| `vercel.json` | `~/Documents/autobot/` | Vercel build config |
+| `agent-viz/src/App.jsx` | `~/Documents/autobot/` | React dashboard |
+| `agent-viz/vite.config.js` | `~/Documents/autobot/` | Vite config (base: '/') |
 | `~/.oci/config` | local | OCI CLI auth config |
 | `~/.kube/config` | local | kubectl config |
 
 ---
 
 ## Known Issues / Gotchas
-- LiteLLM needs **1.5Gi memory** or it OOMKills on startup
-- Node subnet is **private** — no public IP possible on node directly
-- Cloudflare quick tunnel URL **changes on every pod restart** — update `KAGENT_API` in App.jsx when it does
-- OCI auth uses fingerprint `62:cc:...` — if 401 errors appear check `~/.oci/config` DEFAULT profile matches this fingerprint
-- `pass_phrase` must not be set in `~/.oci/config` DEFAULT profile or kubectl auth breaks
-- kagent grafana-mcp pod will always error (bad image) — safe to ignore or delete
-- All images need `docker.io/` prefix on Oracle Linux 8 due to short name enforcement
+- LiteLLM needs **1.5Gi memory limit** or it OOMKills on startup
+- Node subnet is **private** — no public IP possible directly on node
+- LiteLLM Copilot token requires **device auth on first run** — watch pod logs
+- Token stored on node hostPath — survives pod restarts, zero storage cost
+- All images need `docker.io/` prefix on Oracle Linux 8 (short name enforcement)
+- Localtonet ARM64 binary needs `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`
+- Localtonet shows warning page to first visitors — proxy must send `localtonet-skip-warning: true` header
+- kagent grafana-mcp pod always errors (bad image) — safe to ignore or delete
+- kagent Agent CRD is `v1alpha2` with `type: Declarative` (capital D)
+- `spec.declarative.systemMessage` not `spec.systemPrompt`
+- Sessions CRD returns 403 — not available in kagent 0.7.23, safely ignored
+- OCI auth: do NOT set `pass_phrase` in `[DEFAULT]` config profile
 
 ---
 
 ## Next Steps
-- [ ] Add CORS headers to kagent API so GitHub Pages dashboard can poll live data
-- [ ] Wire up agent_army.yaml agents and test number chain autonomously
+- [ ] Test number chain running autonomously via commander-agent
+- [ ] Verify A2A agent delegation works in kagent 0.7.23
 - [ ] Build prospecting agent (scrape Google Maps for businesses)
 - [ ] Build outreach agent (Gmail MCP integration)
 - [ ] Build site builder agent (GitHub Copilot generates sites)
-- [ ] Get a real domain for persistent Cloudflare tunnel URL
-- [ ] Scale to multiple agent pods for parallel prospecting
+- [ ] Add business metrics to dashboard (leads found, emails sent, revenue)
+- [ ] Add agent spawn UI to dashboard (create new minions from browser)
+- [ ] Get a real domain for more reliable tunnel (optional)
