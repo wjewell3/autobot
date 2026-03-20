@@ -66,7 +66,7 @@ export default function App() {
       if (!agentRes.ok) throw new Error(`Agent API ${agentRes.status}`);
       const agentData   = await agentRes.json();
       const sessionData = sessionRes.ok ? await sessionRes.json() : [];
-      setAgents(agentData?.agents || agentData || []);
+      setAgents(Array.isArray(agentData?.items) ? agentData.items : []);
       setSessions(sessionData?.sessions || sessionData || []);
       setError(null);
       setLastPoll(new Date().toLocaleTimeString());
