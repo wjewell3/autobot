@@ -8,7 +8,6 @@ export default async function handler(req, res) {
   const { message, sessionId } = req.body;
   if (!message) return res.status(400).json({ error: "message required" });
 
-  // Build A2A request
   const body = {
     id: crypto.randomUUID(),
     jsonrpc: "2.0",
@@ -16,7 +15,7 @@ export default async function handler(req, res) {
     params: {
       message: {
         role: "user",
-        parts: [{ type: "text", text: message }],
+        parts: [{ kind: "text", text: message }],
         messageId: crypto.randomUUID(),
       },
       ...(sessionId ? { sessionId } : {}),
@@ -37,19 +36,19 @@ export default async function handler(req, res) {
     );
 
     const data = await response.json();
-    console.log("A2A response:", JSON.stringify(data).slice(0, 500));
+    console.log("A2A response:", JSON.stringify(data).slice(0, 1000));
 
-    // Extract reply text from A2A response
-    const parts = data?.result?.status?.message?.parts || 
-                  data?.result?.parts ||
-                  data?.result?.message?.parts || [];
+    // Extract reply from A2A response
+    const parts = data?.result?.status?.message?.parts ||
+                  data?.result?.message?.parts ||
+                  data?.result?.parts || [];
 
     const reply = parts
-      .filter(p => p.type === "text" || p.text)
+      .filter(p => p.kind === "text" || p.text)
       .map(p => p.text)
-      .join("\n") || JSON.stringify(data?.result || data);
+      .join("\n") || JSON.stringify(data?.result || data?.error || data);
 
-    const newSessionId = data?.result?.sessionId || 
+    const newSessionId = data?.result?.sessionId ||
                         data?.result?.contextId ||
                         sessionId;
 
