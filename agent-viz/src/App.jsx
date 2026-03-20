@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 // ── CONFIG ─────────────────────────────────────────────
 // Update this to your current trycloudflare URL
 // In future this will be stable once you have a domain
-const KAGENT_API = "https://ct0nsvobr7.localto.net";
+const KAGENT_API = ""  // empty = same origin (Vercel);
 const POLL_MS = 3000;
 // ───────────────────────────────────────────────────────
 
@@ -60,8 +60,8 @@ export default function App() {
   const poll = async () => {
     try {
       const [agentRes, sessionRes] = await Promise.all([
-        fetch(`${KAGENT_API}/apis/kagent.dev/v1alpha1/namespaces/kagent/agents`),
-        fetch(`${KAGENT_API}/apis/kagent.dev/v1alpha1/namespaces/kagent/sessions`),
+        fetch(`/api/proxy/apis/kagent.dev/v1alpha1/namespaces/kagent/agents`),
+        fetch(`/api/proxy/apis/kagent.dev/v1alpha1/namespaces/kagent/sessions`),
       ]);
       if (!agentRes.ok) throw new Error(`Agent API ${agentRes.status}`);
       const agentData   = await agentRes.json();

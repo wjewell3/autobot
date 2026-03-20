@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 // ── CONFIG ─────────────────────────────────────────────
 // Update this to your current trycloudflare URL
 // In future this will be stable once you have a domain
-const KAGENT_API = "https://permalink-acquisition-collectors-tribes.trycloudflare.com";
+const KAGENT_API = "https://ct0nsvobr7.localto.net";
 const POLL_MS = 3000;
 // ───────────────────────────────────────────────────────
 
@@ -59,15 +59,20 @@ export default function App() {
 
   const poll = async () => {
     try {
-      const [agentRes, sessionRes] = await Promise.all([
-        fetch(`${KAGENT_API}/api/v1/agents/kagent`),
-        fetch(`${KAGENT_API}/api/v1/sessions/kagent`),
-      ]);
+      const agentRes = await fetch(`/api/proxy/apis/kagent.dev/v1alpha1/namespaces/kagent/agents`);
       if (!agentRes.ok) throw new Error(`Agent API ${agentRes.status}`);
-      const agentData   = await agentRes.json();
-      const sessionData = sessionRes.ok ? await sessionRes.json() : [];
-      setAgents(agentData?.agents || agentData || []);
-      setSessions(sessionData?.sessions || sessionData || []);
+      const agentData = await agentRes.json();
+      setAgents(Array.isArray(agentData?.items) ? agentData.items : []);
+
+      // sessions may not exist yet — handle gracefully
+      try {
+        const sessionRes = await fetch(`/api/proxy/apis/kagent.dev/v1alpha1/namespaces/kagent/sessions`);
+        if (sessionRes.ok) {
+          const sessionData = await sessionRes.json();
+          setSessions(Array.isArray(sessionData?.items) ? sessionData.items : []);
+        }
+      } catch { setSessions([]); }
+
       setError(null);
       setLastPoll(new Date().toLocaleTimeString());
     } catch (e) {
@@ -81,7 +86,7 @@ export default function App() {
     return () => clearInterval(t);
   }, []);
 
-  const getAgent = id => agents.find(a => a.name === id || a.metadata?.name === id);
+  const getAgent = id => agents.find(a => a.metadata?.name === id);
   const getPos   = id => AGENTS.find(a => a.id === id);
 
   return (
