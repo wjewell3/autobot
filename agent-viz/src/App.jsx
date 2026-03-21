@@ -1,5 +1,100 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
+function LoginScreen({ onLogin }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const submit = async () => {
+    if (!password.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) {
+        onLogin();
+      } else {
+        setError("Invalid password");
+      }
+    } catch (e) {
+      setError("Connection error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onKey = e => { if (e.key === "Enter") submit(); };
+
+  return (
+    <div style={{
+      background: "#080f1a",
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+    }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');`}</style>
+      <div style={{ textAlign: "center", width: 320 }}>
+        <div style={{ color: "#a78bfa", fontSize: 28, fontWeight: 600, letterSpacing: 4, marginBottom: 8 }}>AUTOBOT</div>
+        <div style={{ color: "#334155", fontSize: 11, letterSpacing: 2, marginBottom: 40 }}>COMMAND CENTER</div>
+        <div style={{
+          background: "#0a1628",
+          border: "1px solid #1e293b",
+          borderRadius: 8,
+          padding: 24,
+        }}>
+          <div style={{ color: "#334155", fontSize: 10, letterSpacing: 1, marginBottom: 12, textAlign: "left" }}>ACCESS CODE</div>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={onKey}
+            autoFocus
+            placeholder="enter password"
+            style={{
+              width: "100%",
+              background: "#0f172a",
+              border: `1px solid ${error ? "#ef4444" : "#1e293b"}`,
+              borderRadius: 6,
+              color: "#e2e8f0",
+              padding: "10px 12px",
+              fontSize: 12,
+              fontFamily: "inherit",
+              boxSizing: "border-box",
+              outline: "none",
+              marginBottom: 12,
+            }}
+          />
+          {error && <div style={{ color: "#ef4444", fontSize: 10, marginBottom: 10, textAlign: "left" }}>{error}</div>}
+          <button
+            onClick={submit}
+            disabled={loading || !password.trim()}
+            style={{
+              width: "100%",
+              background: loading || !password.trim() ? "transparent" : "rgba(99,102,241,0.2)",
+              color: loading || !password.trim() ? "#334155" : "#a78bfa",
+              border: `1px solid ${loading || !password.trim() ? "#1e293b" : "rgba(99,102,241,0.4)"}`,
+              borderRadius: 6,
+              padding: "10px 0",
+              cursor: loading ? "not-allowed" : "pointer",
+              fontFamily: "inherit",
+              fontSize: 12,
+              letterSpacing: 1,
+            }}
+          >
+            {loading ? "AUTHENTICATING..." : "ENTER ▶"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const POLL_MS = 3000;
 const SESSION_POLL_MS = 5000;
 
@@ -132,6 +227,24 @@ function AgentNode({ agent, pos, selected, onClick, sessionData }) {
 }
 
 export default function App() {
+  const [authed, setAuthed] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/proxy/apis/kagent.dev/v1alpha2/namespaces/kagent/agents")
+      .then(r => { setAuthed(r.status !== 401); })
+      .catch(() => setAuthed(false))
+      .finally(() => setCheckingAuth(false));
+  }, []);
+
+  if (checkingAuth) return (
+    <div style={{ background: "#080f1a", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ color: "#334155", fontFamily: "monospace", fontSize: 11, letterSpacing: 2 }}>INITIALIZING...</div>
+    </div>
+  );
+
+  if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
+
   const [agents, setAgents] = useState([]);
   const [error, setError] = useState(null);
   const [lastPoll, setLastPoll] = useState(null);
