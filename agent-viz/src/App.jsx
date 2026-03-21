@@ -226,25 +226,7 @@ function AgentNode({ agent, pos, selected, onClick, sessionData }) {
   );
 }
 
-export default function App() {
-  const [authed, setAuthed] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/proxy/apis/kagent.dev/v1alpha2/namespaces/kagent/agents")
-      .then(r => { setAuthed(r.status !== 401); })
-      .catch(() => setAuthed(false))
-      .finally(() => setCheckingAuth(false));
-  }, []);
-
-  if (checkingAuth) return (
-    <div style={{ background: "#080f1a", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ color: "#334155", fontFamily: "monospace", fontSize: 11, letterSpacing: 2 }}>INITIALIZING...</div>
-    </div>
-  );
-
-  if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
-
+function Dashboard() {
   const [agents, setAgents] = useState([]);
   const [error, setError] = useState(null);
   const [lastPoll, setLastPoll] = useState(null);
@@ -625,4 +607,26 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+export default function App() {
+  const [authed, setAuthed] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/proxy/apis/kagent.dev/v1alpha2/namespaces/kagent/agents")
+      .then(r => { setAuthed(r.status !== 401); })
+      .catch(() => setAuthed(false))
+      .finally(() => setCheckingAuth(false));
+  }, []);
+
+  if (checkingAuth) return (
+    <div style={{ background: "#080f1a", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ color: "#334155", fontFamily: "monospace", fontSize: 11, letterSpacing: 2 }}>INITIALIZING...</div>
+    </div>
+  );
+
+  if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
+
+  return <Dashboard />;
 }
