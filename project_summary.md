@@ -251,12 +251,116 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 
 ---
 
+## Khook — Event-Driven Autonomy
+
+Khook replaces cron-based scheduling with true event-driven agent triggers.
+
+### Khook Install (ARM64 — must build from source)
+khook doesn't publish ARM64 images to ghcr.io — build via GitHub Actions:
+
+```yaml
+# .github/workflows/build-khook.yml
+name: Build khook ARM64
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: kagent-dev/khook
+          ref: main
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ghcr.io/wjewell3/khook:latest
+```
+
+Then install:
+```bash
+TMP_DIR="$(mktemp -d)"
+git clone --depth 1 https://github.com/kagent-dev/khook.git "$TMP_DIR/khook"
+cd "$TMP_DIR/khook"
+make helm-version
+helm install khook-crds ./helm/khook-crds --namespace kagent --create-namespace
+helm install khook ./helm/khook --namespace kagent
+kubectl set image deployment/khook -n kagent manager=ghcr.io/wjewell3/khook:latest
+kubectl set env -n kagent deploy/khook \
+  KAGENT_API_URL=http://kagent-controller.kagent.svc.cluster.local:8083 \
+  KAGENT_USER_ID=admin@kagent.dev
+cd - && rm -rf "$TMP_DIR"
+```
+
+### Supported Event Types
+| Event | Trigger |
+|---|---|
+| `pod-restart` | Pod crashes or restarts |
+| `pod-pending` | Pod stuck in pending |
+| `oom-kill` | Pod killed due to memory |
+| `probe-failed` | Liveness/readiness probe fails |
+| `node-not-ready` | Node goes down |
+
+### Hooks Deployed
+- **agent-self-heal** — commander auto-fixes crashed/OOM agents
+- **agent-registry-sync** — commander patches itself when cluster state changes
+
+### Hook Template
+```yaml
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: <hook-name>
+  namespace: kagent
+spec:
+  eventConfigurations:
+  - eventType: pod-restart
+    agentRef:
+      name: commander-agent
+    prompt: |
+      Pod {{.ResourceName}} restarted at {{.EventTime}}.
+      <instructions for agent>
+```
+
+### Useful Commands
+```bash
+kubectl get hooks -n kagent
+kubectl describe hook <hook-name> -n kagent
+kubectl get events --field-selector involvedObject.kind=Hook -n kagent
+kubectl logs -n kagent deployment/khook
+```
+
+---
+
+## Commander Agent — Self-Updating Autonomous Orchestrator
+
+Commander is configured to:
+- Fetch live agent list at start of every conversation via `k8s_get_resources`
+- Resolve colloquial agent references from live list (no hardcoding)
+- Patch itself after creating/deleting agents via `k8s_patch_resource`
+- Create agents using standard `kagent.dev/v1alpha2` template
+- Always use namespace `kagent`, apiGroup `kagent.dev`
+- Report chain results in exact format: `<agent-name> picked: X` / `final sum: X`
+
+---
+
 ## Next Steps
-- [ ] Test number chain running autonomously via commander-agent
-- [ ] Verify A2A agent delegation works in kagent 0.7.23
-- [ ] Build prospecting agent (scrape Google Maps for businesses)
+- [ ] Build prospecting agent (scrape Google Maps / LinkedIn for businesses)
 - [ ] Build outreach agent (Gmail MCP integration)
 - [ ] Build site builder agent (GitHub Copilot generates sites)
 - [ ] Add business metrics to dashboard (leads found, emails sent, revenue)
-- [ ] Add agent spawn UI to dashboard (create new minions from browser)
-- [ ] Get a real domain for more reliable tunnel (optional)
+- [ ] Enable kagent memory on all agents for cross-session learning
+- [ ] Add webhook support to Khook for external event triggers
+- [ ] Get a real domain for persistent tunnel URL (optional)
