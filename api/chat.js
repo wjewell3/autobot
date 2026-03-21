@@ -5,6 +5,17 @@ const NAMESPACE = "kagent";
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
+  // Auth check
+  const cookies = Object.fromEntries(
+    (req.headers.cookie || "").split(";").filter(Boolean).map(c => {
+      const [k, ...v] = c.trim().split("=");
+      return [k, v.join("=")];
+    })
+  );
+  if (cookies["autobot-auth"] !== process.env.AUTOBOT_PASSWORD) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   const { message, sessionId } = req.body;
   if (!message) return res.status(400).json({ error: "message required" });
 
@@ -24,44 +35,34 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      `${KAGENT_URL}/api/a2a/${NAMESPACE}/${AGENT}`,
+      `${KAGENT_URL}/api/a2a/${NAMESPACE}/${AGENT}/`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "localtonet-skip-warning": "true",
+          "X-API-Secret": process.env.AUTOBOT_API_SECRET,
         },
         body: JSON.stringify(body),
       }
     );
-
     const data = await response.json();
-
-    // Extract text from nested A2A response structure
     const result = data?.result;
     const newSessionId = result?.contextId || result?.sessionId || sessionId;
-
-    // Find the agent reply in history (last agent message)
     const history = result?.history || [];
     const agentMessages = history.filter(m => m.role === "agent");
     const lastAgent = agentMessages[agentMessages.length - 1];
-
-    // Also check artifacts
     const artifacts = result?.artifacts || [];
     const artifactText = artifacts
       .flatMap(a => a.parts || [])
       .filter(p => p.kind === "text")
       .map(p => p.text)
       .join("\n");
-
-    // Get reply from last agent message or artifact
     const msgText = (lastAgent?.parts || [])
       .filter(p => p.kind === "text")
       .map(p => p.text)
       .join("\n");
-
     const reply = artifactText || msgText || "No response";
-
     res.status(200).json({ reply, sessionId: newSessionId });
   } catch (err) {
     console.error("Chat error:", err.message);
