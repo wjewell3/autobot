@@ -1,0 +1,14 @@
+2026-03-19T10:07:46Z	INFO	setup	starting manager
+2026-03-19T10:07:46Z	INFO	controller-runtime.metrics	Starting metrics server
+2026-03-19T10:07:46Z	INFO	setup	disabling http/2
+2026-03-19T10:07:46Z	INFO	starting server	{"name": "health probe", "addr": "[::]:8081"}
+I0319 10:07:46.851215       1 leaderelection.go:257] attempting to acquire leader lease kagent/90217b08.kagent.dev...
+I0319 10:07:46.877776       1 leaderelection.go:271] successfully acquired lease kagent/90217b08.kagent.dev
+2026-03-19T10:07:46Z	DEBUG	events	kagent-kmcp-controller-manager-b8dd8ccfd-hw7lj_35dba377-4288-4485-af16-78d6713656d9 became leader	{"type": "Normal", "object": {"kind":"Lease","namespace":"kagent","name":"90217b08.kagent.dev","uid":"fd08acc7-993f-4558-8049-bc83af9efd7a","apiVersion":"coordination.k8s.io/v1","resourceVersion":"130070"}, "reason": "LeaderElection"}
+2026-03-19T10:07:46Z	INFO	Starting EventSource	{"controller": "mcpserver", "controllerGroup": "kagent.dev", "controllerKind": "MCPServer", "source": "kind source: *v1.ConfigMap"}
+2026-03-19T10:07:46Z	INFO	Starting EventSource	{"controller": "mcpserver", "controllerGroup": "kagent.dev", "controllerKind": "MCPServer", "source": "kind source: *v1alpha1.MCPServer"}
+2026-03-19T10:07:46Z	INFO	Starting EventSource	{"controller": "mcpserver", "controllerGroup": "kagent.dev", "controllerKind": "MCPServer", "source": "kind source: *v1.Deployment"}
+2026-03-19T10:07:46Z	INFO	Starting EventSource	{"controller": "mcpserver", "controllerGroup": "kagent.dev", "controllerKind": "MCPServer", "source": "kind source: *v1.Service"}
+2026-03-19T10:07:47Z	INFO	Starting Controller	{"controller": "mcpserver", "controllerGroup": "kagent.dev", "controllerKind": "MCPServer"}
+2026-03-19T10:07:47Z	INFO	Starting workers	{"controller": "mcpserver", "controllerGroup": "kagent.dev", "controllerKind": "MCPServer", "worker count": 1}
+2026-03-19T10:07:48Z	INFO	controller-runtime.metrics	Serving metrics server	{"bindAddress": ":8443", "secure": true}

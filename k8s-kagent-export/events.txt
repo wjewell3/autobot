@@ -1,0 +1,121 @@
+LAST SEEN   TYPE      REASON                  OBJECT                                        MESSAGE
+59m         Normal    Scheduled               pod/commander-agent-5d5d99d659-44h7s          Successfully assigned kagent/commander-agent-5d5d99d659-44h7s to 10.0.10.201
+59m         Normal    Scheduled               pod/commander-agent-787889d666-58xnh          Successfully assigned kagent/commander-agent-787889d666-58xnh to 10.0.10.201
+53m         Normal    Scheduled               pod/slack-bot-5c5bff4bc5-d24n4                Successfully assigned kagent/slack-bot-5c5bff4bc5-d24n4 to 10.0.10.201
+26m         Normal    Scheduled               pod/slack-bot-5c5bff4bc5-vn4lh                Successfully assigned kagent/slack-bot-5c5bff4bc5-vn4lh to 10.0.10.201
+24m         Normal    Scheduled               pod/slack-bot-d4fcfc4c9-wmg2f                 Successfully assigned kagent/slack-bot-d4fcfc4c9-wmg2f to 10.0.10.201
+21m         Normal    Scheduled               pod/slack-bot-d4fcfc4c9-l68c6                 Successfully assigned kagent/slack-bot-d4fcfc4c9-l68c6 to 10.0.10.201
+23m         Normal    Scheduled               pod/slack-bot-d4fcfc4c9-jqmgs                 Successfully assigned kagent/slack-bot-d4fcfc4c9-jqmgs to 10.0.10.201
+48m         Normal    Scheduled               pod/slack-bot-5c5bff4bc5-7p5xc                Successfully assigned kagent/slack-bot-5c5bff4bc5-7p5xc to 10.0.10.201
+56m         Normal    Scheduled               pod/slack-bot-5c5bff4bc5-67p9t                Successfully assigned kagent/slack-bot-5c5bff4bc5-67p9t to 10.0.10.201
+58m         Normal    Scheduled               pod/slack-bot-b47656fd9-cxqmk                 Successfully assigned kagent/slack-bot-b47656fd9-cxqmk to 10.0.10.201
+59m         Normal    Scheduled               pod/commander-agent-787889d666-bxvkf          Successfully assigned kagent/commander-agent-787889d666-bxvkf to 10.0.10.201
+58m         Normal    Scheduled               pod/commander-agent-5d5d99d659-l7vdd          Successfully assigned kagent/commander-agent-5d5d99d659-l7vdd to 10.0.10.201
+55m         Normal    Scheduled               pod/slack-bot-5c5bff4bc5-8kk8t                Successfully assigned kagent/slack-bot-5c5bff4bc5-8kk8t to 10.0.10.201
+59m         Normal    Pulled                  pod/commander-agent-787889d666-bxvkf          Container image "cr.kagent.dev/kagent-dev/kagent/app:0.7.23" already present on machine
+59m         Normal    SuccessfulCreate        replicaset/commander-agent-787889d666         Created pod: commander-agent-787889d666-bxvkf
+59m         Normal    Created                 pod/commander-agent-787889d666-bxvkf          Created container: kagent
+59m         Normal    Started                 pod/commander-agent-787889d666-bxvkf          Started container kagent
+59m         Normal    ScalingReplicaSet       deployment/commander-agent                    Scaled down replica set commander-agent-787889d666 from 1 to 0
+59m         Normal    Pulled                  pod/commander-agent-787889d666-58xnh          Container image "cr.kagent.dev/kagent-dev/kagent/app:0.7.23" already present on machine
+59m         Normal    Started                 pod/commander-agent-787889d666-58xnh          Started container kagent
+59m         Normal    ScalingReplicaSet       deployment/commander-agent                    Scaled up replica set commander-agent-787889d666 from 0 to 1
+59m         Normal    SuccessfulDelete        replicaset/commander-agent-5d5d99d659         Deleted pod: commander-agent-5d5d99d659-44h7s
+59m         Normal    SuccessfulCreate        replicaset/commander-agent-5d5d99d659         Created pod: commander-agent-5d5d99d659-44h7s
+59m         Normal    SuccessfulCreate        replicaset/commander-agent-787889d666         Created pod: commander-agent-787889d666-58xnh
+59m         Normal    SuccessfulDelete        replicaset/commander-agent-787889d666         Deleted pod: commander-agent-787889d666-bxvkf
+59m         Normal    Created                 pod/commander-agent-787889d666-58xnh          Created container: kagent
+59m         Normal    Killing                 pod/commander-agent-787889d666-bxvkf          Stopping container kagent
+58m         Normal    ScalingReplicaSet       deployment/commander-agent                    Scaled down replica set commander-agent-6bc56758c6 from 1 to 0
+58m         Normal    Killing                 pod/commander-agent-6bc56758c6-g8m6k          Stopping container kagent
+58m         Normal    SuccessfulDelete        replicaset/commander-agent-6bc56758c6         Deleted pod: commander-agent-6bc56758c6-g8m6k
+58m         Normal    ScalingReplicaSet       deployment/commander-agent                    Scaled up replica set commander-agent-5d5d99d659 from 0 to 1
+58m         Normal    Pulled                  pod/commander-agent-5d5d99d659-l7vdd          Container image "cr.kagent.dev/kagent-dev/kagent/app:0.7.23" already present on machine
+58m         Normal    ScalingReplicaSet       deployment/commander-agent                    Scaled down replica set commander-agent-5d5d99d659 from 1 to 0
+58m         Normal    SuccessfulCreate        replicaset/commander-agent-5d5d99d659         Created pod: commander-agent-5d5d99d659-l7vdd
+58m         Normal    SuccessfulDelete        replicaset/commander-agent-5d5d99d659         Deleted pod: commander-agent-5d5d99d659-l7vdd
+58m         Normal    Created                 pod/commander-agent-5d5d99d659-l7vdd          Created container: kagent
+58m         Normal    Started                 pod/commander-agent-5d5d99d659-l7vdd          Started container kagent
+58m         Normal    Killing                 pod/commander-agent-5d5d99d659-l7vdd          Stopping container kagent
+58m         Normal    SuccessfulCreate        replicaset/slack-bot-b47656fd9                Created pod: slack-bot-b47656fd9-cxqmk
+58m         Normal    Killing                 pod/slack-bot-b47656fd9-22dgv                 Stopping container bot
+57m         Warning   AgentCallFailure        hook/agent-registry-sync                      Failed to call agent commander-agent for event pod-restart on resource slack-bot-b47656fd9-cxqmk: failed to create session: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/sessions?user_id=admin%40kagent.dev": context canceled
+56m         Normal    Created                 pod/slack-bot-b47656fd9-cxqmk                 Created container: bot
+56m         Normal    Started                 pod/slack-bot-b47656fd9-cxqmk                 Started container bot
+56m         Normal    Pulled                  pod/slack-bot-b47656fd9-cxqmk                 Container image "docker.io/python:3.12-slim" already present on machine
+56m         Warning   BackOff                 pod/slack-bot-b47656fd9-cxqmk                 Back-off restarting failed container bot in pod slack-bot-b47656fd9-cxqmk_kagent(9acfce25-a6b9-4573-88cc-409c76e719bf)
+56m         Normal    SuccessfulCreate        replicaset/slack-bot-5c5bff4bc5               Created pod: slack-bot-5c5bff4bc5-67p9t
+56m         Normal    ScalingReplicaSet       deployment/slack-bot                          Scaled up replica set slack-bot-5c5bff4bc5 from 0 to 1
+56m         Normal    ScalingReplicaSet       deployment/slack-bot                          Scaled down replica set slack-bot-b47656fd9 from 1 to 0
+56m         Normal    SuccessfulDelete        replicaset/slack-bot-b47656fd9                Deleted pod: slack-bot-b47656fd9-cxqmk
+55m         Normal    Pulled                  pod/slack-bot-5c5bff4bc5-67p9t                Container image "docker.io/python:3.12-slim" already present on machine
+55m         Normal    Started                 pod/slack-bot-5c5bff4bc5-67p9t                Started container bot
+55m         Normal    Created                 pod/slack-bot-5c5bff4bc5-67p9t                Created container: bot
+55m         Normal    SuccessfulCreate        replicaset/slack-bot-5c5bff4bc5               Created pod: slack-bot-5c5bff4bc5-8kk8t
+55m         Normal    Killing                 pod/slack-bot-5c5bff4bc5-67p9t                Stopping container bot
+55m         Normal    EventFiring             hook/agent-self-heal                          Event pod-restart fired for resource slack-bot-5c5bff4bc5-8kk8t, calling agent commander-agent
+54m         Normal    Started                 pod/slack-bot-5c5bff4bc5-8kk8t                Started container bot
+54m         Normal    Created                 pod/slack-bot-5c5bff4bc5-8kk8t                Created container: bot
+54m         Normal    Pulled                  pod/slack-bot-5c5bff4bc5-8kk8t                Container image "docker.io/python:3.12-slim" already present on machine
+54m         Normal    EventFiring             hook/agent-registry-sync                      Event pod-restart fired for resource slack-bot-5c5bff4bc5-8kk8t, calling agent commander-agent
+54m         Warning   AgentCallFailure        hook/agent-registry-sync                      Failed to call agent commander-agent for event pod-restart on resource slack-bot-5c5bff4bc5-8kk8t: failed to create session: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/sessions?user_id=admin%40kagent.dev": context canceled
+54m         Warning   AgentCallFailure        hook/agent-self-heal                          Failed to call agent commander-agent for event pod-restart on resource slack-bot-5c5bff4bc5-8kk8t: failed to send A2A message: a2aClient.SendMessage: a2aClient.doRequest: http request failed: a2aClient.httpRequestHandler: http request failed: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/commander-agent/": context canceled
+53m         Warning   BackOff                 pod/slack-bot-5c5bff4bc5-8kk8t                Back-off restarting failed container bot in pod slack-bot-5c5bff4bc5-8kk8t_kagent(107cc3be-2347-42a3-9459-84f512ee2f5c)
+53m         Normal    Pulled                  pod/slack-bot-5c5bff4bc5-d24n4                Container image "docker.io/python:3.12-slim" already present on machine
+53m         Normal    SuccessfulCreate        replicaset/slack-bot-5c5bff4bc5               Created pod: slack-bot-5c5bff4bc5-d24n4
+53m         Normal    Created                 pod/slack-bot-5c5bff4bc5-d24n4                Created container: bot
+53m         Normal    Started                 pod/slack-bot-5c5bff4bc5-d24n4                Started container bot
+49m         Normal    DuplicateEventIgnored   hook/agent-self-heal                          Duplicate event pod-restart ignored for resource slack-bot-b47656fd9-cxqmk (within deduplication window)
+48m         Normal    Pulled                  pod/slack-bot-5c5bff4bc5-7p5xc                Container image "docker.io/python:3.12-slim" already present on machine
+48m         Normal    Killing                 pod/slack-bot-5c5bff4bc5-d24n4                Stopping container bot
+48m         Normal    SuccessfulCreate        replicaset/slack-bot-5c5bff4bc5               Created pod: slack-bot-5c5bff4bc5-7p5xc
+48m         Normal    Started                 pod/slack-bot-5c5bff4bc5-7p5xc                Started container bot
+48m         Normal    Created                 pod/slack-bot-5c5bff4bc5-7p5xc                Created container: bot
+47m         Normal    EventFiring             hook/agent-registry-sync                      Event pod-restart fired for resource slack-bot-b47656fd9-cxqmk, calling agent commander-agent
+46m         Normal    AgentCallSuccess        hook/agent-registry-sync                      Successfully called agent commander-agent for event pod-restart on resource slack-bot-b47656fd9-cxqmk (request: ctx-8005a605-7480-4d81-a5f0-d630be91bfd3)
+46m         Warning   AgentCallFailure        hook/agent-self-heal                          Failed to call agent commander-agent for event pod-restart on resource slack-bot-b47656fd9-cxqmk: failed to send A2A message: a2aClient.SendMessage: a2aClient.doRequest: http request failed: a2aClient.httpRequestHandler: http request failed: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/commander-agent/": context canceled
+46m         Normal    DuplicateEventIgnored   hook/agent-self-heal                          Duplicate event pod-restart ignored for resource slack-bot-5c5bff4bc5-8kk8t (within deduplication window)
+46m         Normal    EventFiring             hook/agent-self-heal                          Event pod-restart fired for resource slack-bot-b47656fd9-cxqmk, calling agent commander-agent
+46m         Normal    DuplicateEventIgnored   hook/agent-registry-sync                      Duplicate event pod-restart ignored for resource slack-bot-5c5bff4bc5-8kk8t (within deduplication window)
+46m         Normal    AgentCallSuccess        hook/agent-self-heal                          Successfully called agent commander-agent for event pod-restart on resource slack-bot-b47656fd9-cxqmk (request: ctx-ca49a540-779d-4613-bedd-727fa1a08f52)
+46m         Normal    DuplicateEventIgnored   hook/agent-registry-sync                      Duplicate event pod-restart ignored for resource slack-bot-b47656fd9-cxqmk (within deduplication window)
+28m         Normal    Pulled                  pod/commander-tools-watcher-cc9ff4967-pmhrb   Successfully pulled image "docker.io/bitnami/kubectl:latest" in 411ms (411ms including waiting). Image size: 204475069 bytes.
+28m         Normal    Started                 pod/commander-tools-watcher-cc9ff4967-pmhrb   Started container watcher
+28m         Normal    Created                 pod/commander-tools-watcher-cc9ff4967-pmhrb   Created container: watcher
+28m         Normal    Pulling                 pod/commander-tools-watcher-cc9ff4967-pmhrb   Pulling image "docker.io/bitnami/kubectl:latest"
+26m         Normal    Killing                 pod/slack-bot-5c5bff4bc5-7p5xc                Stopping container bot
+26m         Normal    SuccessfulCreate        replicaset/slack-bot-5c5bff4bc5               Created pod: slack-bot-5c5bff4bc5-vn4lh
+25m         Warning   AgentCallFailure        hook/agent-registry-sync                      Failed to call agent commander-agent for event pod-restart on resource slack-bot-5c5bff4bc5-vn4lh: failed to create session: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/sessions?user_id=admin%40kagent.dev": context canceled
+25m         Warning   AgentCallFailure        hook/agent-self-heal                          Failed to call agent commander-agent for event pod-restart on resource slack-bot-5c5bff4bc5-vn4lh: failed to send A2A message: a2aClient.SendMessage: a2aClient.doRequest: http request failed: a2aClient.httpRequestHandler: http request failed: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/commander-agent/": context canceled
+25m         Normal    Started                 pod/slack-bot-5c5bff4bc5-vn4lh                Started container bot
+25m         Normal    Created                 pod/slack-bot-5c5bff4bc5-vn4lh                Created container: bot
+25m         Normal    Pulled                  pod/slack-bot-5c5bff4bc5-vn4lh                Container image "docker.io/python:3.12-slim" already present on machine
+24m         Normal    ScalingReplicaSet       deployment/slack-bot                          Scaled up replica set slack-bot-d4fcfc4c9 from 0 to 1
+24m         Normal    SuccessfulCreate        replicaset/slack-bot-d4fcfc4c9                Created pod: slack-bot-d4fcfc4c9-wmg2f
+24m         Normal    Started                 pod/slack-bot-d4fcfc4c9-wmg2f                 Started container bot
+24m         Normal    SuccessfulDelete        replicaset/slack-bot-5c5bff4bc5               Deleted pod: slack-bot-5c5bff4bc5-vn4lh
+24m         Normal    ScalingReplicaSet       deployment/slack-bot                          Scaled down replica set slack-bot-5c5bff4bc5 from 1 to 0
+24m         Normal    Pulled                  pod/slack-bot-d4fcfc4c9-wmg2f                 Container image "docker.io/python:3.12-slim" already present on machine
+24m         Warning   BackOff                 pod/slack-bot-5c5bff4bc5-vn4lh                Back-off restarting failed container bot in pod slack-bot-5c5bff4bc5-vn4lh_kagent(84d49353-c736-4f52-b144-2bfa1b0f2f71)
+24m         Normal    Created                 pod/slack-bot-d4fcfc4c9-wmg2f                 Created container: bot
+23m         Normal    SuccessfulCreate        replicaset/slack-bot-d4fcfc4c9                Created pod: slack-bot-d4fcfc4c9-jqmgs
+23m         Normal    Pulled                  pod/slack-bot-d4fcfc4c9-jqmgs                 Container image "docker.io/python:3.12-slim" already present on machine
+23m         Normal    Killing                 pod/slack-bot-d4fcfc4c9-wmg2f                 Stopping container bot
+23m         Normal    Created                 pod/slack-bot-d4fcfc4c9-jqmgs                 Created container: bot
+23m         Normal    Started                 pod/slack-bot-d4fcfc4c9-jqmgs                 Started container bot
+22m         Normal    DuplicateEventIgnored   hook/agent-registry-sync                      Duplicate event pod-restart ignored for resource slack-bot-5c5bff4bc5-vn4lh (within deduplication window)
+22m         Normal    DuplicateEventIgnored   hook/agent-self-heal                          Duplicate event pod-restart ignored for resource slack-bot-5c5bff4bc5-vn4lh (within deduplication window)
+21m         Normal    Pulled                  pod/slack-bot-d4fcfc4c9-l68c6                 Container image "docker.io/python:3.12-slim" already present on machine
+21m         Normal    Killing                 pod/slack-bot-d4fcfc4c9-jqmgs                 Stopping container bot
+21m         Normal    SuccessfulCreate        replicaset/slack-bot-d4fcfc4c9                Created pod: slack-bot-d4fcfc4c9-l68c6
+21m         Normal    Created                 pod/slack-bot-d4fcfc4c9-l68c6                 Created container: bot
+21m         Normal    Started                 pod/slack-bot-d4fcfc4c9-l68c6                 Started container bot
+13m         Warning   AgentCallFailure        hook/agent-self-heal                          Failed to call agent commander-agent for event pod-restart on resource slack-bot-5c5bff4bc5-vn4lh: failed to create session: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/sessions?user_id=admin%40kagent.dev": context canceled
+13m         Normal    EventFiring             hook/agent-self-heal                          Event pod-restart fired for resource slack-bot-5c5bff4bc5-vn4lh, calling agent commander-agent
+13m         Warning   AgentCallFailure        hook/agent-registry-sync                      Failed to call agent commander-agent for event pod-restart on resource slack-bot-5c5bff4bc5-vn4lh: failed to send A2A message: a2aClient.SendMessage: a2aClient.doRequest: http request failed: a2aClient.httpRequestHandler: http request failed: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/commander-agent/": context canceled
+12m         Warning   AgentCallFailure        hook/agent-self-heal                          Failed to call agent commander-agent for event pod-restart on resource slack-bot-5c5bff4bc5-vn4lh: failed to send A2A message: a2aClient.SendMessage: a2aClient.doRequest: http request failed: a2aClient.httpRequestHandler: http request failed: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/commander-agent/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+12m         Normal    EventFiring             hook/agent-registry-sync                      Event pod-restart fired for resource slack-bot-5c5bff4bc5-vn4lh, calling agent commander-agent
+9m58s       Warning   Failed                  pod/curl-test                                 Failed to pull image "curlimages/curl": short name mode is enforcing, but image name curlimages/curl:latest returns ambiguous list
+9m58s       Normal    Pulling                 pod/curl-test                                 Pulling image "curlimages/curl"
+5m3s        Warning   Failed                  pod/curl-test                                 Error: ImagePullBackOff
+5m3s        Normal    BackOff                 pod/curl-test                                 Back-off pulling image "curlimages/curl"

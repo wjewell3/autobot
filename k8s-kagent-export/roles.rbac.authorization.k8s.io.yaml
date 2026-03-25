@@ -1,0 +1,104 @@
+apiVersion: v1
+items:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: kagent
+      meta.helm.sh/release-namespace: kagent
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: kmcp
+      app.kubernetes.io/version: 0.2.7
+      control-plane: controller-manager
+      helm.sh/chart: kmcp-0.2.7
+    name: kagent-kmcp-leader-election-role
+    namespace: kagent
+    resourceVersion: "129842"
+    uid: 2ef6175c-898b-4d41-9c20-f32a6f356bd1
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+  - apiGroups:
+    - coordination.k8s.io
+    resources:
+    - leases
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: khook
+      meta.helm.sh/release-namespace: kagent
+    creationTimestamp: "2026-03-21T00:04:14Z"
+    labels:
+      app.kubernetes.io/instance: khook
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: khook
+      app.kubernetes.io/version: v0.0.0-9c3ffe6
+      helm.sh/chart: khook-v0.0.0-9c3ffe6
+    name: khook-leader-election-role
+    namespace: kagent
+    resourceVersion: "818533"
+    uid: 59546e24-bb8f-4430-b608-577924838ebf
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+  - apiGroups:
+    - coordination.k8s.io
+    resources:
+    - leases
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+kind: List
+metadata:
+  resourceVersion: ""

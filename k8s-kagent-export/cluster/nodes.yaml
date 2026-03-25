@@ -1,0 +1,265 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Node
+  metadata:
+    annotations:
+      alpha.kubernetes.io/provided-node-ip: 10.0.10.201
+      csi.volume.kubernetes.io/nodeid: '{"blockvolume.csi.oraclecloud.com":"10.0.10.201","fss.csi.oraclecloud.com":"10.0.10.201","lustre.csi.oraclecloud.com":"10.0.10.201"}'
+      flannel.alpha.coreos.com/backend-data: '{"VNI":1,"VtepMAC":"5a:65:8a:f4:06:64"}'
+      flannel.alpha.coreos.com/backend-type: vxlan
+      flannel.alpha.coreos.com/kube-subnet-manager: "true"
+      flannel.alpha.coreos.com/public-ip: 10.0.10.201
+      node.alpha.kubernetes.io/ttl: "0"
+      oci.oraclecloud.com/compartment-id: ocid1.compartment.oc1..aaaaaaaam3w2feohycyqw4bir76dsc4dlx632rvqswxdqzfz7m5ic7ounwba
+      oci.oraclecloud.com/node-pool-id: ocid1.nodepool.oc1.iad.aaaaaaaauamzert7jmxpxz73m36wi24qdbv2o6aosyhxcp5hpnno3zv3jrvq
+      volumes.kubernetes.io/controller-managed-attach-detach: "true"
+    creationTimestamp: "2026-03-19T02:13:13Z"
+    labels:
+      beta.kubernetes.io/arch: arm64
+      beta.kubernetes.io/instance-type: VM.Standard.A1.Flex
+      beta.kubernetes.io/os: linux
+      displayName: oke-cb2fxz6ry3q-nno3zv3jrvq-su6tgxwdahq-0
+      failure-domain.beta.kubernetes.io/region: iad
+      failure-domain.beta.kubernetes.io/zone: US-ASHBURN-AD-1
+      hostname: oke-cb2fxz6ry3q-nno3zv3jrvq-su6tgxwdahq-0
+      internal_addr: 10.0.10.201
+      kubernetes.io/arch: arm64
+      kubernetes.io/hostname: 10.0.10.201
+      kubernetes.io/os: linux
+      last-migration-failure: get_kubesvc_failure
+      name: pool1
+      node-role.kubernetes.io/node: ""
+      node.info.ds_proxymux_client: "true"
+      node.info/compartment.id: aaaaaaaam3w2feohycyqw4bir76dsc4dlx632rvqswxdqzfz7m5ic7ounwba
+      node.info/compartment.name: willjewell
+      node.info/kubeletVersion: v1.34
+      node.kubernetes.io/instance-type: VM.Standard.A1.Flex
+      oci.oraclecloud.com/fault-domain: FAULT-DOMAIN-1
+      oci.oraclecloud.com/host.id: 18704a291fd
+      oci.oraclecloud.com/host.rack_id: 2dc60b0f52d
+      oci.oraclecloud.com/ip-family-ipv4: "true"
+      oci.oraclecloud.com/ip-family-preferred: ipv4
+      oci.oraclecloud.com/node.info.managed: "true"
+      oke.oraclecloud.com/node.info.private_subnet: "true"
+      oke.oraclecloud.com/node.info.private_worker: "true"
+      topology.kubernetes.io/region: iad
+      topology.kubernetes.io/zone: US-ASHBURN-AD-1
+    name: 10.0.10.201
+    resourceVersion: "2781650"
+    uid: cd98cf78-5c4b-47e6-8abd-b656fb17309d
+  spec:
+    podCIDR: 10.244.0.0/25
+    podCIDRs:
+    - 10.244.0.0/25
+    providerID: ocid1.instance.oc1.iad.anuwcljtprehxeycwgntwis23vr3eyk74od7vwfcd76hdmexrhvxcicurl3a
+  status:
+    addresses:
+    - address: 10.0.10.201
+      type: InternalIP
+    - address: 10.0.10.201
+      type: Hostname
+    allocatable:
+      cpu: 3815m
+      ephemeral-storage: "34211679381"
+      hugepages-1Gi: "0"
+      hugepages-2Mi: "0"
+      hugepages-32Mi: "0"
+      hugepages-64Ki: "0"
+      memory: 20936292Ki
+      pods: "110"
+    capacity:
+      cpu: "4"
+      ephemeral-storage: 36252Mi
+      hugepages-1Gi: "0"
+      hugepages-2Mi: "0"
+      hugepages-32Mi: "0"
+      hugepages-64Ki: "0"
+      memory: 24286820Ki
+      pods: "110"
+    conditions:
+    - lastHeartbeatTime: "2026-03-19T02:13:36Z"
+      lastTransitionTime: "2026-03-19T02:13:36Z"
+      message: Flannel is running on this node
+      reason: FlannelIsUp
+      status: "False"
+      type: NetworkUnavailable
+    - lastHeartbeatTime: "2026-03-25T01:44:53Z"
+      lastTransitionTime: "2026-03-19T02:13:13Z"
+      message: kubelet has sufficient memory available
+      reason: KubeletHasSufficientMemory
+      status: "False"
+      type: MemoryPressure
+    - lastHeartbeatTime: "2026-03-25T01:44:53Z"
+      lastTransitionTime: "2026-03-19T02:13:13Z"
+      message: kubelet has no disk pressure
+      reason: KubeletHasNoDiskPressure
+      status: "False"
+      type: DiskPressure
+    - lastHeartbeatTime: "2026-03-25T01:44:53Z"
+      lastTransitionTime: "2026-03-19T02:13:13Z"
+      message: kubelet has sufficient PID available
+      reason: KubeletHasSufficientPID
+      status: "False"
+      type: PIDPressure
+    - lastHeartbeatTime: "2026-03-25T01:44:53Z"
+      lastTransitionTime: "2026-03-19T02:13:34Z"
+      message: kubelet is posting ready status
+      reason: KubeletReady
+      status: "True"
+      type: Ready
+    daemonEndpoints:
+      kubeletEndpoint:
+        Port: 10250
+    features:
+      supplementalGroupsPolicy: true
+    images:
+    - names:
+      - ghcr.io/berriai/litellm@sha256:48fbad5dfd885f7e59a20a2e671c38175aa3251fcb91ed0e9c82f65dda66c25c
+      - ghcr.io/berriai/litellm@sha256:d6580beba82a69e4cfb6598c300b7c524d9ea6f67592226fdec7f6a9aba34eb2
+      - ghcr.io/berriai/litellm:main-latest
+      sizeBytes: 1928207913
+    - names:
+      - ghcr.io/kagent-dev/doc2vec/mcp@sha256:3e3d9b0f9da7edbd7397ffd58cbc79018e70ca45e378dd4257dc6304ecc2ca9c
+      - ghcr.io/kagent-dev/doc2vec/mcp@sha256:ace1de323f4abfe93865d558b47613ac4091df63f2045ef3210c6dd391d72f6b
+      - ghcr.io/kagent-dev/doc2vec/mcp:1.1.14
+      sizeBytes: 1429951412
+    - names:
+      - cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b
+      - cr.kagent.dev/kagent-dev/kagent/app@sha256:af3c0700e711f023b264bab8337782692b470f29d76888929b3aa09e54f2bc9c
+      - cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      sizeBytes: 1162301494
+    - names:
+      - ghcr.io/kagent-dev/kagent/tools@sha256:4ca0ebd304a35588305e55dc00e5da90c1230d54ed70a2f73a2826274398907b
+      - ghcr.io/kagent-dev/kagent/tools@sha256:f00000902ec5300fd60b533e6de05b05939c3d348e1a2f712580a9fcb4a7d362
+      - ghcr.io/kagent-dev/kagent/tools:0.1.1
+      sizeBytes: 565148816
+    - names:
+      - iad.ocir.io/id9y6mi8tcky/oke-public-kube-proxy@sha256:589b28af65013bb9e8383863f1c3109a788b1e7dc05de4a3d13d09ed578699b6
+      - iad.ocir.io/id9y6mi8tcky/oke-public-kube-proxy@sha256:b104c2284a02c85c02350bad6a82eeca5d250781bfe06d29b6cc16685d6fc7ea
+      sizeBytes: 515749413
+    - names:
+      - iad.ocir.io/id9y6mi8tcky/oke-public-flannel@sha256:1d40a538acef1404c92dca16e297265eeedbb517e69c91b1b66d0e5f0a2d0805
+      - iad.ocir.io/id9y6mi8tcky/oke-public-flannel@sha256:aaf37ee755ef5ccbfc0104b5f4cc223b5e7e42e18d26a5ba6725dab3c1e6a1cb
+      sizeBytes: 404552537
+    - names:
+      - cr.kagent.dev/kagent-dev/kagent/ui@sha256:188ce841ddf6a0239328f4f48f9e1559265bfe4f79a3aae207d30b1e3da4c485
+      - cr.kagent.dev/kagent-dev/kagent/ui@sha256:459aaf6bab62062349a264bc4794dd31c831adb2f0ea87240efe54b1ce2c9935
+      - cr.kagent.dev/kagent-dev/kagent/ui:0.7.23
+      sizeBytes: 354039284
+    - names:
+      - iad.ocir.io/id9y6mi8tcky/oke-public-coredns@sha256:a06d114809ddfc09b6678c0e525126761db0e7fa7edc370560704d5a9bde81ec
+      - iad.ocir.io/id9y6mi8tcky/oke-public-coredns@sha256:e32e8482ef16dbfd86896ece95e81111d5cb110811a65c3ce85df0ce2b69ca17
+      sizeBytes: 273062117
+    - names:
+      - iad.ocir.io/axoxdievda5j/oke-public-pause@sha256:7e1803cfb8217d732f1a701c55625d2abb901e1d478b676bf2af5fa8abdb5140
+      - iad.ocir.io/axoxdievda5j/oke-public-pause@sha256:e76f34ee4bae0bbe7e3072cb48bbff009541b9756df6f356bb80b68436afa8af
+      sizeBytes: 271807992
+    - names:
+      - iad.ocir.io/id9y6mi8tcky/oke-public-cluster-proportional-autoscaler-amd64@sha256:1908914e0c9055edd754a633de2a37fd6811a64565317f2f44bf4adea85f0654
+      - iad.ocir.io/id9y6mi8tcky/oke-public-cluster-proportional-autoscaler-amd64@sha256:450f1a0e08d0249eaab3465adfb46954ee1e97fb903e454259f5b2b527821c29
+      sizeBytes: 269323411
+    - names:
+      - docker.io/searxng/searxng@sha256:a3f5331c79c581fc377adcc7abe8ada57a301a929102ce46fcb7f42ec9defa3f
+      - docker.io/searxng/searxng@sha256:b6db575bb821d35279474090270db9e53e92432a66d19e7da51c0ef1b5ddb806
+      - docker.io/searxng/searxng:latest
+      sizeBytes: 265162919
+    - names:
+      - iad.ocir.io/axoxdievda5j/oke-public-cloud-provider-oci@sha256:1fbf5f93975972f8d11bbdf4337965fbe0c1bff5c177c2e2a732567ef32f75f9
+      - iad.ocir.io/axoxdievda5j/oke-public-cloud-provider-oci@sha256:4002270eedee064ebb4e43ba363e2c9003c6636222dd66105aad650c89994a88
+      sizeBytes: 262356401
+    - names:
+      - iad.ocir.io/axoxdievda5j/oke-public-proxymux-cli@sha256:2f9a588ae7981d5fc4a7f0a4b45192a0431150528222b75ba756f8fc1a838017
+      - iad.ocir.io/axoxdievda5j/oke-public-proxymux-cli@sha256:866d637f98a0e5451816d6992f90571e95d638d49636dbb7d9eaee873fb122f0
+      sizeBytes: 260439419
+    - names:
+      - docker.io/localtonet/localtonet@sha256:e4a04658b436f59ab332b2c89ff9568888bce142626bfbd9fb82360b086f58d8
+      - docker.io/localtonet/localtonet:latest
+      sizeBytes: 251336776
+    - names:
+      - docker.io/ngrok/ngrok@sha256:6e3453aa1d7018327b4486240243a1ff8a0c3b1bc40f3951a03d614ef104ce8d
+      - docker.io/ngrok/ngrok@sha256:de80ead6e060dc3b12ce8c6af51accd545d377054604b6c4603006ae71a62396
+      - docker.io/ngrok/ngrok:latest
+      sizeBytes: 237129611
+    - names:
+      - docker.io/bitnami/kubectl@sha256:3a8ef2eba6186625bef5d59129e8118abeba5072d104c6f03e3167a9b1070ae2
+      sizeBytes: 206086737
+    - names:
+      - docker.io/bitnami/kubectl@sha256:7fc66a99e38500a5ceb81583856f89ee589bdffd885c895e42a76dce45a3bc73
+      sizeBytes: 206086734
+    - names:
+      - docker.io/bitnami/kubectl@sha256:bbaacd3e8a863f057b0e54bad421ffbe8a52caca0b05fd824f5847a0088b7ea9
+      - docker.io/bitnami/kubectl@sha256:f6dd048d1c14d89ede9636cd6bee0ff0238579c33ea1e51b2fb1a1cfd62ea246
+      - docker.io/bitnami/kubectl:latest
+      sizeBytes: 204475069
+    - names:
+      - docker.io/library/python@sha256:77411cf6fbec5540a8b956963f5d6e969d304cfee24fed7c0ef42f22c49e608a
+      - docker.io/library/python@sha256:9358444059ed78e2975ada2c189f1c1a3144a5dab6f35bff8c981afb38946634
+      - docker.io/library/python:3.11-slim
+      sizeBytes: 154294690
+    - names:
+      - docker.io/library/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+      - docker.io/library/python@sha256:6294405dc2a6612366092848c41c2ec7f9ba7368b618ee707dcf7f75c1d07830
+      - docker.io/library/python:3.12-slim
+      sizeBytes: 148536913
+    - names:
+      - cr.kagent.dev/kagent-dev/kagent/controller@sha256:07ae55806f8803896b51a54f7302fcf1557602403ca7d8cc03914a237df9f068
+      - cr.kagent.dev/kagent-dev/kagent/controller@sha256:bdbc1a8f974cf93e6df30b1c0e6dc2d763fb8603de8b49dec61d50e0acc5b7ec
+      - cr.kagent.dev/kagent-dev/kagent/controller:0.7.23
+      sizeBytes: 135151909
+    - names:
+      - ghcr.io/wjewell3/khook@sha256:50b861d43476b88340505b63132af995fb1977bd7af02c6979b13bf8dc0421c1
+      - ghcr.io/wjewell3/khook@sha256:a0eb878a39c51cb025f2acb6e33d76c7a17ecabcfb4e3a477a6967c46d9f338f
+      - ghcr.io/wjewell3/khook:latest
+      sizeBytes: 87465117
+    - names:
+      - ghcr.io/kagent-dev/kmcp/controller@sha256:22ee8c4a914ff8275e45d9d0948a823559955f3bed00e19a6ee1d0f83f1b1478
+      - ghcr.io/kagent-dev/kmcp/controller@sha256:5161c682e4603c4c3ad50d62e5b300a639f4dfc2a76f08871324e43ccb1b1c00
+      - ghcr.io/kagent-dev/kmcp/controller:0.2.7
+      sizeBytes: 74660414
+    - names:
+      - docker.io/cloudflare/cloudflared@sha256:f10ac1210d17d75b7cf4c6290d1f485852c92af5dbc0f6fd6883f880a66d6d01
+      - docker.io/cloudflare/cloudflared:latest-arm64
+      sizeBytes: 73587521
+    - names:
+      - docker.io/library/ubuntu@sha256:ce4a593b4e323dcc3dd728e397e0a866a1bf516a1b7c31d6aa06991baec4f2e0
+      - docker.io/library/ubuntu@sha256:fcdf7cc9fa6d44e638c5c2b0896cb6d482ed8c266991503b343982f3deb7fc5d
+      - docker.io/library/ubuntu:22.04
+      sizeBytes: 71969402
+    - names:
+      - docker.io/library/nginx@sha256:59dfef79926174d0e2c5eafdd13521fb1b8871522da11f26d3af8d5c50a402cf
+      - docker.io/library/nginx@sha256:f46cb72c7df02710e693e863a983ac42f6a9579058a59a35f1ae36c9958e4ce0
+      - docker.io/library/nginx:alpine
+      sizeBytes: 62989840
+    - names:
+      - docker.io/curlimages/curl@sha256:48efbba753c4c5f2ecb9080106da07c0bf19b7fdd066e2b1b46dcdc15b5e544b
+      - docker.io/curlimages/curl@sha256:d94d07ba9e7d6de898b6d96c1a072f6f8266c687af78a74f380087a0addf5d17
+      - docker.io/curlimages/curl:latest
+      sizeBytes: 26709603
+    nodeInfo:
+      architecture: arm64
+      bootID: 9912def9-5b2b-48ba-b193-2943777ad8da
+      containerRuntimeVersion: cri-o://1.34.0-66.1c4616d3c11.el8
+      kernelVersion: 5.15.0-316.196.4.1.el8uek.aarch64
+      kubeProxyVersion: ""
+      kubeletVersion: v1.34.2
+      machineID: c820c740e9154dd4a70018443d8632dc
+      operatingSystem: linux
+      osImage: Oracle Linux Server 8.10
+      systemUUID: c820c740-e915-4dd4-a700-18443d8632dc
+    runtimeHandlers:
+    - features:
+        recursiveReadOnlyMounts: true
+        userNamespaces: true
+      name: crun
+    - features:
+        recursiveReadOnlyMounts: true
+        userNamespaces: true
+      name: runc
+    - features:
+        recursiveReadOnlyMounts: true
+        userNamespaces: true
+      name: ""
+kind: List
+metadata:
+  resourceVersion: ""

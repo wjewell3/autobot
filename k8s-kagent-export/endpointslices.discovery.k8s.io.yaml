@@ -1,0 +1,1190 @@
+apiVersion: v1
+items:
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.30
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: approval-server-575f5b47f-cmqkt
+      namespace: kagent
+      uid: b304257e-d426-4c61-90b9-5f02711fddde
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-22T01:40:46Z"
+    creationTimestamp: "2026-03-22T01:26:47Z"
+    generateName: approval-server-
+    generation: 5
+    labels:
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kubernetes.io/service-name: approval-server
+    name: approval-server-tbt4s
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: approval-server
+      uid: d5e71d87-b09e-4bd5-9df9-4defc4dfbf9d
+    resourceVersion: "1334842"
+    uid: 61c2c68b-1e5b-4cb1-9f95-d8abf8eff3f0
+  ports:
+  - name: ""
+    port: 8089
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.37
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: commander-agent-787889d666-58xnh
+      namespace: kagent
+      uid: c12496da-511c-4fe9-80ba-2bed3b2b8f7f
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-25T00:47:14Z"
+    creationTimestamp: "2026-03-23T13:55:46Z"
+    generateName: commander-agent-
+    generation: 29
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: commander-agent
+      app.kubernetes.io/part-of: kagent
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kagent: commander-agent
+      kubernetes.io/service-name: commander-agent
+    name: commander-agent-lskjc
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: commander-agent
+      uid: e01697bc-3ace-4307-b20d-084d69c3687f
+    resourceVersion: "2762074"
+    uid: 7dc92031-e7d3-4125-8b72-cdb88493c3db
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.29
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: cors-proxy-58dd99c5bb-jtx7l
+      namespace: kagent
+      uid: 72b7dbba-d3ea-4af5-99d0-89d819b80dee
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-22T01:33:22Z"
+    creationTimestamp: "2026-03-19T18:20:26Z"
+    generateName: cors-proxy-
+    generation: 41
+    labels:
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kubernetes.io/service-name: cors-proxy
+    name: cors-proxy-xghl8
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: cors-proxy
+      uid: 943f5f99-feea-413b-8712-f4e441bcac47
+    resourceVersion: "1332339"
+    uid: c062d44e-5cad-4d15-bab2-ba365f401b48
+  ports:
+  - name: ""
+    port: 8081
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.72
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: critic-agent-6764bc558b-ch7q2
+      namespace: kagent
+      uid: 998275c8-6087-4288-92f8-9d76676b7276
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-21T11:24:26Z"
+    creationTimestamp: "2026-03-21T11:24:08Z"
+    generateName: critic-agent-
+    generation: 3
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: critic-agent
+      app.kubernetes.io/part-of: kagent
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kagent: critic-agent
+      kubernetes.io/service-name: critic-agent
+    name: critic-agent-6rxrq
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: critic-agent
+      uid: 4f5637f8-d89d-484e-9c17-67c73e21ea9e
+    resourceVersion: "1047402"
+    uid: d4a5c6c5-367c-4a0f-917d-633764cfef0a
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.110
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: github-mcp-65d87bf647-tfzd8
+      namespace: kagent
+      uid: 31f70ad3-d4cd-445b-9c05-0e94aa98f19c
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-22T18:35:06Z"
+    creationTimestamp: "2026-03-21T18:32:39Z"
+    generateName: github-mcp-
+    generation: 426
+    labels:
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kubernetes.io/service-name: github-mcp
+    name: github-mcp-mr8kk
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: github-mcp
+      uid: 530ccd0c-3c8d-4910-83b1-dbda18f1b31a
+    resourceVersion: "1679350"
+    uid: 75460450-6d8c-4756-a2cd-94ef36e0e6fc
+  ports:
+  - name: ""
+    port: 8087
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.67
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: gmail-mcp-687b8cd7fc-9t96r
+      namespace: kagent
+      uid: 0bf7e98b-f22d-4824-8972-02f0fc2216a4
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-22T02:38:21Z"
+    creationTimestamp: "2026-03-21T18:42:04Z"
+    generateName: gmail-mcp-
+    generation: 70
+    labels:
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kubernetes.io/service-name: gmail-mcp
+    name: gmail-mcp-g7rpf
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: gmail-mcp
+      uid: 64839782-c0b6-4113-a5af-2c159b619749
+    resourceVersion: "1355917"
+    uid: 8455ee4c-fa68-4a2a-ae41-c5af4a18f90f
+  ports:
+  - name: ""
+    port: 8088
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.122
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: hitl-tool-server-5cc9b47746-55ttn
+      namespace: kagent
+      uid: 2226d544-1b34-4560-be90-9aeac74a2b08
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-23T13:33:53Z"
+    creationTimestamp: "2026-03-23T13:33:21Z"
+    generateName: hitl-tool-server-
+    generation: 4
+    labels:
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kubernetes.io/service-name: hitl-tool-server
+    name: hitl-tool-server-68x7k
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: hitl-tool-server
+      uid: 788a9cdb-810e-4aab-9fdf-15cbb1b0f6f5
+    resourceVersion: "2057815"
+    uid: f0d992d3-6cb3-406c-8b43-4f5a55eada6c
+  ports:
+  - name: ""
+    port: 8091
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.8
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: kagent-controller-7f7868b65c-xgqcd
+      namespace: kagent
+      uid: 193c9eb5-d119-49f6-9ec0-ad8644b1bf0b
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-19T10:08:15Z"
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    generateName: kagent-controller-
+    generation: 3
+    labels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: kagent
+      app.kubernetes.io/part-of: kagent
+      app.kubernetes.io/version: 0.7.23
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      helm.sh/chart: kagent-0.7.23
+      kubernetes.io/service-name: kagent-controller
+    name: kagent-controller-qjjn8
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: kagent-controller
+      uid: 3c5052b5-92fb-43af-be9a-c9f15adf1688
+    resourceVersion: "130507"
+    uid: 78298311-a215-498f-b15b-2da22b3365d5
+  ports:
+  - name: controller
+    port: 8083
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints: null
+  kind: EndpointSlice
+  metadata:
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    generateName: kagent-grafana-mcp-
+    generation: 7
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: grafana-mcp
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      helm.sh/chart: grafana-mcp-0.7.23
+      kubernetes.io/service-name: kagent-grafana-mcp
+    name: kagent-grafana-mcp-t9tkw
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: kagent-grafana-mcp
+      uid: 859a1997-fb39-422c-882c-5334de885c12
+    resourceVersion: "132927"
+    uid: 9e529be5-504c-4510-917b-32479400da87
+  ports: null
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.7
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: kagent-kmcp-controller-manager-b8dd8ccfd-hw7lj
+      namespace: kagent
+      uid: 71f90701-9e86-4b9f-8f36-7757369e8474
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-19T10:07:57Z"
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    generateName: kagent-kmcp-controller-manager-metrics-service-
+    generation: 3
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: kmcp
+      app.kubernetes.io/version: 0.2.7
+      control-plane: controller-manager
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      helm.sh/chart: kmcp-0.2.7
+      kubernetes.io/service-name: kagent-kmcp-controller-manager-metrics-service
+    name: kagent-kmcp-controller-manager-metrics-service-gx4dt
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: kagent-kmcp-controller-manager-metrics-service
+      uid: 4bc7fc51-0ba1-4b84-9a70-85dfeea37770
+    resourceVersion: "130393"
+    uid: 30f81d2d-ea36-4686-968a-b3f234f4d0cd
+  ports:
+  - name: https
+    port: 8443
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.5
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: kagent-querydoc-5944ddc7bf-vmc9d
+      namespace: kagent
+      uid: 67a0f95f-aeb1-44ae-99f8-73d23d81abb4
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-19T10:08:15Z"
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    generateName: kagent-querydoc-
+    generation: 3
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: querydoc
+      app.kubernetes.io/version: 1.1.10
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      helm.sh/chart: querydoc-0.7.23
+      kagent.dev/mcp-service: "true"
+      kubernetes.io/service-name: kagent-querydoc
+    name: kagent-querydoc-qbbb5
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: kagent-querydoc
+      uid: 7d348fa3-a301-4716-a255-cecf248c1259
+    resourceVersion: "130500"
+    uid: 435b0e35-6140-4f76-9212-23b4ddf9d248
+  ports:
+  - appProtocol: mcp
+    name: http
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.4
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: kagent-tools-7f477dcb7b-7kcm8
+      namespace: kagent
+      uid: 80b2d06b-e8ba-4fdf-9330-82c3a351b33f
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-19T10:08:02Z"
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    generateName: kagent-tools-metrics-
+    generation: 3
+    labels:
+      app.kubernetes.io/component: metrics
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: kagent-tools
+      app.kubernetes.io/version: 0.1.1
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      helm.sh/chart: kagent-tools-0.1.1
+      kubernetes.io/service-name: kagent-tools-metrics
+    name: kagent-tools-metrics-498xf
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: kagent-tools-metrics
+      uid: 19f09445-21a6-4d14-be1e-8ecc93d95b7c
+    resourceVersion: "130425"
+    uid: 2e9be065-5923-4d6a-8d33-ad8c2d63c760
+  ports:
+  - name: prometheus-metrics
+    port: 8085
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.4
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: kagent-tools-7f477dcb7b-7kcm8
+      namespace: kagent
+      uid: 80b2d06b-e8ba-4fdf-9330-82c3a351b33f
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-19T10:08:02Z"
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    generateName: kagent-tools-
+    generation: 3
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: kagent-tools
+      app.kubernetes.io/version: 0.1.1
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      helm.sh/chart: kagent-tools-0.1.1
+      kubernetes.io/service-name: kagent-tools
+    name: kagent-tools-xd6jj
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: kagent-tools
+      uid: 7b4b1006-23b8-429b-8633-bf7dcf596d65
+    resourceVersion: "130428"
+    uid: 6562ac45-8987-47e2-a177-74f327a08741
+  ports:
+  - name: tools
+    port: 8084
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.9
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: kagent-ui-87c7cd66b-sc958
+      namespace: kagent
+      uid: a15f873b-ec22-4b55-8b3f-981c48439eb8
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-19T10:07:54Z"
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    generateName: kagent-ui-
+    generation: 3
+    labels:
+      app.kubernetes.io/component: ui
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: kagent
+      app.kubernetes.io/part-of: kagent
+      app.kubernetes.io/version: 0.7.23
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      helm.sh/chart: kagent-0.7.23
+      kubernetes.io/service-name: kagent-ui
+    name: kagent-ui-x7hf8
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: kagent-ui
+      uid: 9c9be43a-11e7-47fa-afec-77d2d46b56be
+    resourceVersion: "130253"
+    uid: eabb0b42-ebca-442b-9bfd-8b0f7386310a
+  ports:
+  - name: ui
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.120
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: khook-589b86668-wnhxz
+      namespace: kagent
+      uid: c0bf284d-8212-4572-9269-a86dcf80e306
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    creationTimestamp: "2026-03-21T00:04:14Z"
+    generateName: khook-metrics-
+    generation: 9
+    labels:
+      app.kubernetes.io/component: metrics
+      app.kubernetes.io/instance: khook
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: khook
+      app.kubernetes.io/version: v0.0.0-9c3ffe6
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      helm.sh/chart: khook-v0.0.0-9c3ffe6
+      kubernetes.io/service-name: khook-metrics
+    name: khook-metrics-gk9gk
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: khook-metrics
+      uid: b1fdae55-6c8c-4001-8b5c-3d8d1d6b5987
+    resourceVersion: "822464"
+    uid: 5c74d7d0-9f09-4568-ae7e-b2b5493af4ef
+  ports:
+  - name: metrics
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.98
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: kubectl-proxy-585c644c4b-nmj4v
+      namespace: kagent
+      uid: 72e1556f-fa5b-4f75-9845-13af7a0208f9
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-19T18:30:18Z"
+    creationTimestamp: "2026-03-19T18:30:14Z"
+    generateName: kubectl-proxy-
+    generation: 2
+    labels:
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kubernetes.io/service-name: kubectl-proxy
+    name: kubectl-proxy-lgh6j
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: kubectl-proxy
+      uid: c60e0928-0bdb-4a76-be3a-fdd16be27521
+    resourceVersion: "285024"
+    uid: e98ed4a7-e9b1-4e8c-977f-2cbd3bbe3a5a
+  ports:
+  - name: ""
+    port: 8888
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.33
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: litellm-777679b9b7-hndtd
+      namespace: kagent
+      uid: f3881b00-e5b4-452c-93c0-dc2bbac7eae5
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-22T02:09:16Z"
+    creationTimestamp: "2026-03-19T10:14:15Z"
+    generateName: litellm-service-
+    generation: 40
+    labels:
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kubernetes.io/service-name: litellm-service
+    name: litellm-service-tlk9q
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: litellm-service
+      uid: d3c98238-ad0a-4018-8c76-376ff4cb64cd
+    resourceVersion: "1344412"
+    uid: 69c8f71b-ed4b-4ec0-8926-f8996f5ca3eb
+  ports:
+  - name: ""
+    port: 4000
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.24
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: number-agent-1-8f8c8bbf9-pwhgx
+      namespace: kagent
+      uid: 0b23c9a3-c111-4af0-948d-3db802cecf85
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-24T02:20:46Z"
+    creationTimestamp: "2026-03-23T14:06:50Z"
+    generateName: number-agent-1-
+    generation: 7
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: number-agent-1
+      app.kubernetes.io/part-of: kagent
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kagent: number-agent-1
+      kubernetes.io/service-name: number-agent-1
+    name: number-agent-1-pfbjn
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: number-agent-1
+      uid: a54ffd55-87e8-47b9-ab65-d04aea467b72
+    resourceVersion: "2313930"
+    uid: 75573e5e-4454-4cd4-ab53-fe6625b68fbe
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.26
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: number-agent-2-784cf56b95-q6vkj
+      namespace: kagent
+      uid: f4d1dd9a-8ce2-4410-8feb-691ea777d66e
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-24T02:20:48Z"
+    creationTimestamp: "2026-03-23T14:06:50Z"
+    generateName: number-agent-2-
+    generation: 7
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: number-agent-2
+      app.kubernetes.io/part-of: kagent
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kagent: number-agent-2
+      kubernetes.io/service-name: number-agent-2
+    name: number-agent-2-xfzmj
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: number-agent-2
+      uid: bd35a96a-a255-4209-b096-e2fa533feb24
+    resourceVersion: "2313969"
+    uid: 0d9ec424-d105-4969-a631-43f2d6eeede4
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.25
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: number-agent-3-856d565c94-4tf7n
+      namespace: kagent
+      uid: 9d69321d-1a66-4975-b538-889d36b222f0
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-24T02:20:46Z"
+    creationTimestamp: "2026-03-23T14:06:51Z"
+    generateName: number-agent-3-
+    generation: 7
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: number-agent-3
+      app.kubernetes.io/part-of: kagent
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kagent: number-agent-3
+      kubernetes.io/service-name: number-agent-3
+    name: number-agent-3-bjdxt
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: number-agent-3
+      uid: a5c1e9aa-4ed5-470f-b45e-b320b47c9646
+    resourceVersion: "2313934"
+    uid: 4c21d443-0be0-4850-8b07-e7dd4ea8d5f1
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.71
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: publisher-agent-74b9dcbf44-9579t
+      namespace: kagent
+      uid: ee0b9544-908d-47bb-8ddc-b5b7a4fd8926
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-21T11:24:27Z"
+    creationTimestamp: "2026-03-21T11:24:07Z"
+    generateName: publisher-agent-
+    generation: 3
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: publisher-agent
+      app.kubernetes.io/part-of: kagent
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kagent: publisher-agent
+      kubernetes.io/service-name: publisher-agent
+    name: publisher-agent-dl2cv
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: publisher-agent
+      uid: d6674663-9f2b-47e1-84b2-b15c04866fcb
+    resourceVersion: "1047437"
+    uid: f8195531-84ae-47b4-a801-0b23ad63626c
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.80
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: researcher-agent-77bfb6b4c5-7n5tp
+      namespace: kagent
+      uid: bb427710-e158-4ff3-bc05-fb4a3069f799
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-21T11:41:01Z"
+    creationTimestamp: "2026-03-21T11:24:08Z"
+    generateName: researcher-agent-
+    generation: 17
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: researcher-agent
+      app.kubernetes.io/part-of: kagent
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kagent: researcher-agent
+      kubernetes.io/service-name: researcher-agent
+    name: researcher-agent-jq2xj
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: researcher-agent
+      uid: 77f93705-74d7-49df-9014-069a4459d315
+    resourceVersion: "1053188"
+    uid: a761aa7b-5efc-4e8a-a8cc-4da4781bba73
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.109
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: search-mcp-64c54cb69b-g7j55
+      namespace: kagent
+      uid: 5424c212-461c-41b6-aead-3631ea9c2f7e
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-22T18:35:04Z"
+    creationTimestamp: "2026-03-21T11:31:55Z"
+    generateName: search-mcp-
+    generation: 430
+    labels:
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kubernetes.io/service-name: search-mcp
+    name: search-mcp-pm8mx
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: search-mcp
+      uid: 55d1b902-5156-4fea-b462-579a4a66ae8d
+    resourceVersion: "1679315"
+    uid: 5fdf678c-1993-4657-8557-f9fd5943648d
+  ports:
+  - name: ""
+    port: 8086
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.83
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: searxng-79d64598c5-6hqsj
+      namespace: kagent
+      uid: 294cb9c6-dea3-40a7-9cbe-b9296babdff7
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-21T17:35:39Z"
+    creationTimestamp: "2026-03-21T17:35:35Z"
+    generateName: searxng-
+    generation: 2
+    labels:
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kubernetes.io/service-name: searxng
+    name: searxng-kmql6
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: searxng
+      uid: dfeb44f5-7520-425f-80ed-4da8362529e6
+    resourceVersion: "1170932"
+    uid: 574e7721-7a8a-4186-b8d5-38ab1928aa3c
+  ports:
+  - name: ""
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.96
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: send-email-test-96494b966-h8fbx
+      namespace: kagent
+      uid: 00f6dbb8-7c6f-4207-8f3d-583457e9eba8
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-22T00:14:20Z"
+    creationTimestamp: "2026-03-22T00:14:02Z"
+    generateName: send-email-test-
+    generation: 3
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: send-email-test
+      app.kubernetes.io/part-of: kagent
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kagent: send-email-test
+      kubernetes.io/service-name: send-email-test
+    name: send-email-test-c5dsf
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: send-email-test
+      uid: 221e2f50-2da8-4559-9890-6dcdd0c31894
+    resourceVersion: "1303876"
+    uid: 3c99e5ab-d219-4800-9534-fd49e8e1aa76
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.27
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: sum-agent-799fcf7c6b-ffjwn
+      namespace: kagent
+      uid: 486ee980-017f-4561-9cbc-233d18e5fd71
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-24T02:20:46Z"
+    creationTimestamp: "2026-03-23T14:06:51Z"
+    generateName: sum-agent-
+    generation: 7
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: sum-agent
+      app.kubernetes.io/part-of: kagent
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kagent: sum-agent
+      kubernetes.io/service-name: sum-agent
+    name: sum-agent-cs922
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: sum-agent
+      uid: df3e900b-1a8d-48d5-aaa8-8855f2001e79
+    resourceVersion: "2313932"
+    uid: fa4b38c8-1b0e-4691-98f8-ac627eca8ab4
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+- addressType: IPv4
+  apiVersion: discovery.k8s.io/v1
+  endpoints:
+  - addresses:
+    - 10.244.0.70
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: 10.0.10.201
+    targetRef:
+      kind: Pod
+      name: writer-agent-f57769dff-6kxgc
+      namespace: kagent
+      uid: ebe955b5-9a14-4955-af91-fccd3fba01ed
+    zone: US-ASHBURN-AD-1
+  kind: EndpointSlice
+  metadata:
+    annotations:
+      endpoints.kubernetes.io/last-change-trigger-time: "2026-03-21T11:24:25Z"
+    creationTimestamp: "2026-03-21T11:24:07Z"
+    generateName: writer-agent-
+    generation: 3
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: writer-agent
+      app.kubernetes.io/part-of: kagent
+      endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+      kagent: writer-agent
+      kubernetes.io/service-name: writer-agent
+    name: writer-agent-l7w29
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: writer-agent
+      uid: 445b77aa-580b-493d-92d5-52361e026e09
+    resourceVersion: "1047388"
+    uid: e6f0d4b3-5937-41f9-bb72-009f631d2f07
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+kind: List
+metadata:
+  resourceVersion: ""

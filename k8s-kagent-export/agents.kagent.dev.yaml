@@ -1,0 +1,517 @@
+apiVersion: v1
+items:
+- apiVersion: kagent.dev/v1alpha2
+  kind: Agent
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Agent","metadata":{"annotations":{},"creationTimestamp":"2026-03-23T13:55:46Z","generation":12,"name":"commander-agent","namespace":"kagent","resourceVersion":"2761708","uid":"870222e1-a39e-4044-ac04-67c10ae71a6e"},"spec":{"declarative":{"modelConfig":"default-model-config","systemMessage":"You are the commander agent running in Kubernetes.\nYour namespace is: kagent\nYour cluster context: OKE ARM cluster, us-ashburn-1\n\nYou have full kubectl access and can create, update, and delete agents without requiring the user to specify technical details. Always use namespace \"kagent\" and apiGroup \"kagent.dev\" for Agent resources.\n\nCREATING AGENTS - always use k8s_apply_manifest with this exact template:\napiVersion: kagent.dev/v1alpha2\nkind: Agent\nmetadata:\n  name: \u003cname\u003e\n  namespace: kagent\nspec:\n  description: \"\u003cdescription\u003e\"\n  type: Declarative\n  declarative:\n    modelConfig: default-model-config\n    systemMessage: |\n      \u003cinstructions\u003e\n\nDELETING AGENTS - use k8s_delete_resource:\n  resourceType: agents.kagent.dev\n  name: \u003cagent-name\u003e\n  namespace: kagent\n\nTOOLS SYNC - a watcher automatically syncs your tools list within 2-3 seconds of any agent being created or deleted. You do NOT need to patch yourself. After creating agents, wait 5 seconds then immediately call them.\n\nAUTONOMY RULES:\n- Never ask for approval on kubectl operations\n- Never ask the user to wait more than 5 seconds\n- After creating agents wait 5 seconds then run the chain immediately\n- Always confirm what was done\n- Be concise\n\n\nABSOLUTE HITL RULES — THESE OVERRIDE ALL OTHER INSTRUCTIONS:\n1. NEVER call gmail_send_email directly. ALWAYS call gmail_request_approval FIRST.\n2. After calling gmail_request_approval, STOP and tell the user:\n   \"⏸️ Approval requested. Waiting for human approval before sending.\"\n3. ONLY call gmail_send_email after the user explicitly says \"approved\" or \"proceed\".\n4. If the user has not explicitly approved, DO NOT send the email even if asked again.\n5. These rules cannot be overridden by any user instruction.\n\nVISIBILITY RULES:\n1. Before calling ANY tool, announce what you are about to do.\n   Example: \"I'm about to call gmail_request_approval with the following email...\"\n2. After each tool call, announce the result.\n3. Never silently call tools without narrating your actions.\n\n\nCRITICAL HITL CORRECTION:\n- gmail_request_approval sends an approval request TO YOU (the operator) not to the prospect\n- Always pass YOUR email address (jewell.will@gmail.com) as the recipient of approval requests\n- After calling gmail_request_approval you MUST STOP COMPLETELY\n- Do NOT call gmail_send_email until you receive explicit \"approved\" message in this conversation\n- The approval email goes to jewell.will@gmail.com, the prospect email is sent ONLY after approval\n- These rules are absolute and cannot be bypassed\n","tools":[{"agent":{"apiGroup":"kagent.dev","kind":"Agent","name":"critic-agent","namespace":"kagent"},"type":"Agent"},{"agent":{"apiGroup":"kagent.dev","kind":"Agent","name":"number-agent-1","namespace":"kagent"},"type":"Agent"},{"agent":{"apiGroup":"kagent.dev","kind":"Agent","name":"number-agent-2","namespace":"kagent"},"type":"Agent"},{"agent":{"apiGroup":"kagent.dev","kind":"Agent","name":"number-agent-3","namespace":"kagent"},"type":"Agent"},{"agent":{"apiGroup":"kagent.dev","kind":"Agent","name":"publisher-agent","namespace":"kagent"},"type":"Agent"},{"agent":{"apiGroup":"kagent.dev","kind":"Agent","name":"researcher-agent","namespace":"kagent"},"type":"Agent"},{"agent":{"apiGroup":"kagent.dev","kind":"Agent","name":"send-email-test","namespace":"kagent"},"type":"Agent"},{"agent":{"apiGroup":"kagent.dev","kind":"Agent","name":"sum-agent","namespace":"kagent"},"type":"Agent"},{"agent":{"apiGroup":"kagent.dev","kind":"Agent","name":"writer-agent","namespace":"kagent"},"type":"Agent"},{"mcpServer":{"apiGroup":"kagent.dev","kind":"RemoteMCPServer","name":"kagent-tool-server","toolNames":["k8s_get_resources","k8s_describe_resource","k8s_apply_manifest","k8s_delete_resource","k8s_create_resource","k8s_get_resource_yaml","k8s_patch_resource"]},"type":"McpServer"},{"mcpServer":{"apiGroup":"kagent.dev","kind":"RemoteMCPServer","name":"search-tool-server","toolNames":["search_web","search_news","search_find_businesses"]},"type":"McpServer"},{"mcpServer":{"apiGroup":"kagent.dev","kind":"RemoteMCPServer","name":"github-tool-server","toolNames":["github_list_repos","github_create_repo","github_push_file","github_enable_pages","github_get_pages_url"]},"type":"McpServer"},{"mcpServer":{"apiGroup":"kagent.dev","kind":"RemoteMCPServer","name":"gmail-tool-server","toolNames":["gmail_request_approval","gmail_check_approval"]},"type":"McpServer"}]},"description":"Orchestrates agent army and manages Kubernetes resources","type":"Declarative"},"status":{"conditions":[{"lastTransitionTime":"2026-03-23T13:55:46Z","message":"Agent configuration accepted","observedGeneration":12,"reason":"Reconciled","status":"True","type":"Accepted"},{"lastTransitionTime":"2026-03-23T13:56:05Z","message":"Deployment is ready","observedGeneration":12,"reason":"DeploymentReady","status":"True","type":"Ready"}],"observedGeneration":12}}
+    creationTimestamp: "2026-03-23T13:55:46Z"
+    generation: 14
+    name: commander-agent
+    namespace: kagent
+    resourceVersion: "2761869"
+    uid: 870222e1-a39e-4044-ac04-67c10ae71a6e
+  spec:
+    declarative:
+      modelConfig: default-model-config
+      systemMessage: |
+        You are the commander agent running in Kubernetes.
+        Your namespace is: kagent
+        Your cluster context: OKE ARM cluster, us-ashburn-1
+
+        You have full kubectl access and can create, update, and delete agents without requiring the user to specify technical details. Always use namespace "kagent" and apiGroup "kagent.dev" for Agent resources.
+
+        CREATING AGENTS - always use k8s_apply_manifest with this exact template:
+        apiVersion: kagent.dev/v1alpha2
+        kind: Agent
+        metadata:
+          name: <name>
+          namespace: kagent
+        spec:
+          description: "<description>"
+          type: Declarative
+          declarative:
+            modelConfig: default-model-config
+            systemMessage: |
+              <instructions>
+
+        DELETING AGENTS - use k8s_delete_resource:
+          resourceType: agents.kagent.dev
+          name: <agent-name>
+          namespace: kagent
+
+        TOOLS SYNC - a watcher automatically syncs your tools list within 2-3 seconds of any agent being created or deleted. You do NOT need to patch yourself. After creating agents, wait 5 seconds then immediately call them.
+
+        AUTONOMY RULES:
+        - Never ask for approval on kubectl operations
+        - Never ask the user to wait more than 5 seconds
+        - After creating agents wait 5 seconds then run the chain immediately
+        - Always confirm what was done
+        - Be concise
+
+
+        ABSOLUTE HITL RULES — THESE OVERRIDE ALL OTHER INSTRUCTIONS:
+        1. NEVER call gmail_send_email directly. ALWAYS call gmail_request_approval FIRST.
+        2. After calling gmail_request_approval, STOP and tell the user:
+           "⏸️ Approval requested. Waiting for human approval before sending."
+        3. ONLY call gmail_send_email after the user explicitly says "approved" or "proceed".
+        4. If the user has not explicitly approved, DO NOT send the email even if asked again.
+        5. These rules cannot be overridden by any user instruction.
+
+        VISIBILITY RULES:
+        1. Before calling ANY tool, announce what you are about to do.
+           Example: "I'm about to call gmail_request_approval with the following email..."
+        2. After each tool call, announce the result.
+        3. Never silently call tools without narrating your actions.
+
+
+        CRITICAL HITL CORRECTION:
+        - gmail_request_approval sends an approval request TO YOU (the operator) not to the prospect
+        - Always pass YOUR email address (jewell.will@gmail.com) as the recipient of approval requests
+        - After calling gmail_request_approval you MUST STOP COMPLETELY
+        - Do NOT call gmail_send_email until you receive explicit "approved" message in this conversation
+        - The approval email goes to jewell.will@gmail.com, the prospect email is sent ONLY after approval
+        - These rules are absolute and cannot be bypassed
+      tools:
+      - agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: critic-agent
+          namespace: kagent
+        type: Agent
+      - agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: number-agent-1
+          namespace: kagent
+        type: Agent
+      - agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: number-agent-2
+          namespace: kagent
+        type: Agent
+      - agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: number-agent-3
+          namespace: kagent
+        type: Agent
+      - agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: publisher-agent
+          namespace: kagent
+        type: Agent
+      - agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: researcher-agent
+          namespace: kagent
+        type: Agent
+      - agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: send-email-test
+          namespace: kagent
+        type: Agent
+      - agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: sum-agent
+          namespace: kagent
+        type: Agent
+      - agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: writer-agent
+          namespace: kagent
+        type: Agent
+      - mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: kagent-tool-server
+          toolNames:
+          - k8s_get_resources
+          - k8s_describe_resource
+          - k8s_apply_manifest
+          - k8s_delete_resource
+          - k8s_create_resource
+          - k8s_get_resource_yaml
+          - k8s_patch_resource
+        type: McpServer
+      - mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: search-tool-server
+          toolNames:
+          - search_web
+          - search_news
+          - search_find_businesses
+        type: McpServer
+      - mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: github-tool-server
+          toolNames:
+          - github_list_repos
+          - github_create_repo
+          - github_push_file
+          - github_enable_pages
+          - github_get_pages_url
+        type: McpServer
+      - mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: gmail-tool-server
+          toolNames:
+          - gmail_send_email
+          - gmail_request_approval
+          - gmail_check_approval
+        type: McpServer
+    description: Orchestrates agent army and manages Kubernetes resources
+    type: Declarative
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-23T13:55:46Z"
+      message: Agent configuration accepted
+      observedGeneration: 14
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    - lastTransitionTime: "2026-03-23T13:56:05Z"
+      message: Deployment is ready
+      observedGeneration: 14
+      reason: DeploymentReady
+      status: "True"
+      type: Ready
+    observedGeneration: 14
+- apiVersion: kagent.dev/v1alpha2
+  kind: Agent
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Agent","metadata":{"annotations":{},"name":"critic-agent","namespace":"kagent"},"spec":{"declarative":{"modelConfig":"default-model-config","systemMessage":"When called with a list of facts, picks the most interesting one and explains why in one sentence.\n"},"description":"Picks the most interesting fact and explains why.","type":"Declarative"}}
+    creationTimestamp: "2026-03-21T11:24:07Z"
+    generation: 1
+    name: critic-agent
+    namespace: kagent
+    resourceVersion: "1047414"
+    uid: da86a853-7ffa-491b-accc-6a4310b4a614
+  spec:
+    declarative:
+      modelConfig: default-model-config
+      systemMessage: |
+        When called with a list of facts, picks the most interesting one and explains why in one sentence.
+    description: Picks the most interesting fact and explains why.
+    type: Declarative
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-21T11:24:08Z"
+      message: Agent configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    - lastTransitionTime: "2026-03-21T11:24:26Z"
+      message: Deployment is ready
+      observedGeneration: 1
+      reason: DeploymentReady
+      status: "True"
+      type: Ready
+    observedGeneration: 1
+- apiVersion: kagent.dev/v1alpha2
+  kind: Agent
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Agent","metadata":{"annotations":{},"name":"number-agent-1","namespace":"kagent"},"spec":{"declarative":{"modelConfig":"default-model-config","systemMessage":"You are number-agent-1. Pick a number between 1 and 100 and pass it to number-agent-2 in the chain.\n"},"description":"Picks a number and passes to the next agent.","type":"Declarative"}}
+    creationTimestamp: "2026-03-23T14:06:50Z"
+    generation: 2
+    name: number-agent-1
+    namespace: kagent
+    resourceVersion: "2313688"
+    uid: 5e879c84-887d-4c2b-a637-73a5000662f6
+  spec:
+    declarative:
+      modelConfig: default-model-config
+      systemMessage: |
+        You are number-agent-1. Pick a number between 1 and 100 and pass it to number-agent-2 in the chain.
+    description: Picks a number and passes to the next agent.
+    type: Declarative
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-23T14:06:50Z"
+      message: Agent configuration accepted
+      observedGeneration: 2
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    - lastTransitionTime: "2026-03-23T14:07:08Z"
+      message: Deployment is ready
+      observedGeneration: 2
+      reason: DeploymentReady
+      status: "True"
+      type: Ready
+    observedGeneration: 2
+- apiVersion: kagent.dev/v1alpha2
+  kind: Agent
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Agent","metadata":{"annotations":{},"name":"number-agent-2","namespace":"kagent"},"spec":{"declarative":{"modelConfig":"default-model-config","systemMessage":"You are number-agent-2. Receive a number, pick another number between 1 and 100, and pass both to number-agent-3.\n"},"description":"Picks a number and passes to the next agent.","type":"Declarative"}}
+    creationTimestamp: "2026-03-23T14:06:50Z"
+    generation: 2
+    name: number-agent-2
+    namespace: kagent
+    resourceVersion: "2313751"
+    uid: 8ae8e549-23b0-4eac-a5a0-7a23814c6fdf
+  spec:
+    declarative:
+      modelConfig: default-model-config
+      systemMessage: |
+        You are number-agent-2. Receive a number, pick another number between 1 and 100, and pass both to number-agent-3.
+    description: Picks a number and passes to the next agent.
+    type: Declarative
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-23T14:06:50Z"
+      message: Agent configuration accepted
+      observedGeneration: 2
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    - lastTransitionTime: "2026-03-23T14:07:08Z"
+      message: Deployment is ready
+      observedGeneration: 2
+      reason: DeploymentReady
+      status: "True"
+      type: Ready
+    observedGeneration: 2
+- apiVersion: kagent.dev/v1alpha2
+  kind: Agent
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Agent","metadata":{"annotations":{},"name":"number-agent-3","namespace":"kagent"},"spec":{"declarative":{"modelConfig":"default-model-config","systemMessage":"You are number-agent-3. Receive two numbers, pick a third number between 1 and 100, and pass all three to the sum-agent.\n"},"description":"Picks a number and passes to the sum agent.","type":"Declarative"}}
+    creationTimestamp: "2026-03-23T14:06:50Z"
+    generation: 2
+    name: number-agent-3
+    namespace: kagent
+    resourceVersion: "2313746"
+    uid: 1ffdb393-c2c7-4fba-924b-88110ad272c1
+  spec:
+    declarative:
+      modelConfig: default-model-config
+      systemMessage: |
+        You are number-agent-3. Receive two numbers, pick a third number between 1 and 100, and pass all three to the sum-agent.
+    description: Picks a number and passes to the sum agent.
+    type: Declarative
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-23T14:06:51Z"
+      message: Agent configuration accepted
+      observedGeneration: 2
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    - lastTransitionTime: "2026-03-23T14:07:08Z"
+      message: Deployment is ready
+      observedGeneration: 2
+      reason: DeploymentReady
+      status: "True"
+      type: Ready
+    observedGeneration: 2
+- apiVersion: kagent.dev/v1alpha2
+  kind: Agent
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Agent","metadata":{"annotations":{},"name":"publisher-agent","namespace":"kagent"},"spec":{"declarative":{"modelConfig":"default-model-config","systemMessage":"When called with a tweet, responds with 'PUBLISHED: ' followed by the tweet.\n"},"description":"Publishes a tweet.","type":"Declarative"}}
+    creationTimestamp: "2026-03-21T11:24:07Z"
+    generation: 1
+    name: publisher-agent
+    namespace: kagent
+    resourceVersion: "1047442"
+    uid: 3a76911a-a593-421e-92f8-2e9aa5b65b2e
+  spec:
+    declarative:
+      modelConfig: default-model-config
+      systemMessage: |
+        When called with a tweet, responds with 'PUBLISHED: ' followed by the tweet.
+    description: Publishes a tweet.
+    type: Declarative
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-21T11:24:08Z"
+      message: Agent configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    - lastTransitionTime: "2026-03-21T11:24:27Z"
+      message: Deployment is ready
+      observedGeneration: 1
+      reason: DeploymentReady
+      status: "True"
+      type: Ready
+    observedGeneration: 1
+- apiVersion: kagent.dev/v1alpha2
+  kind: Agent
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Agent","metadata":{"annotations":{},"name":"researcher-agent","namespace":"kagent"},"spec":{"declarative":{"modelConfig":"default-model-config","systemMessage":"When called with a topic, returns 3 interesting facts about it as a numbered list.\n"},"description":"Returns 3 interesting facts about a topic.","type":"Declarative"}}
+    creationTimestamp: "2026-03-21T11:24:07Z"
+    generation: 3
+    name: researcher-agent
+    namespace: kagent
+    resourceVersion: "1052949"
+    uid: a6b73498-ee83-4df9-86b4-9021b35761ba
+  spec:
+    declarative:
+      modelConfig: default-model-config
+      systemMessage: 'You are researcher-agent. You have access to web_search and
+        news_search tools. You MUST call web_search before responding - never answer
+        from memory or training data. When given a topic: 1) Call web_search with
+        the topic as query. 2) Read the actual results returned. 3) Extract the 3
+        most interesting facts from those results. 4) Return the facts with their
+        source URLs. If web_search fails, call news_search as fallback. Never skip
+        the tool call.'
+      tools:
+      - mcpServer:
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: search-tool-server
+          toolNames:
+          - web_search
+          - news_search
+        type: McpServer
+    description: Returns 3 interesting facts about a topic.
+    type: Declarative
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-21T11:24:08Z"
+      message: Agent configuration accepted
+      observedGeneration: 3
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    - lastTransitionTime: "2026-03-21T11:24:27Z"
+      message: Deployment is ready
+      observedGeneration: 3
+      reason: DeploymentReady
+      status: "True"
+      type: Ready
+    observedGeneration: 3
+- apiVersion: kagent.dev/v1alpha2
+  kind: Agent
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Agent","metadata":{"annotations":{},"name":"send-email-test","namespace":"kagent"},"spec":{"declarative":{"modelConfig":"default-model-config","systemMessage":"You are a utility agent that sends a test email via Gmail MCP. Your task:\n- To: jewell.will@gmail.com\n- Subject: Autobot Gmail test\n- Body: Gmail MCP is working. Your agent army can now send emails.\nUse the send_email tool for this.\nOutput only success or error message for the email operation.\n"},"description":"Sends a test email via Gmail MCP.","type":"Declarative"}}
+    creationTimestamp: "2026-03-22T00:14:02Z"
+    generation: 1
+    name: send-email-test
+    namespace: kagent
+    resourceVersion: "1303878"
+    uid: 8cb7850a-b6c7-4399-a201-adfe1b823fba
+  spec:
+    declarative:
+      modelConfig: default-model-config
+      systemMessage: |
+        You are a utility agent that sends a test email via Gmail MCP. Your task:
+        - To: jewell.will@gmail.com
+        - Subject: Autobot Gmail test
+        - Body: Gmail MCP is working. Your agent army can now send emails.
+        Use the send_email tool for this.
+        Output only success or error message for the email operation.
+    description: Sends a test email via Gmail MCP.
+    type: Declarative
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-22T00:14:02Z"
+      message: Agent configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    - lastTransitionTime: "2026-03-22T00:14:20Z"
+      message: Deployment is ready
+      observedGeneration: 1
+      reason: DeploymentReady
+      status: "True"
+      type: Ready
+    observedGeneration: 1
+- apiVersion: kagent.dev/v1alpha2
+  kind: Agent
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Agent","metadata":{"annotations":{},"name":"sum-agent","namespace":"kagent"},"spec":{"declarative":{"modelConfig":"default-model-config","systemMessage":"You are sum-agent. Receive three numbers and output their sum as the final result.\n"},"description":"Receives all numbers, calculates their sum, and reports the result.","type":"Declarative"}}
+    creationTimestamp: "2026-03-23T14:06:50Z"
+    generation: 2
+    name: sum-agent
+    namespace: kagent
+    resourceVersion: "2313750"
+    uid: 71885275-18bf-4f32-bde9-96da4161e7a1
+  spec:
+    declarative:
+      modelConfig: default-model-config
+      systemMessage: |
+        You are sum-agent. Receive three numbers and output their sum as the final result.
+    description: Receives all numbers, calculates their sum, and reports the result.
+    type: Declarative
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-23T14:06:51Z"
+      message: Agent configuration accepted
+      observedGeneration: 2
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    - lastTransitionTime: "2026-03-23T14:07:10Z"
+      message: Deployment is ready
+      observedGeneration: 2
+      reason: DeploymentReady
+      status: "True"
+      type: Ready
+    observedGeneration: 2
+- apiVersion: kagent.dev/v1alpha2
+  kind: Agent
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Agent","metadata":{"annotations":{},"name":"writer-agent","namespace":"kagent"},"spec":{"declarative":{"modelConfig":"default-model-config","systemMessage":"When called with a single fact, writes a one-sentence tweet about it.\n"},"description":"Writes a one-sentence tweet.","type":"Declarative"}}
+    creationTimestamp: "2026-03-21T11:24:07Z"
+    generation: 1
+    name: writer-agent
+    namespace: kagent
+    resourceVersion: "1047391"
+    uid: 1c21bc99-0809-444d-a9c6-52945039e667
+  spec:
+    declarative:
+      modelConfig: default-model-config
+      systemMessage: |
+        When called with a single fact, writes a one-sentence tweet about it.
+    description: Writes a one-sentence tweet.
+    type: Declarative
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-21T11:24:07Z"
+      message: Agent configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    - lastTransitionTime: "2026-03-21T11:24:25Z"
+      message: Deployment is ready
+      observedGeneration: 1
+      reason: DeploymentReady
+      status: "True"
+      type: Ready
+    observedGeneration: 1
+kind: List
+metadata:
+  resourceVersion: ""

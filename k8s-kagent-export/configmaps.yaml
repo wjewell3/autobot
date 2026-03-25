@@ -1,0 +1,1416 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  data:
+    server.py: |
+      from fastapi import FastAPI
+      from fastapi.responses import HTMLResponse
+      import json, uvicorn, uuid, os
+      from datetime import datetime
+
+      app = FastAPI()
+      approvals = {}
+
+      VERCEL_URL = os.environ.get("VERCEL_URL", "https://autobot-chi-tawny.vercel.app")
+
+      @app.post("/approval/create")
+      async def create_approval(request: dict):
+          token = str(uuid.uuid4())
+          business = request.get("business", "")
+          repo = request.get("repo", "")
+          approvals[token] = {
+              "status": "PENDING",
+              "subject": request.get("subject", ""),
+              "details": request.get("details", ""),
+              "business": business,
+              "repo": repo,
+              "created_at": datetime.utcnow().isoformat()
+          }
+          approve_url = f"{VERCEL_URL}/api/approve?token={token}&action=yes&business={business}&repo={repo}"
+          reject_url = f"{VERCEL_URL}/api/approve?token={token}&action=no&business={business}&repo={repo}"
+          email_html = f"""
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;">
+        <div style="background: #0f172a; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="color: #a78bfa; margin: 0; font-size: 24px; letter-spacing: 3px;">AUTOBOT</h1>
+          <p style="color: #475569; margin: 4px 0 0; font-size: 12px;">COMMAND CENTER</p>
+        </div>
+        <div style="border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 24px;">
+          <h2 style="color: #1e293b; margin-top: 0;">{request.get("subject", "")}</h2>
+          <div style="background: #f8fafc; border-left: 4px solid #a78bfa; padding: 16px; border-radius: 4px; margin: 20px 0;">
+            <pre style="white-space: pre-wrap; font-size: 13px; color: #334155; margin: 0; font-family: Arial, sans-serif;">{request.get("details", "")}</pre>
+          </div>
+          <div style="margin: 32px 0; text-align: center;">
+            <a href="{approve_url}" style="background: #22c55e; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold; margin-right: 12px; display: inline-block;">
+              ✅ APPROVE &amp; DEPLOY
+            </a>
+            <a href="{reject_url}" style="background: #ef4444; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold; display: inline-block;">
+              ❌ REJECT
+            </a>
+          </div>
+          <p style="color: #94a3b8; font-size: 12px; text-align: center;">Sent by Autobot — clicking APPROVE will automatically deploy the site</p>
+        </div>
+      </div>"""
+          print(f"[create] token={token} business={business}")
+          return {"token": token, "approve_url": approve_url, "reject_url": reject_url, "email_html": email_html}
+
+      @app.get("/approval/respond")
+      async def respond(token: REDACTED
+          if token not in approvals:
+              return {"status": "NOT_FOUND"}
+          decision = "APPROVED" if action.lower() in ["yes", "approve", "y"] else "REJECTED"
+          approvals[token]["status"] = decision
+          approvals[token]["decided_at"] = datetime.utcnow().isoformat()
+          print(f"[respond] token={token} decision={decision}")
+          return {"status": decision}
+
+      @app.get("/approval/status")
+      async def status(token: REDACTED
+          if token not in approvals:
+              return {"status": "NOT_FOUND"}
+          return approvals[token]
+
+      @app.get("/approval/list")
+      async def list_approvals():
+          return {"approvals": approvals}
+
+      if __name__ == "__main__":
+          uvicorn.run(app, host="0.0.0.0", port=8089)
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"server.py":"from fastapi import FastAPI\nfrom fastapi.responses import HTMLResponse\nimport json, uvicorn, uuid, os\nfrom datetime import datetime\n\napp = FastAPI()\napprovals = {}\n\nVERCEL_URL = os.environ.get(\"VERCEL_URL\", \"https://autobot-chi-tawny.vercel.app\")\n\n@app.post(\"/approval/create\")\nasync def create_approval(request: dict):\n    token = str(uuid.uuid4())\n    business = request.get(\"business\", \"\")\n    repo = request.get(\"repo\", \"\")\n    approvals[token] = {\n        \"status\": \"PENDING\",\n        \"subject\": request.get(\"subject\", \"\"),\n        \"details\": request.get(\"details\", \"\"),\n        \"business\": business,\n        \"repo\": repo,\n        \"created_at\": datetime.utcnow().isoformat()\n    }\n    approve_url = f\"{VERCEL_URL}/api/approve?token={token}\u0026action=yes\u0026business={business}\u0026repo={repo}\"\n    reject_url = f\"{VERCEL_URL}/api/approve?token={token}\u0026action=no\u0026business={business}\u0026repo={repo}\"\n    email_html = f\"\"\"\n\u003cdiv style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;\"\u003e\n  \u003cdiv style=\"background: #0f172a; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;\"\u003e\n    \u003ch1 style=\"color: #a78bfa; margin: 0; font-size: 24px; letter-spacing: 3px;\"\u003eAUTOBOT\u003c/h1\u003e\n    \u003cp style=\"color: #475569; margin: 4px 0 0; font-size: 12px;\"\u003eCOMMAND CENTER\u003c/p\u003e\n  \u003c/div\u003e\n  \u003cdiv style=\"border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 24px;\"\u003e\n    \u003ch2 style=\"color: #1e293b; margin-top: 0;\"\u003e{request.get(\"subject\", \"\")}\u003c/h2\u003e\n    \u003cdiv style=\"background: #f8fafc; border-left: 4px solid #a78bfa; padding: 16px; border-radius: 4px; margin: 20px 0;\"\u003e\n      \u003cpre style=\"white-space: pre-wrap; font-size: 13px; color: #334155; margin: 0; font-family: Arial, sans-serif;\"\u003e{request.get(\"details\", \"\")}\u003c/pre\u003e\n    \u003c/div\u003e\n    \u003cdiv style=\"margin: 32px 0; text-align: center;\"\u003e\n      \u003ca href=\"{approve_url}\" style=\"background: #22c55e; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold; margin-right: 12px; display: inline-block;\"\u003e\n        ✅ APPROVE \u0026amp; DEPLOY\n      \u003c/a\u003e\n      \u003ca href=\"{reject_url}\" style=\"background: #ef4444; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold; display: inline-block;\"\u003e\n        ❌ REJECT\n      \u003c/a\u003e\n    \u003c/div\u003e\n    \u003cp style=\"color: #94a3b8; font-size: 12px; text-align: center;\"\u003eSent by Autobot — clicking APPROVE will automatically deploy the site\u003c/p\u003e\n  \u003c/div\u003e\n\u003c/div\u003e\"\"\"\n    print(f\"[create] token={token} business={business}\")\n    return {\"token\": token, \"approve_url\": approve_url, \"reject_url\": reject_url, \"email_html\": email_html}\n\n@app.get(\"/approval/respond\")\nasync def respond(token: REDACTED
+    creationTimestamp: "2026-03-22T01:26:45Z"
+    name: approval-server
+    namespace: kagent
+    resourceVersion: "1334790"
+    uid: 50502f6a-89a6-4012-af1e-42b1af165daf
+- apiVersion: v1
+  data:
+    server.py: |
+      from mcp.server.fastmcp import FastMCP
+      from mcp.server.transport_security import TransportSecuritySettings
+      from pydantic import BaseModel, Field
+      from typing import Optional
+      import json, os, base64, httpx
+
+      mcp = FastMCP("github_mcp", transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))
+      GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+      HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+      BASE = "https://api.github.com"
+
+      class CreateRepoInput(BaseModel):
+          name: str = Field(description="Repo name, use hyphens not spaces")
+          description: Optional[str] = Field(default="")
+          private: Optional[bool] = Field(default=False)
+
+      class PushFileInput(BaseModel):
+          repo: str = Field(description="owner/repo format e.g. wjewell3/my-site")
+          path: str = Field(description="File path e.g. index.html")
+          content: str = Field(description="Full file content")
+          message: str = Field(description="Commit message")
+
+      class RepoInput(BaseModel):
+          repo: str = Field(description="owner/repo format")
+
+      class EmptyInput(BaseModel):
+          pass
+
+      @mcp.tool(name="github_list_repos", annotations={"readOnlyHint": True})
+      async def github_list_repos(params: EmptyInput) -> str:
+          """List GitHub repos for authenticated user."""
+          try:
+              async with httpx.AsyncClient(timeout=15) as client:
+                  r = await client.get(f"{BASE}/user/repos?per_page=30&sort=updated", headers=HEADERS)
+                  r.raise_for_status()
+                  repos = [{"name": x["name"], "url": x["html_url"], "has_pages": x.get("has_pages")} for x in r.json()]
+              return json.dumps(repos, indent=2)
+          except Exception as e:
+              return json.dumps({"error": str(e)})
+
+      @mcp.tool(name="github_create_repo", annotations={"destructiveHint": False})
+      async def github_create_repo(params: CreateRepoInput) -> str:
+          """Create a new GitHub repo. Returns full_name (owner/repo) needed for other tools."""
+          try:
+              async with httpx.AsyncClient(timeout=15) as client:
+                  r = await client.post(f"{BASE}/user/repos", headers=HEADERS, json={"name": params.name, "description": params.description, "private": params.private, "auto_init": True})
+                  r.raise_for_status()
+                  data = r.json()
+              print(f"[github_create_repo] created={data['full_name']}")
+              return json.dumps({"name": data["name"], "full_name": data["full_name"], "url": data["html_url"]}, indent=2)
+          except Exception as e:
+              return json.dumps({"error": str(e)})
+
+      @mcp.tool(name="github_push_file", annotations={"destructiveHint": True, "idempotentHint": True})
+      async def github_push_file(params: PushFileInput) -> str:
+          """Create or update a file in a GitHub repo. Handles SHA automatically."""
+          try:
+              content_b64 = base64.b64encode(params.content.encode()).decode()
+              async with httpx.AsyncClient(timeout=15) as client:
+                  check = await client.get(f"{BASE}/repos/{params.repo}/contents/{params.path}", headers=HEADERS)
+                  payload = {"message": params.message, "content": content_b64}
+                  if check.status_code == 200:
+                      payload["sha"] = check.json()["sha"]
+                  r = await client.put(f"{BASE}/repos/{params.repo}/contents/{params.path}", headers=HEADERS, json=payload)
+                  r.raise_for_status()
+                  data = r.json()
+              print(f"[github_push_file] repo={params.repo} path={params.path}")
+              return json.dumps({"path": params.path, "commit": data.get("commit",{}).get("sha","")}, indent=2)
+          except Exception as e:
+              return json.dumps({"error": str(e)})
+
+      @mcp.tool(name="github_enable_pages", annotations={"idempotentHint": True})
+      async def github_enable_pages(params: RepoInput) -> str:
+          """Enable GitHub Pages on main branch. Site goes live at https://owner.github.io/repo"""
+          try:
+              async with httpx.AsyncClient(timeout=15) as client:
+                  r = await client.post(f"{BASE}/repos/{params.repo}/pages", headers=HEADERS, json={"source": {"branch": "main", "path": "/"}})
+                  data = r.json()
+              print(f"[github_enable_pages] repo={params.repo}")
+              return json.dumps({"url": data.get("html_url",""), "status": data.get("status","")}, indent=2)
+          except Exception as e:
+              return json.dumps({"error": str(e)})
+
+      @mcp.tool(name="github_get_pages_url", annotations={"readOnlyHint": True})
+      async def github_get_pages_url(params: RepoInput) -> str:
+          """Get GitHub Pages URL and status. May take 1-2 minutes to go live after enabling."""
+          try:
+              async with httpx.AsyncClient(timeout=15) as client:
+                  r = await client.get(f"{BASE}/repos/{params.repo}/pages", headers=HEADERS)
+                  data = r.json()
+              return json.dumps({"url": data.get("html_url",""), "status": data.get("status",""), "live": data.get("status")=="built"}, indent=2)
+          except Exception as e:
+              return json.dumps({"error": str(e)})
+
+      if __name__ == "__main__":
+          import uvicorn
+          app = mcp.streamable_http_app()
+          config = uvicorn.Config(app, host="0.0.0.0", port=8087, log_level="info")
+          server = uvicorn.Server(config)
+          import anyio
+          anyio.run(server.serve)
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"server.py":"from mcp.server.fastmcp import FastMCP\nfrom mcp.server.transport_security import TransportSecuritySettings\nfrom pydantic import BaseModel, Field\nfrom typing import Optional\nimport json, os, base64, httpx\n\nmcp = FastMCP(\"github_mcp\", transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))\nGITHUB_TOKEN = os.environ.get(\"GITHUB_TOKEN\", \"\")\nHEADERS = {\"Authorization\": f\"Bearer {GITHUB_TOKEN}\", \"Accept\": \"application/vnd.github+json\", \"X-GitHub-Api-Version\": \"2022-11-28\"}\nBASE = \"https://api.github.com\"\n\nclass CreateRepoInput(BaseModel):\n    name: str = Field(description=\"Repo name, use hyphens not spaces\")\n    description: Optional[str] = Field(default=\"\")\n    private: Optional[bool] = Field(default=False)\n\nclass PushFileInput(BaseModel):\n    repo: str = Field(description=\"owner/repo format e.g. wjewell3/my-site\")\n    path: str = Field(description=\"File path e.g. index.html\")\n    content: str = Field(description=\"Full file content\")\n    message: str = Field(description=\"Commit message\")\n\nclass RepoInput(BaseModel):\n    repo: str = Field(description=\"owner/repo format\")\n\nclass EmptyInput(BaseModel):\n    pass\n\n@mcp.tool(name=\"github_list_repos\", annotations={\"readOnlyHint\": True})\nasync def github_list_repos(params: EmptyInput) -\u003e str:\n    \"\"\"List GitHub repos for authenticated user.\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.get(f\"{BASE}/user/repos?per_page=30\u0026sort=updated\", headers=HEADERS)\n            r.raise_for_status()\n            repos = [{\"name\": x[\"name\"], \"url\": x[\"html_url\"], \"has_pages\": x.get(\"has_pages\")} for x in r.json()]\n        return json.dumps(repos, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_create_repo\", annotations={\"destructiveHint\": False})\nasync def github_create_repo(params: CreateRepoInput) -\u003e str:\n    \"\"\"Create a new GitHub repo. Returns full_name (owner/repo) needed for other tools.\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.post(f\"{BASE}/user/repos\", headers=HEADERS, json={\"name\": params.name, \"description\": params.description, \"private\": params.private, \"auto_init\": True})\n            r.raise_for_status()\n            data = r.json()\n        print(f\"[github_create_repo] created={data['full_name']}\")\n        return json.dumps({\"name\": data[\"name\"], \"full_name\": data[\"full_name\"], \"url\": data[\"html_url\"]}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_push_file\", annotations={\"destructiveHint\": True, \"idempotentHint\": True})\nasync def github_push_file(params: PushFileInput) -\u003e str:\n    \"\"\"Create or update a file in a GitHub repo. Handles SHA automatically.\"\"\"\n    try:\n        content_b64 = base64.b64encode(params.content.encode()).decode()\n        async with httpx.AsyncClient(timeout=15) as client:\n            check = await client.get(f\"{BASE}/repos/{params.repo}/contents/{params.path}\", headers=HEADERS)\n            payload = {\"message\": params.message, \"content\": content_b64}\n            if check.status_code == 200:\n                payload[\"sha\"] = check.json()[\"sha\"]\n            r = await client.put(f\"{BASE}/repos/{params.repo}/contents/{params.path}\", headers=HEADERS, json=payload)\n            r.raise_for_status()\n            data = r.json()\n        print(f\"[github_push_file] repo={params.repo} path={params.path}\")\n        return json.dumps({\"path\": params.path, \"commit\": data.get(\"commit\",{}).get(\"sha\",\"\")}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_enable_pages\", annotations={\"idempotentHint\": True})\nasync def github_enable_pages(params: RepoInput) -\u003e str:\n    \"\"\"Enable GitHub Pages on main branch. Site goes live at https://owner.github.io/repo\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.post(f\"{BASE}/repos/{params.repo}/pages\", headers=HEADERS, json={\"source\": {\"branch\": \"main\", \"path\": \"/\"}})\n            data = r.json()\n        print(f\"[github_enable_pages] repo={params.repo}\")\n        return json.dumps({\"url\": data.get(\"html_url\",\"\"), \"status\": data.get(\"status\",\"\")}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_get_pages_url\", annotations={\"readOnlyHint\": True})\nasync def github_get_pages_url(params: RepoInput) -\u003e str:\n    \"\"\"Get GitHub Pages URL and status. May take 1-2 minutes to go live after enabling.\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.get(f\"{BASE}/repos/{params.repo}/pages\", headers=HEADERS)\n            data = r.json()\n        return json.dumps({\"url\": data.get(\"html_url\",\"\"), \"status\": data.get(\"status\",\"\"), \"live\": data.get(\"status\")==\"built\"}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\nif __name__ == \"__main__\":\n    import uvicorn\n    app = mcp.streamable_http_app()\n    config = uvicorn.Config(app, host=\"0.0.0.0\", port=8087, log_level=\"info\")\n    server = uvicorn.Server(config)\n    import anyio\n    anyio.run(server.serve)\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"github-mcp-server","namespace":"kagent"}}
+    creationTimestamp: "2026-03-21T18:33:05Z"
+    name: github-mcp-server
+    namespace: kagent
+    resourceVersion: "1678819"
+    uid: 1df73935-9171-4254-b593-a927e889f2ca
+- apiVersion: v1
+  data:
+    server.py: |
+      from fastapi import FastAPI
+      import json, uvicorn, os, smtplib, httpx
+      from email.mime.text import MIMEText
+      from email.mime.multipart import MIMEMultipart
+
+      app = FastAPI()
+      GMAIL = os.environ.get("GMAIL_EMAIL", "")
+      GMAIL_PASS = os.environ.get("GMAIL_APP_PASSWORD", "")
+      APPROVAL_URL = "http://approval-server.kagent.svc.cluster.local:8089"
+
+      TOOLS = [
+        {"name": "gmail_send_email", "description": "Send email via Gmail.", "inputSchema": {"type": "object", "properties": {"to": {"type": "string"}, "subject": {"type": "string"}, "body": {"type": "string"}, "html": {"type": "boolean", "default": False}}, "required": ["to", "subject", "body"]}},
+        {"name": "gmail_request_approval", "description": "Send HTML approval email with APPROVE/REJECT buttons. After calling, Phase A is DONE - do not wait or poll.", "inputSchema": {"type": "object", "properties": {"to": {"type": "string"}, "subject": {"type": "string"}, "details": {"type": "string"}, "business": {"type": "string"}, "repo": {"type": "string"}}, "required": ["to", "subject", "details", "business", "repo"]}},
+        {"name": "gmail_check_approval", "description": "Check approval status. Returns PENDING, APPROVED, or REJECTED. Only call if explicitly asked.", "inputSchema": {"type": "object", "properties": {"token": {"type": "string"}}, "required": ["token"]}}
+      ]
+
+      def send_raw(to, subject, body, html=False):
+          msg = MIMEMultipart("alternative")
+          msg["Subject"] = subject
+          msg["From"] = GMAIL
+          msg["To"] = to
+          msg.attach(MIMEText(body, "html" if html else "plain"))
+          with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+              s.login(GMAIL, GMAIL_PASS)
+              s.sendmail(GMAIL, to, msg.as_string())
+
+      @app.post("/mcp")
+      async def mcp(request: dict):
+          method = request.get("method")
+          id_ = request.get("id")
+          if method == "initialize":
+              return {"jsonrpc": "2.0", "id": id_, "result": {"protocolVersion": "2024-11-05", "capabilities": {"tools": {}}, "serverInfo": {"name": "gmail_mcp", "version": "1.0.0"}}}
+          if method == "tools/list":
+              return {"jsonrpc": "2.0", "id": id_, "result": {"tools": TOOLS}}
+          if method == "tools/call":
+              name = request["params"]["name"]
+              args = request["params"].get("arguments", {})
+              try:
+                  if name == "gmail_send_email":
+                      send_raw(args["to"], args["subject"], args["body"], args.get("html", False))
+                      text = json.dumps({"sent": True, "to": args["to"]})
+                      print(f"[gmail_send_email] to={args['to']}")
+                  elif name == "gmail_request_approval":
+                      async with httpx.AsyncClient(timeout=10) as client:
+                          r = await client.post(f"{APPROVAL_URL}/approval/create", json={"subject": args["subject"], "details": args["details"], "business": args.get("business",""), "repo": args.get("repo","")})
+                          data = r.json()
+                      send_raw(args["to"], f"[ACTION REQUIRED] {args['subject']}", data["email_html"], html=True)
+                      text = json.dumps({"token": data["token"], "sent": True, "message": "Approval email sent. Phase A complete."})
+                      print(f"[gmail_request_approval] to={args['to']} token={data['token']}")
+                  elif name == "gmail_check_approval":
+                      async with httpx.AsyncClient(timeout=10) as client:
+                          r = await client.get(f"{APPROVAL_URL}/approval/status?token={args['token']}")
+                          data = r.json()
+                      text = json.dumps(data)
+                      print(f"[gmail_check_approval] status={data.get('status')}")
+                  else:
+                      text = "Unknown tool"
+              except Exception as e:
+                  text = json.dumps({"error": str(e)})
+                  print(f"[{name}] ERROR: {e}")
+              return {"jsonrpc": "2.0", "id": id_, "result": {"content": [{"type": "text", "text": text}]}}
+          return {"jsonrpc": "2.0", "id": id_, "error": {"code": -32601, "message": "Method not found"}}
+
+      if __name__ == "__main__":
+          uvicorn.run(app, host="0.0.0.0", port=8088)
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"server.py":"from fastapi import FastAPI\nimport json, uvicorn, os, smtplib, httpx\nfrom email.mime.text import MIMEText\nfrom email.mime.multipart import MIMEMultipart\n\napp = FastAPI()\nGMAIL = os.environ.get(\"GMAIL_EMAIL\", \"\")\nGMAIL_PASS = os.environ.get(\"GMAIL_APP_PASSWORD\", \"\")\nAPPROVAL_URL = \"http://approval-server.kagent.svc.cluster.local:8089\"\n\nTOOLS = [\n  {\"name\": \"gmail_send_email\", \"description\": \"Send email via Gmail.\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"to\": {\"type\": \"string\"}, \"subject\": {\"type\": \"string\"}, \"body\": {\"type\": \"string\"}, \"html\": {\"type\": \"boolean\", \"default\": False}}, \"required\": [\"to\", \"subject\", \"body\"]}},\n  {\"name\": \"gmail_request_approval\", \"description\": \"Send HTML approval email with APPROVE/REJECT buttons. After calling, Phase A is DONE - do not wait or poll.\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"to\": {\"type\": \"string\"}, \"subject\": {\"type\": \"string\"}, \"details\": {\"type\": \"string\"}, \"business\": {\"type\": \"string\"}, \"repo\": {\"type\": \"string\"}}, \"required\": [\"to\", \"subject\", \"details\", \"business\", \"repo\"]}},\n  {\"name\": \"gmail_check_approval\", \"description\": \"Check approval status. Returns PENDING, APPROVED, or REJECTED. Only call if explicitly asked.\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"token\": {\"type\": \"string\"}}, \"required\": [\"token\"]}}\n]\n\ndef send_raw(to, subject, body, html=False):\n    msg = MIMEMultipart(\"alternative\")\n    msg[\"Subject\"] = subject\n    msg[\"From\"] = GMAIL\n    msg[\"To\"] = to\n    msg.attach(MIMEText(body, \"html\" if html else \"plain\"))\n    with smtplib.SMTP_SSL(\"smtp.gmail.com\", 465) as s:\n        s.login(GMAIL, GMAIL_PASS)\n        s.sendmail(GMAIL, to, msg.as_string())\n\n@app.post(\"/mcp\")\nasync def mcp(request: dict):\n    method = request.get(\"method\")\n    id_ = request.get(\"id\")\n    if method == \"initialize\":\n        return {\"jsonrpc\": \"2.0\", \"id\": id_, \"result\": {\"protocolVersion\": \"2024-11-05\", \"capabilities\": {\"tools\": {}}, \"serverInfo\": {\"name\": \"gmail_mcp\", \"version\": \"1.0.0\"}}}\n    if method == \"tools/list\":\n        return {\"jsonrpc\": \"2.0\", \"id\": id_, \"result\": {\"tools\": TOOLS}}\n    if method == \"tools/call\":\n        name = request[\"params\"][\"name\"]\n        args = request[\"params\"].get(\"arguments\", {})\n        try:\n            if name == \"gmail_send_email\":\n                send_raw(args[\"to\"], args[\"subject\"], args[\"body\"], args.get(\"html\", False))\n                text = json.dumps({\"sent\": True, \"to\": args[\"to\"]})\n                print(f\"[gmail_send_email] to={args['to']}\")\n            elif name == \"gmail_request_approval\":\n                async with httpx.AsyncClient(timeout=10) as client:\n                    r = await client.post(f\"{APPROVAL_URL}/approval/create\", json={\"subject\": args[\"subject\"], \"details\": args[\"details\"], \"business\": args.get(\"business\",\"\"), \"repo\": args.get(\"repo\",\"\")})\n                    data = r.json()\n                send_raw(args[\"to\"], f\"[ACTION REQUIRED] {args['subject']}\", data[\"email_html\"], html=True)\n                text = json.dumps({\"token\": data[\"token\"], \"sent\": True, \"message\": \"Approval email sent. Phase A complete.\"})\n                print(f\"[gmail_request_approval] to={args['to']} token={data['token']}\")\n            elif name == \"gmail_check_approval\":\n                async with httpx.AsyncClient(timeout=10) as client:\n                    r = await client.get(f\"{APPROVAL_URL}/approval/status?token={args['token']}\")\n                    data = r.json()\n                text = json.dumps(data)\n                print(f\"[gmail_check_approval] status={data.get('status')}\")\n            else:\n                text = \"Unknown tool\"\n        except Exception as e:\n            text = json.dumps({\"error\": str(e)})\n            print(f\"[{name}] ERROR: {e}\")\n        return {\"jsonrpc\": \"2.0\", \"id\": id_, \"result\": {\"content\": [{\"type\": \"text\", \"text\": text}]}}\n    return {\"jsonrpc\": \"2.0\", \"id\": id_, \"error\": {\"code\": -32601, \"message\": \"Method not found\"}}\n\nif __name__ == \"__main__\":\n    uvicorn.run(app, host=\"0.0.0.0\", port=8088)\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"gmail-mcp-server","namespace":"kagent"}}
+    creationTimestamp: "2026-03-21T18:42:02Z"
+    name: gmail-mcp-server
+    namespace: kagent
+    resourceVersion: "1355653"
+    uid: c35acfa1-0281-4744-8e91-48b0bb35b5f4
+- apiVersion: v1
+  data:
+    server.py: "\"\"\"\nslack_poster.py — MCP tools for posting HITL approval requests
+      to Slack.\n\nAdd this to your existing search-tool-server or gmail-tool-server,\nOR
+      deploy as its own hitl-tool-server using the standard FastMCP template.\n\nEnv
+      vars (add to the target deployment's K8s secret):\n  SLACK_BOT_TOKEN         —
+      xoxb-...\n  SLACK_HITL_CHANNEL_ID   — C0XXXXXXX (channel ID, not name)\n  SLACK_ESCALATION_CHANNEL_ID
+      — defaults to SLACK_HITL_CHANNEL_ID\n  HITL_WEBHOOK_URL        — https://autobot-chi-tawny.vercel.app/api/hitl\n
+      \                           (used in escalation re-posts so agents know where
+      acks go)\n\"\"\"\n\nimport asyncio\nimport json\nimport logging\nimport os\nimport
+      uuid\nfrom datetime import datetime, timezone\n\nimport httpx\nfrom mcp.server.fastmcp
+      import FastMCP\nfrom mcp.server.transport_security import TransportSecuritySettings\n\nlog
+      = logging.getLogger(\"slack-poster\")\n\nSLACK_BOT_TOKEN = os.environ[\"SLACK_BOT_TOKEN\"]\nSLACK_HITL_CHANNEL_ID
+      = os.environ[\"SLACK_HITL_CHANNEL_ID\"]\nSLACK_ESCALATION_CHANNEL_ID = os.getenv(\n
+      \   \"SLACK_ESCALATION_CHANNEL_ID\", SLACK_HITL_CHANNEL_ID\n)\n\n# Timeout seconds
+      per severity level\n# low   → auto-approve after timeout (non-blocking work)\n#
+      medium → escalate to escalation channel\n# high   → auto-reject (potentially
+      destructive action)\nTIMEOUTS = {\"low\": 30 * 60, \"medium\": 15 * 60, \"high\":
+      5 * 60}\nTIMEOUT_ACTIONS = {\"low\": \"approved\", \"medium\": \"escalated\",
+      \"high\": \"rejected\"}\n\nmcp = FastMCP(\n    \"hitl-tool-server\",\n    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),\n)\n\n#
+      ---------------------------------------------------------------------------\n#
+      Slack API helpers\n# ---------------------------------------------------------------------------\n\nasync
+      def slack_post(endpoint: str, body: dict) -> dict:\n    async with httpx.AsyncClient()
+      as client:\n        resp = await client.post(\n            f\"https://slack.com/api/{endpoint}\",\n
+      \           headers={\n                \"Authorization\": f\"Bearer {SLACK_BOT_TOKEN}\",\n
+      \               \"Content-Type\": \"application/json\",\n            },\n            json=body,\n
+      \           timeout=10,\n        )\n        resp.raise_for_status()\n        data
+      = resp.json()\n        if not data.get(\"ok\"):\n            raise RuntimeError(f\"Slack
+      API error: {data.get('error')}\")\n        return data\n\n\nasync def post_approval_message(\n
+      \   channel_id: str,\n    request_id: str,\n    requesting_agent: str,\n    task_context:
+      str,\n    proposed_action: str,\n    severity: str,\n    timeout_seconds: int,\n)
+      -> str:\n    \"\"\"Post the HITL approval message with buttons. Returns message
+      timestamp.\"\"\"\n\n    severity_emoji = {\"low\": \"\U0001F7E2\", \"medium\":
+      \"\U0001F7E1\", \"high\": \"\U0001F534\"}.get(severity, \"⚪\")\n\n    # Value
+      embedded in each button so the webhook knows what to resume\n    button_value
+      = json.dumps({\n        \"request_id\": request_id,\n        \"context\": {\n
+      \           \"requesting_agent\": requesting_agent,\n            \"task_context\":
+      task_context,\n            \"proposed_action\": proposed_action,\n        },\n
+      \   })\n\n    blocks = [\n        {\n            \"type\": \"section\",\n            \"text\":
+      {\n                \"type\": \"mrkdwn\",\n                \"text\": (\n                    f\"\U0001F514
+      *HITL Approval Required*\\n\"\n                    f\"*Agent:* `{requesting_agent}`\\n\"\n
+      \                   f\"*Severity:* {severity_emoji} {severity.upper()}\\n\\n\"\n
+      \                   f\"*Task:* {task_context}\\n\"\n                    f\"*Proposed
+      Action:* {proposed_action}\"\n                ),\n            },\n        },\n
+      \       {\n            \"type\": \"context\",\n            \"elements\": [\n
+      \               {\n                    \"type\": \"mrkdwn\",\n                    \"text\":
+      f\"Request ID: `{request_id}` | Timeout: {timeout_seconds // 60}min\",\n                }\n
+      \           ],\n        },\n        {\n            \"type\": \"actions\",\n
+      \           \"elements\": [\n                {\n                    \"type\":
+      \"button\",\n                    \"text\": {\"type\": \"plain_text\", \"text\":
+      \"✅ Approve\"},\n                    \"style\": \"primary\",\n                    \"action_id\":
+      \"approved\",\n                    \"value\": button_value,\n                },\n
+      \               {\n                    \"type\": \"button\",\n                    \"text\":
+      {\"type\": \"plain_text\", \"text\": \"❌ Reject\"},\n                    \"style\":
+      \"danger\",\n                    \"action_id\": \"rejected\",\n                    \"value\":
+      button_value,\n                },\n                {\n                    \"type\":
+      \"button\",\n                    \"text\": {\"type\": \"plain_text\", \"text\":
+      \"⬆️ Escalate\"},\n                    \"action_id\": \"escalated\",\n                    \"value\":
+      button_value,\n                },\n            ],\n        },\n    ]\n\n    data
+      = await slack_post(\"chat.postMessage\", {\"channel\": channel_id, \"blocks\":
+      blocks})\n    return data[\"ts\"]\n\n\nasync def handle_timeout(\n    request_id:
+      str,\n    channel_id: str,\n    message_ts: str,\n    severity: str,\n    requesting_agent:
+      str,\n    task_context: str,\n    proposed_action: str,\n    timeout_seconds:
+      int,\n):\n    \"\"\"\n    Called after timeout expires. Auto-resolves based
+      on severity:\n      low    → auto-approve  (safe to proceed)\n      medium →
+      escalate      (re-post to escalation channel with @here)\n      high   → auto-reject
+      \  (fail safe)\n    \"\"\"\n    await asyncio.sleep(timeout_seconds)\n\n    auto_outcome
+      = TIMEOUT_ACTIONS[severity]\n    log.info(f\"Timeout for {request_id}: auto-{auto_outcome}\")\n\n
+      \   # Update original message\n    timeout_note = {\n        \"approved\": \"⏱
+      Auto-approved after timeout (low severity)\",\n        \"escalated\": \"⏱ Escalated
+      after timeout — no response received\",\n        \"rejected\":  \"⏱ Auto-rejected
+      after timeout (high severity — fail safe)\",\n    }[auto_outcome]\n\n    try:\n
+      \       await slack_post(\"chat.update\", {\n            \"channel\": channel_id,\n
+      \           \"ts\": message_ts,\n            \"blocks\": [\n                {\n
+      \                   \"type\": \"section\",\n                    \"text\": {\n
+      \                       \"type\": \"mrkdwn\",\n                        \"text\":
+      (\n                            f\"\U0001F514 *HITL Approval Required* _(resolved)_\\n\"\n
+      \                           f\"*Agent:* `{requesting_agent}`\\n\"\n                            f\"*Task:*
+      {task_context}\\n\"\n                            f\"*Proposed Action:* {proposed_action}\"\n
+      \                       ),\n                    },\n                },\n                {\n
+      \                   \"type\": \"context\",\n                    \"elements\":
+      [{\"type\": \"mrkdwn\", \"text\": timeout_note}],\n                },\n            ],\n
+      \       })\n    except Exception as e:\n        log.error(f\"Failed to update
+      timed-out message: {e}\")\n\n    # For escalation, re-post to escalation channel
+      with @here\n    if auto_outcome == \"escalated\" and SLACK_ESCALATION_CHANNEL_ID
+      != channel_id:\n        button_value = json.dumps({\n            \"request_id\":
+      request_id,\n            \"context\": {\n                \"requesting_agent\":
+      requesting_agent,\n                \"task_context\": task_context,\n                \"proposed_action\":
+      proposed_action,\n            },\n        })\n        try:\n            await
+      slack_post(\"chat.postMessage\", {\n                \"channel\": SLACK_ESCALATION_CHANNEL_ID,\n
+      \               \"blocks\": [\n                    {\n                        \"type\":
+      \"section\",\n                        \"text\": {\n                            \"type\":
+      \"mrkdwn\",\n                            \"text\": (\n                                f\"<!here>
+      \U0001F6A8 *Escalated HITL — No response in {timeout_seconds // 60}min*\\n\"\n
+      \                               f\"*Agent:* `{requesting_agent}`\\n\"\n                                f\"*Task:*
+      {task_context}\\n\"\n                                f\"*Proposed Action:* {proposed_action}\"\n
+      \                           ),\n                        },\n                    },\n
+      \                   {\n                        \"type\": \"actions\",\n                        \"elements\":
+      [\n                            {\n                                \"type\":
+      \"button\",\n                                \"text\": {\"type\": \"plain_text\",
+      \"text\": \"✅ Approve\"},\n                                \"style\": \"primary\",\n
+      \                               \"action_id\": \"approved\",\n                                \"value\":
+      button_value,\n                            },\n                            {\n
+      \                               \"type\": \"button\",\n                                \"text\":
+      {\"type\": \"plain_text\", \"text\": \"❌ Reject\"},\n                                \"style\":
+      \"danger\",\n                                \"action_id\": \"rejected\",\n
+      \                               \"value\": button_value,\n                            },\n
+      \                       ],\n                    },\n                ],\n            })\n
+      \       except Exception as e:\n            log.error(f\"Failed to post escalation
+      message: {e}\")\n\n\n# ---------------------------------------------------------------------------\n#
+      MCP Tools\n# ---------------------------------------------------------------------------\n\n@mcp.tool()\nasync
+      def request_approval(\n    task_context: str,\n    proposed_action: str,\n    severity:
+      str,\n    requesting_agent: str,\n) -> str:\n    \"\"\"\n    Post an approval
+      request to #hitl-approvals in Slack.\n    The agent should stop after calling
+      this and wait to be resumed\n    via a HITL_RESUME message from the commander.\n\n
+      \   Args:\n        task_context:     What the agent is currently doing (e.g.
+      \"Finding business targets in Nashville\")\n        proposed_action:  The specific
+      action requiring approval (e.g. \"Send cold email to 47 contacts\")\n        severity:
+      \        \"low\" | \"medium\" | \"high\"\n                          low    =
+      auto-approve after 30min if no response\n                          medium =
+      escalate after 15min if no response\n                          high   = auto-reject
+      after 5min if no response (fail safe)\n        requesting_agent: Name of the
+      calling agent (e.g. \"prospecting-agent\")\n\n    Returns:\n        request_id
+      to include in any follow-up context\n    \"\"\"\n    severity = severity.lower()\n
+      \   if severity not in TIMEOUTS:\n        severity = \"medium\"\n\n    request_id
+      = str(uuid.uuid4())[:8]\n    timeout_seconds = TIMEOUTS[severity]\n\n    log.info(f\"HITL
+      request {request_id} from {requesting_agent} (severity={severity})\")\n\n    #
+      Post the message\n    message_ts = await post_approval_message(\n        channel_id=SLACK_HITL_CHANNEL_ID,\n
+      \       request_id=request_id,\n        requesting_agent=requesting_agent,\n
+      \       task_context=task_context,\n        proposed_action=proposed_action,\n
+      \       severity=severity,\n        timeout_seconds=timeout_seconds,\n    )\n\n
+      \   # Schedule timeout handler in background (fire-and-forget)\n    asyncio.create_task(\n
+      \       handle_timeout(\n            request_id=request_id,\n            channel_id=SLACK_HITL_CHANNEL_ID,\n
+      \           message_ts=message_ts,\n            severity=severity,\n            requesting_agent=requesting_agent,\n
+      \           task_context=task_context,\n            proposed_action=proposed_action,\n
+      \           timeout_seconds=timeout_seconds,\n        )\n    )\n\n    return
+      (\n        f\"Approval request posted to Slack (request_id={request_id}, severity={severity}).\\n\"\n
+      \       f\"Timeout: {timeout_seconds // 60}min → will auto-{TIMEOUT_ACTIONS[severity]}.\\n\"\n
+      \       f\"STOP here and do not proceed until you receive a HITL_RESUME message.\"\n
+      \   )\n\n\n@mcp.tool()\nasync def post_notification(\n    channel: str,\n    message:
+      str,\n    requesting_agent: str,\n) -> str:\n    \"\"\"\n    Post a plain notification
+      to a Slack channel (no approval needed).\n    Use for status updates, alerts,
+      or informational messages.\n\n    Args:\n        channel:          Channel ID
+      (e.g. C0XXXXXXX) or name (e.g. agent-workers)\n        message:          Message
+      text (supports Slack mrkdwn formatting)\n        requesting_agent: Name of the
+      calling agent\n    \"\"\"\n    await slack_post(\"chat.postMessage\", {\n        \"channel\":
+      channel,\n        \"blocks\": [\n            {\n                \"type\": \"section\",\n
+      \               \"text\": {\"type\": \"mrkdwn\", \"text\": message},\n            },\n
+      \           {\n                \"type\": \"context\",\n                \"elements\":
+      [\n                    {\"type\": \"mrkdwn\", \"text\": f\"From: `{requesting_agent}`\"}\n
+      \               ],\n            },\n        ],\n    })\n    return f\"Notification
+      posted to {channel}\"\n\n\n# ---------------------------------------------------------------------------\n#
+      Entry point\n# ---------------------------------------------------------------------------\n\nif
+      __name__ == \"__main__\":\n    import uvicorn\n    import anyio\n\n    PORT
+      = int(os.getenv(\"HITL_TOOL_PORT\", \"8091\"))\n    app = mcp.streamable_http_app()\n
+      \   config = uvicorn.Config(app, host=\"0.0.0.0\", port=PORT, log_level=\"info\")\n
+      \   anyio.run(uvicorn.Server(config).serve)"
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: "{\"apiVersion\":\"v1\",\"data\":{\"server.py\":\"\\\"\\\"\\\"\\nslack_poster.py
+        — MCP tools for posting HITL approval requests to Slack.\\n\\nAdd this to
+        your existing search-tool-server or gmail-tool-server,\\nOR deploy as its
+        own hitl-tool-server using the standard FastMCP template.\\n\\nEnv vars (add
+        to the target deployment's K8s secret):\\n  SLACK_BOT_TOKEN         — xoxb-...\\n
+        \ SLACK_HITL_CHANNEL_ID   — C0XXXXXXX (channel ID, not name)\\n  SLACK_ESCALATION_CHANNEL_ID
+        — defaults to SLACK_HITL_CHANNEL_ID\\n  HITL_WEBHOOK_URL        — https://autobot-chi-tawny.vercel.app/api/hitl\\n
+        \                           (used in escalation re-posts so agents know where
+        acks go)\\n\\\"\\\"\\\"\\n\\nimport asyncio\\nimport json\\nimport logging\\nimport
+        os\\nimport uuid\\nfrom datetime import datetime, timezone\\n\\nimport httpx\\nfrom
+        mcp.server.fastmcp import FastMCP\\nfrom mcp.server.transport_security import
+        TransportSecuritySettings\\n\\nlog = logging.getLogger(\\\"slack-poster\\\")\\n\\nSLACK_BOT_TOKEN
+        = os.environ[\\\"SLACK_BOT_TOKEN\\\"]\\nSLACK_HITL_CHANNEL_ID = os.environ[\\\"SLACK_HITL_CHANNEL_ID\\\"]\\nSLACK_ESCALATION_CHANNEL_ID
+        = os.getenv(\\n    \\\"SLACK_ESCALATION_CHANNEL_ID\\\", SLACK_HITL_CHANNEL_ID\\n)\\n\\n#
+        Timeout seconds per severity level\\n# low   → auto-approve after timeout
+        (non-blocking work)\\n# medium → escalate to escalation channel\\n# high   →
+        auto-reject (potentially destructive action)\\nTIMEOUTS = {\\\"low\\\": 30
+        * 60, \\\"medium\\\": 15 * 60, \\\"high\\\": 5 * 60}\\nTIMEOUT_ACTIONS = {\\\"low\\\":
+        \\\"approved\\\", \\\"medium\\\": \\\"escalated\\\", \\\"high\\\": \\\"rejected\\\"}\\n\\nmcp
+        = FastMCP(\\n    \\\"hitl-tool-server\\\",\\n    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),\\n)\\n\\n#
+        ---------------------------------------------------------------------------\\n#
+        Slack API helpers\\n# ---------------------------------------------------------------------------\\n\\nasync
+        def slack_post(endpoint: str, body: dict) -\\u003e dict:\\n    async with
+        httpx.AsyncClient() as client:\\n        resp = await client.post(\\n            f\\\"https://slack.com/api/{endpoint}\\\",\\n
+        \           headers={\\n                \\\"Authorization\\\": f\\\"Bearer
+        {SLACK_BOT_TOKEN}\\\",\\n                \\\"Content-Type\\\": \\\"application/json\\\",\\n
+        \           },\\n            json=body,\\n            timeout=10,\\n        )\\n
+        \       resp.raise_for_status()\\n        data = resp.json()\\n        if
+        not data.get(\\\"ok\\\"):\\n            raise RuntimeError(f\\\"Slack API
+        error: {data.get('error')}\\\")\\n        return data\\n\\n\\nasync def post_approval_message(\\n
+        \   channel_id: str,\\n    request_id: str,\\n    requesting_agent: str,\\n
+        \   task_context: str,\\n    proposed_action: str,\\n    severity: str,\\n
+        \   timeout_seconds: int,\\n) -\\u003e str:\\n    \\\"\\\"\\\"Post the HITL
+        approval message with buttons. Returns message timestamp.\\\"\\\"\\\"\\n\\n
+        \   severity_emoji = {\\\"low\\\": \\\"\U0001F7E2\\\", \\\"medium\\\": \\\"\U0001F7E1\\\",
+        \\\"high\\\": \\\"\U0001F534\\\"}.get(severity, \\\"⚪\\\")\\n\\n    # Value
+        embedded in each button so the webhook knows what to resume\\n    button_value
+        = json.dumps({\\n        \\\"request_id\\\": request_id,\\n        \\\"context\\\":
+        {\\n            \\\"requesting_agent\\\": requesting_agent,\\n            \\\"task_context\\\":
+        task_context,\\n            \\\"proposed_action\\\": proposed_action,\\n        },\\n
+        \   })\\n\\n    blocks = [\\n        {\\n            \\\"type\\\": \\\"section\\\",\\n
+        \           \\\"text\\\": {\\n                \\\"type\\\": \\\"mrkdwn\\\",\\n
+        \               \\\"text\\\": (\\n                    f\\\"\U0001F514 *HITL
+        Approval Required*\\\\n\\\"\\n                    f\\\"*Agent:* `{requesting_agent}`\\\\n\\\"\\n
+        \                   f\\\"*Severity:* {severity_emoji} {severity.upper()}\\\\n\\\\n\\\"\\n
+        \                   f\\\"*Task:* {task_context}\\\\n\\\"\\n                    f\\\"*Proposed
+        Action:* {proposed_action}\\\"\\n                ),\\n            },\\n        },\\n
+        \       {\\n            \\\"type\\\": \\\"context\\\",\\n            \\\"elements\\\":
+        [\\n                {\\n                    \\\"type\\\": \\\"mrkdwn\\\",\\n
+        \                   \\\"text\\\": f\\\"Request ID: `{request_id}` | Timeout:
+        {timeout_seconds // 60}min\\\",\\n                }\\n            ],\\n        },\\n
+        \       {\\n            \\\"type\\\": \\\"actions\\\",\\n            \\\"elements\\\":
+        [\\n                {\\n                    \\\"type\\\": \\\"button\\\",\\n
+        \                   \\\"text\\\": {\\\"type\\\": \\\"plain_text\\\", \\\"text\\\":
+        \\\"✅ Approve\\\"},\\n                    \\\"style\\\": \\\"primary\\\",\\n
+        \                   \\\"action_id\\\": \\\"approved\\\",\\n                    \\\"value\\\":
+        button_value,\\n                },\\n                {\\n                    \\\"type\\\":
+        \\\"button\\\",\\n                    \\\"text\\\": {\\\"type\\\": \\\"plain_text\\\",
+        \\\"text\\\": \\\"❌ Reject\\\"},\\n                    \\\"style\\\": \\\"danger\\\",\\n
+        \                   \\\"action_id\\\": \\\"rejected\\\",\\n                    \\\"value\\\":
+        button_value,\\n                },\\n                {\\n                    \\\"type\\\":
+        \\\"button\\\",\\n                    \\\"text\\\": {\\\"type\\\": \\\"plain_text\\\",
+        \\\"text\\\": \\\"⬆️ Escalate\\\"},\\n                    \\\"action_id\\\":
+        \\\"escalated\\\",\\n                    \\\"value\\\": button_value,\\n                },\\n
+        \           ],\\n        },\\n    ]\\n\\n    data = await slack_post(\\\"chat.postMessage\\\",
+        {\\\"channel\\\": channel_id, \\\"blocks\\\": blocks})\\n    return data[\\\"ts\\\"]\\n\\n\\nasync
+        def handle_timeout(\\n    request_id: str,\\n    channel_id: str,\\n    message_ts:
+        str,\\n    severity: str,\\n    requesting_agent: str,\\n    task_context:
+        str,\\n    proposed_action: str,\\n    timeout_seconds: int,\\n):\\n    \\\"\\\"\\\"\\n
+        \   Called after timeout expires. Auto-resolves based on severity:\\n      low
+        \   → auto-approve  (safe to proceed)\\n      medium → escalate      (re-post
+        to escalation channel with @here)\\n      high   → auto-reject   (fail safe)\\n
+        \   \\\"\\\"\\\"\\n    await asyncio.sleep(timeout_seconds)\\n\\n    auto_outcome
+        = TIMEOUT_ACTIONS[severity]\\n    log.info(f\\\"Timeout for {request_id}:
+        auto-{auto_outcome}\\\")\\n\\n    # Update original message\\n    timeout_note
+        = {\\n        \\\"approved\\\": \\\"⏱ Auto-approved after timeout (low severity)\\\",\\n
+        \       \\\"escalated\\\": \\\"⏱ Escalated after timeout — no response received\\\",\\n
+        \       \\\"rejected\\\":  \\\"⏱ Auto-rejected after timeout (high severity
+        — fail safe)\\\",\\n    }[auto_outcome]\\n\\n    try:\\n        await slack_post(\\\"chat.update\\\",
+        {\\n            \\\"channel\\\": channel_id,\\n            \\\"ts\\\": message_ts,\\n
+        \           \\\"blocks\\\": [\\n                {\\n                    \\\"type\\\":
+        \\\"section\\\",\\n                    \\\"text\\\": {\\n                        \\\"type\\\":
+        \\\"mrkdwn\\\",\\n                        \\\"text\\\": (\\n                            f\\\"\U0001F514
+        *HITL Approval Required* _(resolved)_\\\\n\\\"\\n                            f\\\"*Agent:*
+        `{requesting_agent}`\\\\n\\\"\\n                            f\\\"*Task:* {task_context}\\\\n\\\"\\n
+        \                           f\\\"*Proposed Action:* {proposed_action}\\\"\\n
+        \                       ),\\n                    },\\n                },\\n
+        \               {\\n                    \\\"type\\\": \\\"context\\\",\\n
+        \                   \\\"elements\\\": [{\\\"type\\\": \\\"mrkdwn\\\", \\\"text\\\":
+        timeout_note}],\\n                },\\n            ],\\n        })\\n    except
+        Exception as e:\\n        log.error(f\\\"Failed to update timed-out message:
+        {e}\\\")\\n\\n    # For escalation, re-post to escalation channel with @here\\n
+        \   if auto_outcome == \\\"escalated\\\" and SLACK_ESCALATION_CHANNEL_ID !=
+        channel_id:\\n        button_value = json.dumps({\\n            \\\"request_id\\\":
+        request_id,\\n            \\\"context\\\": {\\n                \\\"requesting_agent\\\":
+        requesting_agent,\\n                \\\"task_context\\\": task_context,\\n
+        \               \\\"proposed_action\\\": proposed_action,\\n            },\\n
+        \       })\\n        try:\\n            await slack_post(\\\"chat.postMessage\\\",
+        {\\n                \\\"channel\\\": SLACK_ESCALATION_CHANNEL_ID,\\n                \\\"blocks\\\":
+        [\\n                    {\\n                        \\\"type\\\": \\\"section\\\",\\n
+        \                       \\\"text\\\": {\\n                            \\\"type\\\":
+        \\\"mrkdwn\\\",\\n                            \\\"text\\\": (\\n                                f\\\"\\u003c!here\\u003e
+        \U0001F6A8 *Escalated HITL — No response in {timeout_seconds // 60}min*\\\\n\\\"\\n
+        \                               f\\\"*Agent:* `{requesting_agent}`\\\\n\\\"\\n
+        \                               f\\\"*Task:* {task_context}\\\\n\\\"\\n                                f\\\"*Proposed
+        Action:* {proposed_action}\\\"\\n                            ),\\n                        },\\n
+        \                   },\\n                    {\\n                        \\\"type\\\":
+        \\\"actions\\\",\\n                        \\\"elements\\\": [\\n                            {\\n
+        \                               \\\"type\\\": \\\"button\\\",\\n                                \\\"text\\\":
+        {\\\"type\\\": \\\"plain_text\\\", \\\"text\\\": \\\"✅ Approve\\\"},\\n                                \\\"style\\\":
+        \\\"primary\\\",\\n                                \\\"action_id\\\": \\\"approved\\\",\\n
+        \                               \\\"value\\\": button_value,\\n                            },\\n
+        \                           {\\n                                \\\"type\\\":
+        \\\"button\\\",\\n                                \\\"text\\\": {\\\"type\\\":
+        \\\"plain_text\\\", \\\"text\\\": \\\"❌ Reject\\\"},\\n                                \\\"style\\\":
+        \\\"danger\\\",\\n                                \\\"action_id\\\": \\\"rejected\\\",\\n
+        \                               \\\"value\\\": button_value,\\n                            },\\n
+        \                       ],\\n                    },\\n                ],\\n
+        \           })\\n        except Exception as e:\\n            log.error(f\\\"Failed
+        to post escalation message: {e}\\\")\\n\\n\\n# ---------------------------------------------------------------------------\\n#
+        MCP Tools\\n# ---------------------------------------------------------------------------\\n\\n@mcp.tool()\\nasync
+        def request_approval(\\n    task_context: str,\\n    proposed_action: str,\\n
+        \   severity: str,\\n    requesting_agent: str,\\n) -\\u003e str:\\n    \\\"\\\"\\\"\\n
+        \   Post an approval request to #hitl-approvals in Slack.\\n    The agent
+        should stop after calling this and wait to be resumed\\n    via a HITL_RESUME
+        message from the commander.\\n\\n    Args:\\n        task_context:     What
+        the agent is currently doing (e.g. \\\"Finding business targets in Nashville\\\")\\n
+        \       proposed_action:  The specific action requiring approval (e.g. \\\"Send
+        cold email to 47 contacts\\\")\\n        severity:         \\\"low\\\" | \\\"medium\\\"
+        | \\\"high\\\"\\n                          low    = auto-approve after 30min
+        if no response\\n                          medium = escalate after 15min if
+        no response\\n                          high   = auto-reject after 5min if
+        no response (fail safe)\\n        requesting_agent: Name of the calling agent
+        (e.g. \\\"prospecting-agent\\\")\\n\\n    Returns:\\n        request_id to
+        include in any follow-up context\\n    \\\"\\\"\\\"\\n    severity = severity.lower()\\n
+        \   if severity not in TIMEOUTS:\\n        severity = \\\"medium\\\"\\n\\n
+        \   request_id = str(uuid.uuid4())[:8]\\n    timeout_seconds = TIMEOUTS[severity]\\n\\n
+        \   log.info(f\\\"HITL request {request_id} from {requesting_agent} (severity={severity})\\\")\\n\\n
+        \   # Post the message\\n    message_ts = await post_approval_message(\\n
+        \       channel_id=SLACK_HITL_CHANNEL_ID,\\n        request_id=request_id,\\n
+        \       requesting_agent=requesting_agent,\\n        task_context=task_context,\\n
+        \       proposed_action=proposed_action,\\n        severity=severity,\\n        timeout_seconds=timeout_seconds,\\n
+        \   )\\n\\n    # Schedule timeout handler in background (fire-and-forget)\\n
+        \   asyncio.create_task(\\n        handle_timeout(\\n            request_id=request_id,\\n
+        \           channel_id=SLACK_HITL_CHANNEL_ID,\\n            message_ts=message_ts,\\n
+        \           severity=severity,\\n            requesting_agent=requesting_agent,\\n
+        \           task_context=task_context,\\n            proposed_action=proposed_action,\\n
+        \           timeout_seconds=timeout_seconds,\\n        )\\n    )\\n\\n    return
+        (\\n        f\\\"Approval request posted to Slack (request_id={request_id},
+        severity={severity}).\\\\n\\\"\\n        f\\\"Timeout: {timeout_seconds //
+        60}min → will auto-{TIMEOUT_ACTIONS[severity]}.\\\\n\\\"\\n        f\\\"STOP
+        here and do not proceed until you receive a HITL_RESUME message.\\\"\\n    )\\n\\n\\n@mcp.tool()\\nasync
+        def post_notification(\\n    channel: str,\\n    message: str,\\n    requesting_agent:
+        str,\\n) -\\u003e str:\\n    \\\"\\\"\\\"\\n    Post a plain notification
+        to a Slack channel (no approval needed).\\n    Use for status updates, alerts,
+        or informational messages.\\n\\n    Args:\\n        channel:          Channel
+        ID (e.g. C0XXXXXXX) or name (e.g. agent-workers)\\n        message:          Message
+        text (supports Slack mrkdwn formatting)\\n        requesting_agent: Name of
+        the calling agent\\n    \\\"\\\"\\\"\\n    await slack_post(\\\"chat.postMessage\\\",
+        {\\n        \\\"channel\\\": channel,\\n        \\\"blocks\\\": [\\n            {\\n
+        \               \\\"type\\\": \\\"section\\\",\\n                \\\"text\\\":
+        {\\\"type\\\": \\\"mrkdwn\\\", \\\"text\\\": message},\\n            },\\n
+        \           {\\n                \\\"type\\\": \\\"context\\\",\\n                \\\"elements\\\":
+        [\\n                    {\\\"type\\\": \\\"mrkdwn\\\", \\\"text\\\": f\\\"From:
+        `{requesting_agent}`\\\"}\\n                ],\\n            },\\n        ],\\n
+        \   })\\n    return f\\\"Notification posted to {channel}\\\"\\n\\n\\n# ---------------------------------------------------------------------------\\n#
+        Entry point\\n# ---------------------------------------------------------------------------\\n\\nif
+        __name__ == \\\"__main__\\\":\\n    import uvicorn\\n    import anyio\\n\\n
+        \   PORT = int(os.getenv(\\\"HITL_TOOL_PORT\\\", \\\"8091\\\"))\\n    app
+        = mcp.streamable_http_app()\\n    config = uvicorn.Config(app, host=\\\"0.0.0.0\\\",
+        port=PORT, log_level=\\\"info\\\")\\n    anyio.run(uvicorn.Server(config).serve)\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{},\"creationTimestamp\":null,\"name\":\"hitl-tool-server-code\",\"namespace\":\"kagent\"}}\n"
+    creationTimestamp: "2026-03-22T22:59:08Z"
+    name: hitl-tool-server-code
+    namespace: kagent
+    resourceVersion: "1768125"
+    uid: abb5bc4d-5206-434d-b8e5-bce019e87cd8
+- apiVersion: v1
+  data:
+    a2a-communication: |
+      ## Agent-to-Agent Communication
+
+      You can communicate with other agents to accomplish complex tasks that span multiple
+      domains of expertise. When working with other agents:
+
+      1. **Clear delegation**: When delegating a task to another agent, provide clear and
+         complete context. Include all relevant information the other agent needs to
+         accomplish the task.
+      2. **Result validation**: When receiving results from another agent, validate them
+         before incorporating them into your response or using them for further actions.
+      3. **Error handling**: If an agent you are communicating with fails or returns an
+         unexpected result, handle the error gracefully. Consider retrying, using an
+         alternative approach, or informing the user.
+      4. **Avoid circular delegation**: Do not create circular delegation chains where
+         agents repeatedly delegate tasks back to each other without making progress.
+    kubernetes-context: |
+      ## Kubernetes Operational Context
+
+      You are operating within a Kubernetes cluster. Follow this methodology:
+
+      ### Investigation Protocol
+      1. **Start non-intrusively**: Begin with read-only operations (get, describe, logs,
+         events) before any modifications. Gather information before acting.
+      2. **Progressive escalation**: Start with broad resource checks, then narrow down to
+         specific resources, pods, containers, or logs as you identify the problem area.
+      3. **Verify before acting**: Consider the potential impact of any change. Check
+         dependencies, related resources, and downstream effects before modifying anything.
+
+      ### Problem-Solving Framework
+      1. **Initial assessment**: Check cluster health, node status, and recent events. Identify
+         the scope of the issue (single pod, deployment, namespace, or cluster-wide).
+      2. **Classify the problem**: Determine if it's an application issue (crashes, errors),
+         infrastructure problem (node failures, resource exhaustion), networking issue
+         (connectivity, DNS, policies), or configuration error (invalid specs, missing secrets).
+      3. **Analyze resources**: Examine pod status, container logs, resource metrics, events,
+         and network connectivity relevant to the issue.
+      4. **Implement solutions**: Propose targeted fixes. Present multiple options when
+         appropriate, explain trade-offs, and include verification steps.
+
+      ### Key Principles
+      - Always be explicit about which namespace you are operating in.
+      - Remember that your actions impact real workloads — prioritize stability.
+      - Use labels and selectors to target resources precisely.
+      - Check resource quotas and limits before creating or scaling resources.
+    safety-guardrails: |
+      ## Safety Guidelines
+
+      You must follow these safety principles in all interactions:
+
+      1. **No destructive operations without confirmation**: Never delete resources, modify
+         production systems, or take irreversible actions without explicit user confirmation.
+         Always explain what will happen and ask for approval first.
+      2. **Least privilege**: Apply changes to the minimum scope necessary. Prefer targeted
+         operations over broad ones. Avoid cluster-wide changes when namespace-scoped changes
+         will suffice.
+      3. **Rollback planning**: Before making changes, ensure you have a plan to revert them.
+         Capture the current state, explain the rollback procedure, and verify the rollback
+         path exists before proceeding.
+      4. **Protect sensitive data**: Never expose secrets, credentials, API keys, tokens, or
+         certificates in your responses. Redact sensitive information before presenting output
+         to the user.
+      5. **Stay within scope**: Only perform actions within your defined capabilities and the
+         user's stated intent. Do not take autonomous actions beyond what was requested.
+      6. **Report uncertainties**: If you are unsure about an action or its consequences,
+         communicate your uncertainty to the user and ask for guidance before proceeding.
+    skills-usage: |
+      ## Skills
+
+      You have access to skills — pre-built capabilities loaded from external sources and
+      available as files in your skills directory (/skills). Each skill contains instructions,
+      prompts, or data that extend your abilities beyond your base training.
+
+      When a user asks you to perform a task, check if any of the available skills match
+      the request. If a skill is relevant, read and follow its instructions carefully.
+      Skills may contain domain-specific knowledge, step-by-step procedures, or templates
+      that you should use to produce higher-quality responses.
+
+      Always prefer using a skill over generating a response from scratch when a relevant
+      skill is available.
+    tool-usage-best-practices: |
+      ## Tool Usage Best Practices
+
+      Follow these principles when using tools:
+
+      1. **Read before write**: Always use informational tools (get, describe, list, status)
+         before modification tools. Understand the current state before making changes.
+      2. **Explain before acting**: Before calling any modification tool, explain to the user
+         what you intend to do and why. Wait for confirmation on destructive operations.
+      3. **Dry-run when possible**: Use dry-run flags or preview modes when available to
+         validate changes before applying them.
+      4. **Use the right tool**: Select the most specific tool for the task. Check tool
+         descriptions carefully and ensure you understand the expected parameters.
+      5. **Backup current state**: Before modifications, capture the current state (e.g.,
+         export YAML, save configuration) so changes can be reverted if needed.
+      6. **Verify after changes**: After any modification, use informational tools to confirm
+         the change took effect and didn't cause unintended side effects.
+      7. **Handle errors gracefully**: If a tool call fails, analyze the error, adjust your
+         approach, and retry. Do not repeat the exact same failing call.
+      8. **Minimize calls**: Plan your approach to minimize tool calls. Batch operations when
+         possible and avoid redundant calls.
+  kind: ConfigMap
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: kagent
+      meta.helm.sh/release-namespace: kagent
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: kagent
+      app.kubernetes.io/part-of: kagent
+      app.kubernetes.io/version: 0.7.23
+      helm.sh/chart: kagent-0.7.23
+    name: kagent-builtin-prompts
+    namespace: kagent
+    resourceVersion: "129820"
+    uid: 79e62329-2efb-4024-9856-ddc1fa445e94
+- apiVersion: v1
+  data:
+    A2A_BASE_URL: http://kagent-controller.kagent.svc.cluster.local:8083
+    DATABASE_TYPE: sqlite
+    DATABASE_VECTOR_ENABLED: "true"
+    DEFAULT_MODEL_CONFIG_NAME: default-model-config
+    IMAGE_PULL_POLICY: IfNotPresent
+    IMAGE_REGISTRY: cr.kagent.dev
+    IMAGE_REPOSITORY: kagent-dev/kagent/app
+    IMAGE_TAG: 0.7.23
+    KAGENT_CONTROLLER_NAME: kagent-controller
+    LEADER_ELECT: "false"
+    OTEL_LOGGING_ENABLED: "false"
+    OTEL_TRACING_ENABLED: "false"
+    SKILLS_INIT_IMAGE_PULL_POLICY: IfNotPresent
+    SKILLS_INIT_IMAGE_REGISTRY: cr.kagent.dev
+    SKILLS_INIT_IMAGE_REPOSITORY: kagent-dev/kagent/skills-init
+    SKILLS_INIT_IMAGE_TAG: 0.7.23
+    SQLITE_DATABASE_PATH: /sqlite-volume/kagent.db
+    STREAMING_INITIAL_BUF_SIZE: 4Ki
+    STREAMING_MAX_BUF_SIZE: 1Mi
+    STREAMING_TIMEOUT: 600s
+    WATCH_NAMESPACES: ""
+    ZAP_LOG_LEVEL: info
+  kind: ConfigMap
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: kagent
+      meta.helm.sh/release-namespace: kagent
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    labels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: kagent
+      app.kubernetes.io/part-of: kagent
+      app.kubernetes.io/version: 0.7.23
+      helm.sh/chart: kagent-0.7.23
+    name: kagent-controller
+    namespace: kagent
+    resourceVersion: "129819"
+    uid: 46c79aac-37d2-431d-aaf0-00c3dc60562d
+- apiVersion: v1
+  data:
+    GRAFANA_URL: grafana.kagent:3000/api
+  kind: ConfigMap
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: kagent
+      meta.helm.sh/release-namespace: kagent
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: grafana-mcp
+      helm.sh/chart: grafana-mcp-0.7.23
+    name: kagent-grafana-mcp
+    namespace: kagent
+    resourceVersion: "129817"
+    uid: 7f3f62b5-8732-4540-aca7-fad2fbc058f3
+- apiVersion: v1
+  data:
+    KAGENT_LOG_LEVEL: info
+    KAGENT_NAMESPACE: kagent
+    OTEL_TRACING_ENABLED: "false"
+    PORT: "8080"
+    TRANSPORT_TYPE: http
+  kind: ConfigMap
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: kagent
+      meta.helm.sh/release-namespace: kagent
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: querydoc
+      app.kubernetes.io/version: 1.1.10
+      helm.sh/chart: querydoc-0.7.23
+    name: kagent-querydoc
+    namespace: kagent
+    resourceVersion: "129818"
+    uid: 9d6ba550-604e-4e80-a927-3b77ead17dcb
+- apiVersion: v1
+  data:
+    api-timeout: 30s
+    cleanup-interval-minutes: "5"
+    controller_manager_config.yaml: |
+      apiVersion: config.kagent.dev/v1alpha1
+      kind: ControllerManagerConfig
+      metadata:
+        name: controller-manager-config
+      health:
+        healthProbeBindAddress: :8081
+      metrics:
+        bindAddress: :8080
+      webhook:
+        port: 9443
+      leaderElection:
+        leaderElect: true
+        resourceName: khook-leader-election
+        resourceNamespace: kagent
+      kagent:
+        apiUrl: "http://kagent-controller.kagent.svc.cluster.local:8083"
+        timeout: "30s"
+        retryAttempts: 3
+        retryBackoff: "1s"
+      logging:
+        level: "info"
+        format: "json"
+      deduplication:
+        timeoutMinutes: 10
+        cleanupIntervalMinutes: 5
+    deduplication-timeout-minutes: "10"
+    kagent-api-url: http://kagent-controller.kagent.svc.cluster.local:8083
+    kagent-user-id: admin@kagent.dev
+    log-level: info
+    retry-attempts: "3"
+    retry-backoff: 1s
+  kind: ConfigMap
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: khook
+      meta.helm.sh/release-namespace: kagent
+    creationTimestamp: "2026-03-21T00:04:13Z"
+    labels:
+      app.kubernetes.io/instance: khook
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: khook
+      app.kubernetes.io/version: v0.0.0-9c3ffe6
+      helm.sh/chart: khook-v0.0.0-9c3ffe6
+    name: khook-config
+    namespace: kagent
+    resourceVersion: "818530"
+    uid: 0867b41e-197e-4041-b58a-f22c7e8ebdd0
+- apiVersion: v1
+  data:
+    ca.crt: |
+      -----BEGIN CERTIFICATE-----
+      MIIDiDCCAnCgAwIBAgIQHUb+eCxlwGfvJfU4TVHztzANBgkqhkiG9w0BAQsFADBe
+      MQ8wDQYDVQQDDAZLOHMgQ0ExCzAJBgNVBAYTAlVTMQ8wDQYDVQQHDAZBdXN0aW4x
+      DzANBgNVBAoMBk9yYWNsZTEMMAoGA1UECwwDT2NpMQ4wDAYDVQQIDAVUZXhhczAe
+      Fw0yNjAzMTkwMjAzNDBaFw0zMTAzMTkwMjAzNDBaMF4xDzANBgNVBAMMBks4cyBD
+      QTELMAkGA1UEBhMCVVMxDzANBgNVBAcMBkF1c3RpbjEPMA0GA1UECgwGT3JhY2xl
+      MQwwCgYDVQQLDANPY2kxDjAMBgNVBAgMBVRleGFzMIIBIjANBgkqhkiG9w0BAQEF
+      AAOCAQ8AMIIBCgKCAQEAr0+ogdsSXEN+8yRK2jiv7PjHrJIw4CHVS6ebX8ihA0/D
+      VroP10Fb9KNmtCXJsprSVF7cGx4Y+J1sB0KWT367ZNqQptq6Sz83WNdmpDjqG3ZA
+      Kje1cupnYm1+GQZO248khauCmBycFoGOC2AiP031Jna0DcNC5GDdQSlT2USr6y2h
+      gZqpZhanrQFGEmEk/uvtiVkVLYdc/0wyrVz7zAjY0nVNCRidcnuEEgOIZ7/4OSf1
+      MXP3hEO2678dW5eqqQuLDu1MW9+Mg5PO1roE1B51ebClQQZPHIVvYF6Bm81L42R2
+      d9ciqe+yGboVtqbva5mqOETdlM0zf6p+9H6cdM+RqQIDAQABo0IwQDAPBgNVHRMB
+      Af8EBTADAQH/MA4GA1UdDwEB/wQEAwIBBjAdBgNVHQ4EFgQUc1XeGNu02TJ2OCYx
+      qN8kOxJI3hcwDQYJKoZIhvcNAQELBQADggEBADAfLKyrKB3mvPPyEGS63TR5nARv
+      3EebINY/ZBVGiYAjlwxD7dIOnZFzPUDE3v9Z9usRRQ87Ugq6xNPBMzhFCpeI70wi
+      f4vjD4QZh3JNK+XThqReyorgrrt7LR6Xm+VO4PhTjV0GBqrxIkobxZgc+hS5Wcei
+      XjHSJLRmoEJPsK2FBUAtiONp9GYOW4tIj3nRmO8XRSQh+Dnk8kAKoBNRtB1QbMkD
+      H0qolLW8zSwrfqyljfATkTmuWjwC9uQxyYfNpYnHcrEPY2uYQpQCnhpXoNaLIjjF
+      wGFfAprFx43gvf++qdZYXlp1r6u8/xcQ8EQQkfpdtQv4ye1CcazxRL/2gZw=
+      -----END CERTIFICATE-----
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubernetes.io/description: Contains a CA bundle that can be used to verify the
+        kube-apiserver when using internal endpoints such as the internal service
+        IP or kubernetes.default.svc. No other usage is guaranteed across distributions
+        of Kubernetes clusters.
+    creationTimestamp: "2026-03-19T10:01:26Z"
+    name: kube-root-ca.crt
+    namespace: kagent
+    resourceVersion: "128146"
+    uid: 3cfbdbaa-5e6a-4760-9264-dfc118396f34
+- apiVersion: v1
+  data:
+    config.yaml: |
+      model_list:
+        - model_name: gpt-4.1
+          litellm_params:
+            model: github_copilot/gpt-4.1
+
+      litellm_settings:
+        num_retries: 3
+        retry_after: 2
+        success_callback: ["langfuse"]
+        failure_callback: ["langfuse"]
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"config.yaml":"model_list:\n  - model_name: gpt-4.1\n    litellm_params:\n      model: github_copilot/gpt-4.1\n\nlitellm_settings:\n  num_retries: 3\n  retry_after: 2\n  success_callback: [\"langfuse\"]\n  failure_callback: [\"langfuse\"]\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"litellm-config","namespace":"kagent"}}
+    creationTimestamp: "2026-03-19T10:14:15Z"
+    name: litellm-config
+    namespace: kagent
+    resourceVersion: "1344334"
+    uid: 9cabc39f-c78c-428d-a607-7d542ba6e221
+- apiVersion: v1
+  data:
+    nginx.conf: |
+      events {}
+      http {
+        map_hash_bucket_size 128;
+        map $http_x_api_secret $auth_ok {
+          default 0;
+          "9dafbf65be0dd88f3ec38e784d251598262fe6ccc28900f6ba49c5553c8f77e4" 1;
+        }
+        server {
+          listen 8081;
+
+          # Public - no auth needed (email button clicks)
+          location /approval/respond {
+            proxy_pass http://approval-server.kagent.svc.cluster.local:8089;
+            add_header 'Access-Control-Allow-Origin' '*' always;
+          }
+
+          # Auth required for everything else
+          location /approval/ {
+            if ($auth_ok = 0) { return 401 "Unauthorized"; }
+            proxy_pass http://approval-server.kagent.svc.cluster.local:8089;
+            add_header 'Access-Control-Allow-Origin' '*' always;
+          }
+          location /apis/ {
+            if ($auth_ok = 0) { return 401 "Unauthorized"; }
+            proxy_pass http://kubectl-proxy.kagent.svc.cluster.local:8888;
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' '*' always;
+            if ($request_method = OPTIONS) { return 204; }
+          }
+          location /api/v1/ {
+            if ($auth_ok = 0) { return 401 "Unauthorized"; }
+            proxy_pass http://kubectl-proxy.kagent.svc.cluster.local:8888;
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' '*' always;
+            if ($request_method = OPTIONS) { return 204; }
+          }
+          location /api/a2a/ {
+            if ($auth_ok = 0) { return 401 "Unauthorized"; }
+            proxy_pass http://kagent-controller.kagent.svc.cluster.local:8083;
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' '*' always;
+            if ($request_method = OPTIONS) { return 204; }
+          }
+          location /api/ {
+            if ($auth_ok = 0) { return 401 "Unauthorized"; }
+            proxy_pass http://kagent-controller.kagent.svc.cluster.local:8083;
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' '*' always;
+            if ($request_method = OPTIONS) { return 204; }
+          }
+        }
+      }
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"nginx.conf":"events {}\nhttp {\n  map_hash_bucket_size 128;\n  map $http_x_api_secret $auth_ok {\n    default 0;\n    \"9dafbf65be0dd88f3ec38e784d251598262fe6ccc28900f6ba49c5553c8f77e4\" 1;\n  }\n  server {\n    listen 8081;\n\n    # Public - no auth needed (email button clicks)\n    location /approval/respond {\n      proxy_pass http://approval-server.kagent.svc.cluster.local:8089;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n    }\n\n    # Auth required for everything else\n    location /approval/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://approval-server.kagent.svc.cluster.local:8089;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n    }\n    location /apis/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kubectl-proxy.kagent.svc.cluster.local:8888;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n    location /api/v1/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kubectl-proxy.kagent.svc.cluster.local:8888;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n    location /api/a2a/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kagent-controller.kagent.svc.cluster.local:8083;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n    location /api/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kagent-controller.kagent.svc.cluster.local:8083;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n  }\n}\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"nginx-cors","namespace":"kagent"}}
+    creationTimestamp: "2026-03-19T18:18:48Z"
+    name: nginx-cors
+    namespace: kagent
+    resourceVersion: "1332290"
+    uid: 56203380-5c3f-4d80-8b34-6fba3bc3f1ed
+- apiVersion: v1
+  data:
+    server.py: |
+      from mcp.server.fastmcp import FastMCP
+      from mcp.server.transport_security import TransportSecuritySettings
+      from pydantic import BaseModel, Field
+      from typing import Optional
+      import json, httpx
+
+      mcp = FastMCP("search_mcp", transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))
+      SEARXNG_URL = "http://searxng.kagent.svc.cluster.local:8080/search"
+
+      class SearchInput(BaseModel):
+          query: str = Field(description="Search query string")
+          max_results: Optional[int] = Field(default=5, ge=1, le=20)
+
+      class BusinessSearchInput(BaseModel):
+          city: str = Field(default="Chattanooga")
+          state: str = Field(default="TN")
+          category: str = Field(default="restaurant")
+          max_results: Optional[int] = Field(default=10, ge=1, le=50)
+
+      async def searxng(query, max_results=5, category="general"):
+          async with httpx.AsyncClient(timeout=10) as client:
+              r = await client.get(SEARXNG_URL, params={"q": query, "format": "json", "categories": category})
+              r.raise_for_status()
+              results = r.json().get("results", [])[:max_results]
+              return [{"title": x.get("title",""), "url": x.get("url",""), "content": x.get("content","")[:1500], "engine": x.get("engine","")} for x in results]
+
+      @mcp.tool(name="search_web", annotations={"readOnlyHint": True, "openWorldHint": True})
+      async def search_web(params: SearchInput) -> str:
+          """Search the web using SearXNG. Always use for current info - never rely on training data."""
+          try:
+              results = await searxng(params.query, params.max_results)
+              print(f"[search_web] query='{params.query}' results={len(results)}")
+              return json.dumps(results, indent=2)
+          except Exception as e:
+              return json.dumps({"error": str(e)})
+
+      @mcp.tool(name="search_news", annotations={"readOnlyHint": True, "openWorldHint": True})
+      async def search_news(params: SearchInput) -> str:
+          """Search recent news using SearXNG. Use for time-sensitive queries."""
+          try:
+              results = await searxng(params.query, params.max_results, "news")
+              print(f"[search_news] query='{params.query}' results={len(results)}")
+              return json.dumps(results, indent=2)
+          except Exception as e:
+              return json.dumps({"error": str(e)})
+
+      @mcp.tool(name="search_find_businesses", annotations={"readOnlyHint": True, "openWorldHint": True})
+      async def search_find_businesses(params: BusinessSearchInput) -> str:
+          """Find local businesses using OpenStreetMap Overpass API.
+          Returns name, address, phone, website. Businesses with no website are prime prospects."""
+          try:
+              overpass_url = "https://overpass-api.de/api/interpreter"
+              query = f"""
+      [out:json][timeout:25];
+      area["name"="{params.city}"]["admin_level"~"6|8"]->.searchArea;
+      (
+        node["name"]["amenity"](area.searchArea);
+        node["name"]["shop"](area.searchArea);
+        node["name"]["office"](area.searchArea);
+        node["name"]["craft"](area.searchArea);
+      );
+      out body 50;
+      """
+              async with httpx.AsyncClient(timeout=30) as client:
+                  r = await client.post(overpass_url, data={"data": query})
+                  r.raise_for_status()
+                  elements = r.json().get("elements", [])
+
+              businesses = []
+              for el in elements:
+                  tags = el.get("tags", {})
+                  name = tags.get("name", "")
+                  if not name:
+                      continue
+                  businesses.append({
+                      "name": name,
+                      "type": tags.get("amenity") or tags.get("shop") or tags.get("office") or tags.get("craft", ""),
+                      "address": " ".join(filter(None, [tags.get("addr:housenumber",""), tags.get("addr:street",""), tags.get("addr:city",""), tags.get("addr:state","")])),
+                      "phone": tags.get("phone", tags.get("contact:phone","")),
+                      "website": tags.get("website", tags.get("contact:website","")),
+                      "has_website": bool(tags.get("website") or tags.get("contact:website")),
+                      "lat": el.get("lat"), "lon": el.get("lon")
+                  })
+
+              if params.category not in ["all","any"]:
+                  filtered = [b for b in businesses if params.category.lower() in (b["type"] or "").lower()]
+                  if filtered:
+                      businesses = filtered
+
+              businesses.sort(key=lambda x: (x["has_website"], not x["phone"]))
+              businesses = businesses[:params.max_results]
+              no_website = sum(1 for b in businesses if not b["has_website"])
+              print(f"[search_find_businesses] city={params.city} found={len(businesses)} no_website={no_website}")
+              return json.dumps({"total_found": len(businesses), "without_website": no_website, "businesses": businesses}, indent=2)
+          except Exception as e:
+              print(f"[search_find_businesses] ERROR: {e}")
+              return json.dumps({"error": str(e)})
+
+      if __name__ == "__main__":
+          import uvicorn
+          app = mcp.streamable_http_app()
+          config = uvicorn.Config(app, host="0.0.0.0", port=8086, log_level="info")
+          server = uvicorn.Server(config)
+          import anyio
+          anyio.run(server.serve)
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"server.py":"from mcp.server.fastmcp import FastMCP\nfrom mcp.server.transport_security import TransportSecuritySettings\nfrom pydantic import BaseModel, Field\nfrom typing import Optional\nimport json, httpx\n\nmcp = FastMCP(\"search_mcp\", transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))\nSEARXNG_URL = \"http://searxng.kagent.svc.cluster.local:8080/search\"\n\nclass SearchInput(BaseModel):\n    query: str = Field(description=\"Search query string\")\n    max_results: Optional[int] = Field(default=5, ge=1, le=20)\n\nclass BusinessSearchInput(BaseModel):\n    city: str = Field(default=\"Chattanooga\")\n    state: str = Field(default=\"TN\")\n    category: str = Field(default=\"restaurant\")\n    max_results: Optional[int] = Field(default=10, ge=1, le=50)\n\nasync def searxng(query, max_results=5, category=\"general\"):\n    async with httpx.AsyncClient(timeout=10) as client:\n        r = await client.get(SEARXNG_URL, params={\"q\": query, \"format\": \"json\", \"categories\": category})\n        r.raise_for_status()\n        results = r.json().get(\"results\", [])[:max_results]\n        return [{\"title\": x.get(\"title\",\"\"), \"url\": x.get(\"url\",\"\"), \"content\": x.get(\"content\",\"\")[:1500], \"engine\": x.get(\"engine\",\"\")} for x in results]\n\n@mcp.tool(name=\"search_web\", annotations={\"readOnlyHint\": True, \"openWorldHint\": True})\nasync def search_web(params: SearchInput) -\u003e str:\n    \"\"\"Search the web using SearXNG. Always use for current info - never rely on training data.\"\"\"\n    try:\n        results = await searxng(params.query, params.max_results)\n        print(f\"[search_web] query='{params.query}' results={len(results)}\")\n        return json.dumps(results, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"search_news\", annotations={\"readOnlyHint\": True, \"openWorldHint\": True})\nasync def search_news(params: SearchInput) -\u003e str:\n    \"\"\"Search recent news using SearXNG. Use for time-sensitive queries.\"\"\"\n    try:\n        results = await searxng(params.query, params.max_results, \"news\")\n        print(f\"[search_news] query='{params.query}' results={len(results)}\")\n        return json.dumps(results, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"search_find_businesses\", annotations={\"readOnlyHint\": True, \"openWorldHint\": True})\nasync def search_find_businesses(params: BusinessSearchInput) -\u003e str:\n    \"\"\"Find local businesses using OpenStreetMap Overpass API.\n    Returns name, address, phone, website. Businesses with no website are prime prospects.\"\"\"\n    try:\n        overpass_url = \"https://overpass-api.de/api/interpreter\"\n        query = f\"\"\"\n[out:json][timeout:25];\narea[\"name\"=\"{params.city}\"][\"admin_level\"~\"6|8\"]-\u003e.searchArea;\n(\n  node[\"name\"][\"amenity\"](area.searchArea);\n  node[\"name\"][\"shop\"](area.searchArea);\n  node[\"name\"][\"office\"](area.searchArea);\n  node[\"name\"][\"craft\"](area.searchArea);\n);\nout body 50;\n\"\"\"\n        async with httpx.AsyncClient(timeout=30) as client:\n            r = await client.post(overpass_url, data={\"data\": query})\n            r.raise_for_status()\n            elements = r.json().get(\"elements\", [])\n\n        businesses = []\n        for el in elements:\n            tags = el.get(\"tags\", {})\n            name = tags.get(\"name\", \"\")\n            if not name:\n                continue\n            businesses.append({\n                \"name\": name,\n                \"type\": tags.get(\"amenity\") or tags.get(\"shop\") or tags.get(\"office\") or tags.get(\"craft\", \"\"),\n                \"address\": \" \".join(filter(None, [tags.get(\"addr:housenumber\",\"\"), tags.get(\"addr:street\",\"\"), tags.get(\"addr:city\",\"\"), tags.get(\"addr:state\",\"\")])),\n                \"phone\": tags.get(\"phone\", tags.get(\"contact:phone\",\"\")),\n                \"website\": tags.get(\"website\", tags.get(\"contact:website\",\"\")),\n                \"has_website\": bool(tags.get(\"website\") or tags.get(\"contact:website\")),\n                \"lat\": el.get(\"lat\"), \"lon\": el.get(\"lon\")\n            })\n\n        if params.category not in [\"all\",\"any\"]:\n            filtered = [b for b in businesses if params.category.lower() in (b[\"type\"] or \"\").lower()]\n            if filtered:\n                businesses = filtered\n\n        businesses.sort(key=lambda x: (x[\"has_website\"], not x[\"phone\"]))\n        businesses = businesses[:params.max_results]\n        no_website = sum(1 for b in businesses if not b[\"has_website\"])\n        print(f\"[search_find_businesses] city={params.city} found={len(businesses)} no_website={no_website}\")\n        return json.dumps({\"total_found\": len(businesses), \"without_website\": no_website, \"businesses\": businesses}, indent=2)\n    except Exception as e:\n        print(f\"[search_find_businesses] ERROR: {e}\")\n        return json.dumps({\"error\": str(e)})\n\nif __name__ == \"__main__\":\n    import uvicorn\n    app = mcp.streamable_http_app()\n    config = uvicorn.Config(app, host=\"0.0.0.0\", port=8086, log_level=\"info\")\n    server = uvicorn.Server(config)\n    import anyio\n    anyio.run(server.serve)\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"search-mcp-server","namespace":"kagent"}}
+    creationTimestamp: "2026-03-21T11:31:55Z"
+    name: search-mcp-server
+    namespace: kagent
+    resourceVersion: "1678806"
+    uid: 7d9b1286-99d1-41ca-ad9a-e57acaba514b
+- apiVersion: v1
+  data:
+    settings.yml: |
+      use_default_settings: true
+      server:
+        secret_key: "a1402820822e803b7272446ac714f0e9c9a3c1afb5a30308962f3c6a50fce344"
+        limiter: false
+        image_proxy: false
+      search:
+        safe_search: 0
+        formats:
+          - html
+          - json
+      engines:
+        - name: google
+          disabled: false
+        - name: bing
+          disabled: false
+        - name: duckduckgo
+          disabled: false
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"settings.yml":"use_default_settings: true\nserver:\n  secret_key: \"a1402820822e803b7272446ac714f0e9c9a3c1afb5a30308962f3c6a50fce344\"\n  limiter: false\n  image_proxy: false\nsearch:\n  safe_search: 0\n  formats:\n    - html\n    - json\nengines:\n  - name: google\n    disabled: false\n  - name: bing\n    disabled: false\n  - name: duckduckgo\n    disabled: false\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"searxng-config","namespace":"kagent"}}
+    creationTimestamp: "2026-03-21T17:35:35Z"
+    name: searxng-config
+    namespace: kagent
+    resourceVersion: "1170888"
+    uid: 49bc55a5-38b6-4ab9-9a02-55cb67aef0bb
+- apiVersion: v1
+  data:
+    bot.py: |-
+      import os, re, threading, uuid
+      from slack_bolt import App
+      from slack_bolt.adapter.socket_mode import SocketModeHandler
+      import httpx
+
+      KAGENT_URL       = os.environ.get("KAGENT_URL", "http://kagent-controller.kagent.svc.cluster.local:8083")
+      KAGENT_NS        = os.environ.get("KAGENT_NS", "kagent")
+      AGENT_NAME       = os.environ.get("AGENT_NAME", "commander-agent")
+      ACTIVITY_CHANNEL = os.environ.get("ACTIVITY_CHANNEL", "#agent-activity")
+      HITL_CHANNEL     = os.environ.get("HITL_CHANNEL", "#hitl-approvals")
+
+      app            = App(token=os.environ["SLACK_BOT_TOKEN"])
+      sessions       = {}
+      pending_emails = {}
+
+      def post_activity(client, text):
+          try:
+              client.chat_postMessage(channel=ACTIVITY_CHANNEL, text=text)
+          except Exception as e:
+              print(f"Activity post error: {e}")
+
+      def a2a_send(text, context_id=None):
+          body = {
+              "id": str(uuid.uuid4()),
+              "jsonrpc": "2.0",
+              "method": "message/send",
+              "params": {
+                  "message": {
+                      "role": "user",
+                      "parts": [{"kind": "text", "text": text}],
+                      "messageId": str(uuid.uuid4()),
+                  },
+                  **({"contextId": context_id} if context_id else {}),
+              }
+          }
+          url = f"{KAGENT_URL}/api/a2a/{KAGENT_NS}/{AGENT_NAME}/"
+          with httpx.Client(timeout=120) as c:
+              resp = c.post(url, json=body)
+              resp.raise_for_status()
+              data = resp.json()
+          result      = data.get("result", {})
+          new_context = result.get("contextId") or result.get("sessionId") or context_id
+          artifacts   = result.get("artifacts", [])
+          history     = result.get("history", [])
+          artifact_text = "\n".join(
+              p.get("text", "") for a in artifacts
+              for p in a.get("parts", []) if p.get("kind") == "text"
+          )
+          agent_msgs = [m for m in history if m.get("role") == "agent"]
+          msg_text = ""
+          if agent_msgs:
+              msg_text = "\n".join(
+                  p.get("text", "") for p in agent_msgs[-1].get("parts", [])
+                  if p.get("kind") == "text"
+              )
+          reply = artifact_text or msg_text or "_(no response)_"
+          return reply, new_context
+
+      APPROVAL_PHRASES = [
+          "approval requested",
+          "waiting for human approval",
+          "awaiting approval",
+          "waiting for approval",
+          "pending approval",
+          "requires approval",
+          "need your approval",
+      ]
+
+      def is_approval_request(text):
+          return any(p in text.lower() for p in APPROVAL_PHRASES)
+
+      def extract_email(text):
+          to_m  = re.search(r"[Tt]o[\s:]+([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})", text)
+          sub_m = re.search(r"[Ss]ubject[\s:]+(.{5,100})", text)
+          if to_m:
+              return {
+                  "to":      to_m.group(1).strip(),
+                  "subject": sub_m.group(1).strip() if sub_m else "Introduction",
+                  "body":    text,
+              }
+          return None
+
+      def handle_message(text, channel, thread_ts, client, session_key):
+          context_id = sessions.get(session_key)
+          thinking   = client.chat_postMessage(
+              channel=channel, thread_ts=thread_ts, text="... thinking"
+          )
+          post_activity(client, f"*User:* {text}")
+          try:
+              reply, new_context = a2a_send(text, context_id)
+              sessions[session_key] = new_context
+              post_activity(client, f"*Commander:* {reply[:500]}")
+
+              # Store email draft if detected
+              email = extract_email(reply)
+              if email:
+                  pending_emails[session_key] = email
+                  print(f"Stored draft: to={email['to']}")
+
+              client.chat_update(channel=channel, ts=thinking["ts"], text=reply[:3000])
+
+              if is_approval_request(reply):
+                  client.chat_postMessage(
+                      channel=HITL_CHANNEL,
+                      text="HITL Approval Required",
+                      blocks=[
+                          {
+                              "type": "section",
+                              "text": {
+                                  "type": "mrkdwn",
+                                  "text": f"*HITL Approval Required*\n\n{reply[:800]}\n\n_Session: `{session_key}`_"
+                              }
+                          },
+                          {
+                              "type": "actions",
+                              "block_id": f"hitl:{session_key}",
+                              "elements": [
+                                  {"type": "button", "text": {"type": "plain_text", "text": "Approve and Send"},
+                                   "style": "primary", "action_id": "hitl_approve", "value": session_key},
+                                  {"type": "button", "text": {"type": "plain_text", "text": "Reject"},
+                                   "style": "danger", "action_id": "hitl_reject", "value": session_key},
+                                  {"type": "button", "text": {"type": "plain_text", "text": "Edit first"},
+                                   "action_id": "hitl_escalate", "value": session_key},
+                              ]
+                          }
+                      ]
+                  )
+          except Exception as e:
+              client.chat_update(channel=channel, ts=thinking["ts"], text=f"Error: {e}")
+
+      @app.command("/autobot")
+      def slash_autobot(ack, body, client):
+          ack()
+          channel   = body["channel_id"]
+          text      = body.get("text", "").strip() or "Hello"
+          user      = body["user_id"]
+          msg       = client.chat_postMessage(channel=channel, text=f"<@{user}>: {text}")
+          thread_ts = msg["ts"]
+          sk        = f"{channel}:{thread_ts}"
+          threading.Thread(target=handle_message, args=(text, channel, thread_ts, client, sk), daemon=True).start()
+
+      @app.event("app_mention")
+      def mention(event, client):
+          text      = re.sub(r"<@[A-Z0-9]+>", "", event.get("text", "")).strip()
+          channel   = event["channel"]
+          thread_ts = event.get("thread_ts") or event["ts"]
+          sk        = f"{channel}:{thread_ts}"
+          threading.Thread(target=handle_message, args=(text, channel, thread_ts, client, sk), daemon=True).start()
+
+      @app.action("hitl_approve")
+      def approve(ack, body, client):
+          ack()
+          sk         = body["actions"][0]["value"]
+          channel    = body["channel"]["id"]
+          message_ts = body["message"]["ts"]
+          user       = body["user"]["id"]
+          ctx        = sessions.get(sk)
+          email      = pending_emails.get(sk, {})
+          to_addr    = email.get("to", "the prospect")
+          subject    = email.get("subject", "")
+          body_text  = email.get("body", "")
+
+          client.chat_update(channel=channel, ts=message_ts,
+              text=f"Approved by <@{user}>. Commander proceeding.", blocks=[])
+          post_activity(client, f"APPROVED by <@{user}> — sending to {to_addr}")
+
+          if ctx:
+              def _approve():
+                  try:
+                      msg = (
+                          f"Approved. Send the email now. "
+                          f"To: {to_addr}. "
+                          f"Subject: {subject}. "
+                          f"Use the exact body you drafted. Do not use placeholder text."
+                      )
+                      reply, _ = a2a_send(msg, ctx)
+                      client.chat_postMessage(channel=HITL_CHANNEL, text=f"Commander completed:\n{reply[:500]}")
+                      post_activity(client, f"Action completed: {reply[:300]}")
+                  except Exception as e:
+                      client.chat_postMessage(channel=HITL_CHANNEL, text=f"Error: {e}")
+              threading.Thread(target=_approve, daemon=True).start()
+
+      @app.action("hitl_reject")
+      def reject(ack, body, client):
+          ack()
+          sk         = body["actions"][0]["value"]
+          channel    = body["channel"]["id"]
+          message_ts = body["message"]["ts"]
+          user       = body["user"]["id"]
+          ctx        = sessions.get(sk)
+          client.chat_update(channel=channel, ts=message_ts,
+              text=f"Rejected by <@{user}>. Commander notified.", blocks=[])
+          post_activity(client, f"REJECTED by <@{user}>")
+          if ctx:
+              def _reject():
+                  try:
+                      reply, _ = a2a_send("Rejected. Do not send. What was rejected and what should we do instead?", ctx)
+                      client.chat_postMessage(channel=HITL_CHANNEL, text=f"Rejected:\n{reply[:500]}")
+                  except Exception as e:
+                      print(f"Reject error: {e}")
+              threading.Thread(target=_reject, daemon=True).start()
+
+      @app.action("hitl_escalate")
+      def escalate(ack, body, client):
+          ack()
+          channel    = body["channel"]["id"]
+          message_ts = body["message"]["ts"]
+          user       = body["user"]["id"]
+          client.chat_update(channel=channel, ts=message_ts,
+              text=f"<@{user}> wants to edit. Reply in thread.", blocks=[])
+
+      if __name__ == "__main__":
+          print("Starting Autobot Slack bot...")
+          SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"bot.py":"import os, re, threading, uuid\nfrom slack_bolt import App\nfrom slack_bolt.adapter.socket_mode import SocketModeHandler\nimport httpx\n\nKAGENT_URL       = os.environ.get(\"KAGENT_URL\", \"http://kagent-controller.kagent.svc.cluster.local:8083\")\nKAGENT_NS        = os.environ.get(\"KAGENT_NS\", \"kagent\")\nAGENT_NAME       = os.environ.get(\"AGENT_NAME\", \"commander-agent\")\nACTIVITY_CHANNEL = os.environ.get(\"ACTIVITY_CHANNEL\", \"#agent-activity\")\nHITL_CHANNEL     = os.environ.get(\"HITL_CHANNEL\", \"#hitl-approvals\")\n\napp            = App(token=os.environ[\"SLACK_BOT_TOKEN\"])\nsessions       = {}\npending_emails = {}\n\ndef post_activity(client, text):\n    try:\n        client.chat_postMessage(channel=ACTIVITY_CHANNEL, text=text)\n    except Exception as e:\n        print(f\"Activity post error: {e}\")\n\ndef a2a_send(text, context_id=None):\n    body = {\n        \"id\": str(uuid.uuid4()),\n        \"jsonrpc\": \"2.0\",\n        \"method\": \"message/send\",\n        \"params\": {\n            \"message\": {\n                \"role\": \"user\",\n                \"parts\": [{\"kind\": \"text\", \"text\": text}],\n                \"messageId\": str(uuid.uuid4()),\n            },\n            **({\"contextId\": context_id} if context_id else {}),\n        }\n    }\n    url = f\"{KAGENT_URL}/api/a2a/{KAGENT_NS}/{AGENT_NAME}/\"\n    with httpx.Client(timeout=120) as c:\n        resp = c.post(url, json=body)\n        resp.raise_for_status()\n        data = resp.json()\n    result      = data.get(\"result\", {})\n    new_context = result.get(\"contextId\") or result.get(\"sessionId\") or context_id\n    artifacts   = result.get(\"artifacts\", [])\n    history     = result.get(\"history\", [])\n    artifact_text = \"\\n\".join(\n        p.get(\"text\", \"\") for a in artifacts\n        for p in a.get(\"parts\", []) if p.get(\"kind\") == \"text\"\n    )\n    agent_msgs = [m for m in history if m.get(\"role\") == \"agent\"]\n    msg_text = \"\"\n    if agent_msgs:\n        msg_text = \"\\n\".join(\n            p.get(\"text\", \"\") for p in agent_msgs[-1].get(\"parts\", [])\n            if p.get(\"kind\") == \"text\"\n        )\n    reply = artifact_text or msg_text or \"_(no response)_\"\n    return reply, new_context\n\nAPPROVAL_PHRASES = [\n    \"approval requested\",\n    \"waiting for human approval\",\n    \"awaiting approval\",\n    \"waiting for approval\",\n    \"pending approval\",\n    \"requires approval\",\n    \"need your approval\",\n]\n\ndef is_approval_request(text):\n    return any(p in text.lower() for p in APPROVAL_PHRASES)\n\ndef extract_email(text):\n    to_m  = re.search(r\"[Tt]o[\\s:]+([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})\", text)\n    sub_m = re.search(r\"[Ss]ubject[\\s:]+(.{5,100})\", text)\n    if to_m:\n        return {\n            \"to\":      to_m.group(1).strip(),\n            \"subject\": sub_m.group(1).strip() if sub_m else \"Introduction\",\n            \"body\":    text,\n        }\n    return None\n\ndef handle_message(text, channel, thread_ts, client, session_key):\n    context_id = sessions.get(session_key)\n    thinking   = client.chat_postMessage(\n        channel=channel, thread_ts=thread_ts, text=\"... thinking\"\n    )\n    post_activity(client, f\"*User:* {text}\")\n    try:\n        reply, new_context = a2a_send(text, context_id)\n        sessions[session_key] = new_context\n        post_activity(client, f\"*Commander:* {reply[:500]}\")\n\n        # Store email draft if detected\n        email = extract_email(reply)\n        if email:\n            pending_emails[session_key] = email\n            print(f\"Stored draft: to={email['to']}\")\n\n        client.chat_update(channel=channel, ts=thinking[\"ts\"], text=reply[:3000])\n\n        if is_approval_request(reply):\n            client.chat_postMessage(\n                channel=HITL_CHANNEL,\n                text=\"HITL Approval Required\",\n                blocks=[\n                    {\n                        \"type\": \"section\",\n                        \"text\": {\n                            \"type\": \"mrkdwn\",\n                            \"text\": f\"*HITL Approval Required*\\n\\n{reply[:800]}\\n\\n_Session: `{session_key}`_\"\n                        }\n                    },\n                    {\n                        \"type\": \"actions\",\n                        \"block_id\": f\"hitl:{session_key}\",\n                        \"elements\": [\n                            {\"type\": \"button\", \"text\": {\"type\": \"plain_text\", \"text\": \"Approve and Send\"},\n                             \"style\": \"primary\", \"action_id\": \"hitl_approve\", \"value\": session_key},\n                            {\"type\": \"button\", \"text\": {\"type\": \"plain_text\", \"text\": \"Reject\"},\n                             \"style\": \"danger\", \"action_id\": \"hitl_reject\", \"value\": session_key},\n                            {\"type\": \"button\", \"text\": {\"type\": \"plain_text\", \"text\": \"Edit first\"},\n                             \"action_id\": \"hitl_escalate\", \"value\": session_key},\n                        ]\n                    }\n                ]\n            )\n    except Exception as e:\n        client.chat_update(channel=channel, ts=thinking[\"ts\"], text=f\"Error: {e}\")\n\n@app.command(\"/autobot\")\ndef slash_autobot(ack, body, client):\n    ack()\n    channel   = body[\"channel_id\"]\n    text      = body.get(\"text\", \"\").strip() or \"Hello\"\n    user      = body[\"user_id\"]\n    msg       = client.chat_postMessage(channel=channel, text=f\"\u003c@{user}\u003e: {text}\")\n    thread_ts = msg[\"ts\"]\n    sk        = f\"{channel}:{thread_ts}\"\n    threading.Thread(target=handle_message, args=(text, channel, thread_ts, client, sk), daemon=True).start()\n\n@app.event(\"app_mention\")\ndef mention(event, client):\n    text      = re.sub(r\"\u003c@[A-Z0-9]+\u003e\", \"\", event.get(\"text\", \"\")).strip()\n    channel   = event[\"channel\"]\n    thread_ts = event.get(\"thread_ts\") or event[\"ts\"]\n    sk        = f\"{channel}:{thread_ts}\"\n    threading.Thread(target=handle_message, args=(text, channel, thread_ts, client, sk), daemon=True).start()\n\n@app.action(\"hitl_approve\")\ndef approve(ack, body, client):\n    ack()\n    sk         = body[\"actions\"][0][\"value\"]\n    channel    = body[\"channel\"][\"id\"]\n    message_ts = body[\"message\"][\"ts\"]\n    user       = body[\"user\"][\"id\"]\n    ctx        = sessions.get(sk)\n    email      = pending_emails.get(sk, {})\n    to_addr    = email.get(\"to\", \"the prospect\")\n    subject    = email.get(\"subject\", \"\")\n    body_text  = email.get(\"body\", \"\")\n\n    client.chat_update(channel=channel, ts=message_ts,\n        text=f\"Approved by \u003c@{user}\u003e. Commander proceeding.\", blocks=[])\n    post_activity(client, f\"APPROVED by \u003c@{user}\u003e — sending to {to_addr}\")\n\n    if ctx:\n        def _approve():\n            try:\n                msg = (\n                    f\"Approved. Send the email now. \"\n                    f\"To: {to_addr}. \"\n                    f\"Subject: {subject}. \"\n                    f\"Use the exact body you drafted. Do not use placeholder text.\"\n                )\n                reply, _ = a2a_send(msg, ctx)\n                client.chat_postMessage(channel=HITL_CHANNEL, text=f\"Commander completed:\\n{reply[:500]}\")\n                post_activity(client, f\"Action completed: {reply[:300]}\")\n            except Exception as e:\n                client.chat_postMessage(channel=HITL_CHANNEL, text=f\"Error: {e}\")\n        threading.Thread(target=_approve, daemon=True).start()\n\n@app.action(\"hitl_reject\")\ndef reject(ack, body, client):\n    ack()\n    sk         = body[\"actions\"][0][\"value\"]\n    channel    = body[\"channel\"][\"id\"]\n    message_ts = body[\"message\"][\"ts\"]\n    user       = body[\"user\"][\"id\"]\n    ctx        = sessions.get(sk)\n    client.chat_update(channel=channel, ts=message_ts,\n        text=f\"Rejected by \u003c@{user}\u003e. Commander notified.\", blocks=[])\n    post_activity(client, f\"REJECTED by \u003c@{user}\u003e\")\n    if ctx:\n        def _reject():\n            try:\n                reply, _ = a2a_send(\"Rejected. Do not send. What was rejected and what should we do instead?\", ctx)\n                client.chat_postMessage(channel=HITL_CHANNEL, text=f\"Rejected:\\n{reply[:500]}\")\n            except Exception as e:\n                print(f\"Reject error: {e}\")\n        threading.Thread(target=_reject, daemon=True).start()\n\n@app.action(\"hitl_escalate\")\ndef escalate(ack, body, client):\n    ack()\n    channel    = body[\"channel\"][\"id\"]\n    message_ts = body[\"message\"][\"ts\"]\n    user       = body[\"user\"][\"id\"]\n    client.chat_update(channel=channel, ts=message_ts,\n        text=f\"\u003c@{user}\u003e wants to edit. Reply in thread.\", blocks=[])\n\nif __name__ == \"__main__\":\n    print(\"Starting Autobot Slack bot...\")\n    SocketModeHandler(app, os.environ[\"SLACK_APP_TOKEN\"]).start()"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"slack-bot-config","namespace":"kagent"}}
+    creationTimestamp: "2026-03-24T01:54:03Z"
+    name: slack-bot-config
+    namespace: kagent
+    resourceVersion: "2774791"
+    uid: 366722ae-38a5-4f56-923e-2e0358b53830
+- apiVersion: v1
+  data:
+    watch.sh: |
+      #!/bin/bash
+
+      MCP_TOOLS='[
+        {"type":"McpServer","mcpServer":{"apiGroup":"kagent.dev","kind":"RemoteMCPServer","name":"kagent-tool-server","toolNames":["k8s_get_resources","k8s_describe_resource","k8s_apply_manifest","k8s_delete_resource","k8s_create_resource","k8s_get_resource_yaml","k8s_patch_resource"]}},
+        {"type":"McpServer","mcpServer":{"apiGroup":"kagent.dev","kind":"RemoteMCPServer","name":"search-tool-server","toolNames":["search_web","search_news","search_find_businesses"]}},
+        {"type":"McpServer","mcpServer":{"apiGroup":"kagent.dev","kind":"RemoteMCPServer","name":"github-tool-server","toolNames":["github_list_repos","github_create_repo","github_push_file","github_enable_pages","github_get_pages_url"]}},
+        {"type":"McpServer","mcpServer":{"apiGroup":"kagent.dev","kind":"RemoteMCPServer","name":"gmail-tool-server","toolNames":["gmail_send_email","gmail_request_approval","gmail_check_approval"]}}
+      ]'
+
+      sync() {
+        AGENTS=$(kubectl get agents -n kagent --no-headers | awk '{print $1}' | grep -v commander-agent)
+        TOOLS='['
+        for agent in $AGENTS; do
+          TOOLS+=$(printf '{"type":"Agent","agent":{"apiGroup":"kagent.dev","kind":"Agent","name":"%s","namespace":"kagent"}},' "$agent")
+        done
+        TOOLS+=${MCP_TOOLS:1}
+        kubectl patch agents.kagent.dev commander-agent \
+          --type=merge \
+          -p "{\"spec\":{\"declarative\":{\"tools\":$TOOLS}}}" \
+          -n kagent && echo "[$(date -u +%H:%M:%S)] synced: $AGENTS"
+      }
+
+      sync
+      kubectl get agents -n kagent --watch --output-watch-events | while read -r event; do
+        echo "[$(date -u +%H:%M:%S)] agent change detected: $event"
+        sync
+      done
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"watch.sh":"#!/bin/bash\n\nMCP_TOOLS='[\n  {\"type\":\"McpServer\",\"mcpServer\":{\"apiGroup\":\"kagent.dev\",\"kind\":\"RemoteMCPServer\",\"name\":\"kagent-tool-server\",\"toolNames\":[\"k8s_get_resources\",\"k8s_describe_resource\",\"k8s_apply_manifest\",\"k8s_delete_resource\",\"k8s_create_resource\",\"k8s_get_resource_yaml\",\"k8s_patch_resource\"]}},\n  {\"type\":\"McpServer\",\"mcpServer\":{\"apiGroup\":\"kagent.dev\",\"kind\":\"RemoteMCPServer\",\"name\":\"search-tool-server\",\"toolNames\":[\"search_web\",\"search_news\",\"search_find_businesses\"]}},\n  {\"type\":\"McpServer\",\"mcpServer\":{\"apiGroup\":\"kagent.dev\",\"kind\":\"RemoteMCPServer\",\"name\":\"github-tool-server\",\"toolNames\":[\"github_list_repos\",\"github_create_repo\",\"github_push_file\",\"github_enable_pages\",\"github_get_pages_url\"]}},\n  {\"type\":\"McpServer\",\"mcpServer\":{\"apiGroup\":\"kagent.dev\",\"kind\":\"RemoteMCPServer\",\"name\":\"gmail-tool-server\",\"toolNames\":[\"gmail_send_email\",\"gmail_request_approval\",\"gmail_check_approval\"]}}\n]'\n\nsync() {\n  AGENTS=$(kubectl get agents -n kagent --no-headers | awk '{print $1}' | grep -v commander-agent)\n  TOOLS='['\n  for agent in $AGENTS; do\n    TOOLS+=$(printf '{\"type\":\"Agent\",\"agent\":{\"apiGroup\":\"kagent.dev\",\"kind\":\"Agent\",\"name\":\"%s\",\"namespace\":\"kagent\"}},' \"$agent\")\n  done\n  TOOLS+=${MCP_TOOLS:1}\n  kubectl patch agents.kagent.dev commander-agent \\\n    --type=merge \\\n    -p \"{\\\"spec\\\":{\\\"declarative\\\":{\\\"tools\\\":$TOOLS}}}\" \\\n    -n kagent \u0026\u0026 echo \"[$(date -u +%H:%M:%S)] synced: $AGENTS\"\n}\n\nsync\nkubectl get agents -n kagent --watch --output-watch-events | while read -r event; do\n  echo \"[$(date -u +%H:%M:%S)] agent change detected: $event\"\n  sync\ndone\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"tools-watcher","namespace":"kagent"}}
+    creationTimestamp: "2026-03-21T11:18:28Z"
+    name: tools-watcher
+    namespace: kagent
+    resourceVersion: "1352098"
+    uid: 1eebf82a-f3e3-45ad-b8ea-b7b5ccfe29cf
+kind: List
+metadata:
+  resourceVersion: ""

@@ -1,0 +1,67 @@
+apiVersion: v1
+items:
+- apiVersion: kagent.dev/v1alpha2
+  kind: Hook
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Hook","metadata":{"annotations":{},"name":"agent-registry-sync","namespace":"kagent"},"spec":{"eventConfigurations":[{"agentRef":{"name":"commander-agent"},"eventType":"pod-restart","prompt":"The cluster state has changed at {{.EventTime}}.\nCall k8s_get_resources to get the current agent list.\nThen call k8s_apply_manifest to update yourself (commander-agent) with the full\ncurrent agent list in your tools, making sure to ALWAYS preserve these MCP servers\nin the tools list exactly as shown:\n- kagent-tool-server (toolNames: k8s_get_resources, k8s_describe_resource, k8s_apply_manifest, k8s_delete_resource, k8s_create_resource, k8s_get_resource_yaml, k8s_patch_resource)\n- search-tool-server (toolNames: search_web, search_news, search_find_businesses)\n- github-tool-server (toolNames: github_list_repos, github_create_repo, github_push_file, github_enable_pages, github_get_pages_url)\n- gmail-tool-server (toolNames: gmail_send_email, gmail_request_approval, gmail_check_approval)\n- hitl-tool-server (toolNames: request_approval, post_notification)\nDo not remove any of these MCP servers. Do not ask for approval.\n"}]}}
+    creationTimestamp: "2026-03-21T00:18:33Z"
+    generation: 2
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2781281"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  spec:
+    eventConfigurations:
+    - agentRef:
+        name: commander-agent
+      eventType: pod-restart
+      prompt: |
+        The cluster state has changed at {{.EventTime}}.
+        Call k8s_get_resources to get the current agent list.
+        Then call k8s_apply_manifest to update yourself (commander-agent) with the full
+        current agent list in your tools, making sure to ALWAYS preserve these MCP servers
+        in the tools list exactly as shown:
+        - kagent-tool-server (toolNames: k8s_get_resources, k8s_describe_resource, k8s_apply_manifest, k8s_delete_resource, k8s_create_resource, k8s_get_resource_yaml, k8s_patch_resource)
+        - search-tool-server (toolNames: search_web, search_news, search_find_businesses)
+        - github-tool-server (toolNames: github_list_repos, github_create_repo, github_push_file, github_enable_pages, github_get_pages_url)
+        - gmail-tool-server (toolNames: gmail_send_email, gmail_request_approval, gmail_check_approval)
+        - hitl-tool-server (toolNames: request_approval, post_notification)
+        Do not remove any of these MCP servers. Do not ask for approval.
+  status:
+    lastUpdated: "2026-03-25T01:43:47Z"
+- apiVersion: kagent.dev/v1alpha2
+  kind: Hook
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"Hook","metadata":{"annotations":{},"name":"agent-self-heal","namespace":"kagent"},"spec":{"eventConfigurations":[{"agentRef":{"name":"commander-agent"},"eventType":"pod-restart","prompt":"A pod named {{.ResourceName}} has restarted at {{.EventTime}}.\nCheck if this is one of your agents. If so, diagnose why it crashed\nand fix it autonomously. Use all available tools. Do not ask for approval.\nAnnotate fixed resources with kagentFix=\u003cdateTime\u003e.\n"},{"agentRef":{"name":"commander-agent"},"eventType":"oom-kill","prompt":"Pod {{.ResourceName}} was OOM killed at {{.EventTime}}.\nIf this is one of your agents, increase its memory limits and redeploy.\nUse k8s_patch_resource. Do not ask for approval.\n"}]}}
+    creationTimestamp: "2026-03-21T00:18:33Z"
+    generation: 1
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2781280"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  spec:
+    eventConfigurations:
+    - agentRef:
+        name: commander-agent
+      eventType: pod-restart
+      prompt: |
+        A pod named {{.ResourceName}} has restarted at {{.EventTime}}.
+        Check if this is one of your agents. If so, diagnose why it crashed
+        and fix it autonomously. Use all available tools. Do not ask for approval.
+        Annotate fixed resources with kagentFix=<dateTime>.
+    - agentRef:
+        name: commander-agent
+      eventType: oom-kill
+      prompt: |
+        Pod {{.ResourceName}} was OOM killed at {{.EventTime}}.
+        If this is one of your agents, increase its memory limits and redeploy.
+        Use k8s_patch_resource. Do not ask for approval.
+  status:
+    lastUpdated: "2026-03-25T01:43:47Z"
+kind: List
+metadata:
+  resourceVersion: ""

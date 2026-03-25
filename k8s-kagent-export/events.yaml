@@ -1,0 +1,3271 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  count: 2
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:47Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2761250"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  kind: Event
+  lastTimestamp: "2026-03-25T00:58:17Z"
+  message: Event pod-restart fired for resource slack-bot-b47656fd9-cxqmk, calling
+    agent commander-agent
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:47Z"
+    name: agent-registry-sync.189fef189c1413e3
+    namespace: kagent
+    resourceVersion: "2765970"
+    uid: 2552f023-3cd2-482b-acd0-bf38bc66b2de
+  reason: EventFiring
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:47Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2761250"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  kind: Event
+  lastTimestamp: "2026-03-25T00:47:47Z"
+  message: 'Failed to call agent commander-agent for event pod-restart on resource
+    slack-bot-b47656fd9-cxqmk: failed to create session: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/sessions?user_id=admin%40kagent.dev":
+    context canceled'
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:47Z"
+    name: agent-registry-sync.189fef189c16684c
+    namespace: kagent
+    resourceVersion: "2762285"
+    uid: 721ebc45-34bf-405b-bddc-82519abb96df
+  reason: AgentCallFailure
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Warning
+- apiVersion: v1
+  count: 12
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:47Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2761250"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  kind: Event
+  lastTimestamp: "2026-03-25T00:59:00Z"
+  message: Duplicate event pod-restart ignored for resource slack-bot-b47656fd9-cxqmk
+    (within deduplication window)
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:47Z"
+    name: agent-registry-sync.189fef189cd04de0
+    namespace: kagent
+    resourceVersion: "2766212"
+    uid: 00bb218c-910e-4b81-b63a-372fd24b1499
+  reason: DuplicateEventIgnored
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:51:17Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2763223"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  kind: Event
+  lastTimestamp: "2026-03-25T00:51:17Z"
+  message: Event pod-restart fired for resource slack-bot-5c5bff4bc5-8kk8t, calling
+    agent commander-agent
+  metadata:
+    creationTimestamp: "2026-03-25T00:51:17Z"
+    name: agent-registry-sync.189fef4980fcba4a
+    namespace: kagent
+    resourceVersion: "2763580"
+    uid: 792f2954-3ccd-4893-be7e-eb0df9dc1890
+  reason: EventFiring
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:51:17Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2763223"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  kind: Event
+  lastTimestamp: "2026-03-25T00:51:17Z"
+  message: 'Failed to call agent commander-agent for event pod-restart on resource
+    slack-bot-5c5bff4bc5-8kk8t: failed to create session: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/sessions?user_id=admin%40kagent.dev":
+    context canceled'
+  metadata:
+    creationTimestamp: "2026-03-25T00:51:17Z"
+    name: agent-registry-sync.189fef4980fe3443
+    namespace: kagent
+    resourceVersion: "2763581"
+    uid: f6ef2b62-286e-4f00-a986-46aaf69cfa35
+  reason: AgentCallFailure
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Warning
+- apiVersion: v1
+  count: 8
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:51:17Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2763223"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  kind: Event
+  lastTimestamp: "2026-03-25T00:58:47Z"
+  message: Duplicate event pod-restart ignored for resource slack-bot-5c5bff4bc5-8kk8t
+    (within deduplication window)
+  metadata:
+    creationTimestamp: "2026-03-25T00:51:17Z"
+    name: agent-registry-sync.189fef49818cd84e
+    namespace: kagent
+    resourceVersion: "2766140"
+    uid: 72cb082e-c773-4066-837b-dc8533648f6d
+  reason: DuplicateEventIgnored
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:58:43Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2765632"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  kind: Event
+  lastTimestamp: "2026-03-25T00:58:43Z"
+  message: 'Successfully called agent commander-agent for event pod-restart on resource
+    slack-bot-b47656fd9-cxqmk (request: ctx-8005a605-7480-4d81-a5f0-d630be91bfd3)'
+  metadata:
+    creationTimestamp: "2026-03-25T00:58:43Z"
+    name: agent-registry-sync.189fefb17509a931
+    namespace: kagent
+    resourceVersion: "2766116"
+    uid: 210c3a49-013f-4cbe-b858-98d13b95aaac
+  reason: AgentCallSuccess
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 3
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:47Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2772810"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  kind: Event
+  lastTimestamp: "2026-03-25T01:33:17Z"
+  message: Event pod-restart fired for resource slack-bot-5c5bff4bc5-vn4lh, calling
+    agent commander-agent
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:47Z"
+    name: agent-registry-sync.189ff0d7a4f6518a
+    namespace: kagent
+    resourceVersion: "2777781"
+    uid: 8ae96bb6-9933-4eb6-8e0f-754cc36d1200
+  reason: EventFiring
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:47Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2772810"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  kind: Event
+  lastTimestamp: "2026-03-25T01:19:47Z"
+  message: 'Failed to call agent commander-agent for event pod-restart on resource
+    slack-bot-5c5bff4bc5-vn4lh: failed to create session: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/sessions?user_id=admin%40kagent.dev":
+    context canceled'
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:47Z"
+    name: agent-registry-sync.189ff0d7a4f76d4b
+    namespace: kagent
+    resourceVersion: "2773180"
+    uid: 96e29aea-0c1c-43ff-bf6e-ca01f5e9cf2a
+  reason: AgentCallFailure
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Warning
+- apiVersion: v1
+  count: 8
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:47Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2772810"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  kind: Event
+  lastTimestamp: "2026-03-25T01:22:47Z"
+  message: Duplicate event pod-restart ignored for resource slack-bot-5c5bff4bc5-vn4lh
+    (within deduplication window)
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:47Z"
+    name: agent-registry-sync.189ff0d7a5ed261f
+    namespace: kagent
+    resourceVersion: "2774267"
+    uid: d5f2dfb7-04b9-48b5-9278-7be8b28f6493
+  reason: DuplicateEventIgnored
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:32:17Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-registry-sync
+    namespace: kagent
+    resourceVersion: "2776951"
+    uid: 6f07f005-423e-4627-8767-0b83b048385a
+  kind: Event
+  lastTimestamp: "2026-03-25T01:32:17Z"
+  message: 'Failed to call agent commander-agent for event pod-restart on resource
+    slack-bot-5c5bff4bc5-vn4lh: failed to send A2A message: a2aClient.SendMessage:
+    a2aClient.doRequest: http request failed: a2aClient.httpRequestHandler: http request
+    failed: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/commander-agent/":
+    context canceled'
+  metadata:
+    creationTimestamp: "2026-03-25T01:32:17Z"
+    name: agent-registry-sync.189ff1864475eab4
+    namespace: kagent
+    resourceVersion: "2777446"
+    uid: d69fc906-d1a0-4151-9b83-bfa3f7df966e
+  reason: AgentCallFailure
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Warning
+- apiVersion: v1
+  count: 3
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:44Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2761249"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T00:58:47Z"
+  message: Event pod-restart fired for resource slack-bot-b47656fd9-cxqmk, calling
+    agent commander-agent
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:44Z"
+    name: agent-self-heal.189fef17f30491d5
+    namespace: kagent
+    resourceVersion: "2766141"
+    uid: 2d5729c7-3a2e-42df-aeea-1130f25e9926
+  reason: EventFiring
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 2
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:47Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2761249"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T00:58:47Z"
+  message: 'Failed to call agent commander-agent for event pod-restart on resource
+    slack-bot-b47656fd9-cxqmk: failed to send A2A message: a2aClient.SendMessage:
+    a2aClient.doRequest: http request failed: a2aClient.httpRequestHandler: http request
+    failed: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/commander-agent/":
+    context canceled'
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:47Z"
+    name: agent-self-heal.189fef189c117519
+    namespace: kagent
+    resourceVersion: "2766138"
+    uid: c1a635d3-d9f5-4e3a-88a4-5db8ac29311e
+  reason: AgentCallFailure
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Warning
+- apiVersion: v1
+  count: 11
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:47Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2761249"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T00:56:17Z"
+  message: Duplicate event pod-restart ignored for resource slack-bot-b47656fd9-cxqmk
+    (within deduplication window)
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:47Z"
+    name: agent-self-heal.189fef189cd09c28
+    namespace: kagent
+    resourceVersion: "2765281"
+    uid: 1d296b5e-aee9-42e9-b17d-21aa214a3b2a
+  reason: DuplicateEventIgnored
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:50:19Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2763222"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T00:50:19Z"
+  message: Event pod-restart fired for resource slack-bot-5c5bff4bc5-8kk8t, calling
+    agent commander-agent
+  metadata:
+    creationTimestamp: "2026-03-25T00:50:19Z"
+    name: agent-self-heal.189fef3c29a48da3
+    namespace: kagent
+    resourceVersion: "2763239"
+    uid: e8639292-005a-4717-ace5-2f97d06bc9af
+  reason: EventFiring
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:51:17Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2763222"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T00:51:17Z"
+  message: 'Failed to call agent commander-agent for event pod-restart on resource
+    slack-bot-5c5bff4bc5-8kk8t: failed to send A2A message: a2aClient.SendMessage:
+    a2aClient.doRequest: http request failed: a2aClient.httpRequestHandler: http request
+    failed: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/commander-agent/":
+    context canceled'
+  metadata:
+    creationTimestamp: "2026-03-25T00:51:17Z"
+    name: agent-self-heal.189fef4980fbddfa
+    namespace: kagent
+    resourceVersion: "2763579"
+    uid: c700146a-2b42-40d2-80b0-a63335f5b227
+  reason: AgentCallFailure
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Warning
+- apiVersion: v1
+  count: 8
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:51:17Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2763222"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T00:58:47Z"
+  message: Duplicate event pod-restart ignored for resource slack-bot-5c5bff4bc5-8kk8t
+    (within deduplication window)
+  metadata:
+    creationTimestamp: "2026-03-25T00:51:17Z"
+    name: agent-self-heal.189fef49818d536f
+    namespace: kagent
+    resourceVersion: "2766139"
+    uid: 206ddc2d-fa3e-4268-ad1c-2115f64f5d50
+  reason: DuplicateEventIgnored
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:59:00Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2765631"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T00:59:00Z"
+  message: 'Successfully called agent commander-agent for event pod-restart on resource
+    slack-bot-b47656fd9-cxqmk (request: ctx-ca49a540-779d-4613-bedd-727fa1a08f52)'
+  metadata:
+    creationTimestamp: "2026-03-25T00:59:00Z"
+    name: agent-self-heal.189fefb5491583dc
+    namespace: kagent
+    resourceVersion: "2766211"
+    uid: c9f9b109-7de4-4efa-a55b-6235f9e1af0c
+  reason: AgentCallSuccess
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 2
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:33Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2772809"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T01:32:17Z"
+  message: Event pod-restart fired for resource slack-bot-5c5bff4bc5-vn4lh, calling
+    agent commander-agent
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:33Z"
+    name: agent-self-heal.189ff0d476389d11
+    namespace: kagent
+    resourceVersion: "2777447"
+    uid: 592a49c0-3a74-47da-b681-55e1b223bf14
+  reason: EventFiring
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:47Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2772809"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T01:19:47Z"
+  message: 'Failed to call agent commander-agent for event pod-restart on resource
+    slack-bot-5c5bff4bc5-vn4lh: failed to send A2A message: a2aClient.SendMessage:
+    a2aClient.doRequest: http request failed: a2aClient.httpRequestHandler: http request
+    failed: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/commander-agent/":
+    context canceled'
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:47Z"
+    name: agent-self-heal.189ff0d7a4f56482
+    namespace: kagent
+    resourceVersion: "2773178"
+    uid: 68e3609d-ad91-43ef-a947-4f4cf316b245
+  reason: AgentCallFailure
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Warning
+- apiVersion: v1
+  count: 8
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:47Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2772809"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T01:22:47Z"
+  message: Duplicate event pod-restart ignored for resource slack-bot-5c5bff4bc5-vn4lh
+    (within deduplication window)
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:47Z"
+    name: agent-self-heal.189ff0d7a5edd1d8
+    namespace: kagent
+    resourceVersion: "2774266"
+    uid: 131ab5d5-a96f-4133-a047-55f4cfcf2ebb
+  reason: DuplicateEventIgnored
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:32:17Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2776950"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T01:32:17Z"
+  message: 'Failed to call agent commander-agent for event pod-restart on resource
+    slack-bot-5c5bff4bc5-vn4lh: failed to create session: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/sessions?user_id=admin%40kagent.dev":
+    context canceled'
+  metadata:
+    creationTimestamp: "2026-03-25T01:32:17Z"
+    name: agent-self-heal.189ff1864478d10e
+    namespace: kagent
+    resourceVersion: "2777448"
+    uid: ec18e258-7ff0-4090-a6b8-02b05250d4df
+  reason: AgentCallFailure
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Warning
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:33:17Z"
+  involvedObject:
+    apiVersion: kagent.dev/v1alpha2
+    kind: Hook
+    name: agent-self-heal
+    namespace: kagent
+    resourceVersion: "2776950"
+    uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
+  kind: Event
+  lastTimestamp: "2026-03-25T01:33:17Z"
+  message: 'Failed to call agent commander-agent for event pod-restart on resource
+    slack-bot-5c5bff4bc5-vn4lh: failed to send A2A message: a2aClient.SendMessage:
+    a2aClient.doRequest: http request failed: a2aClient.httpRequestHandler: http request
+    failed: Post "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/commander-agent/":
+    context deadline exceeded (Client.Timeout exceeded while awaiting headers)'
+  metadata:
+    creationTimestamp: "2026-03-25T01:33:17Z"
+    name: agent-self-heal.189ff1943dbd490a
+    namespace: kagent
+    resourceVersion: "2777780"
+    uid: 99f6fe94-92a0-4498-ae04-86a76ed88a1f
+  reason: AgentCallFailure
+  reportingComponent: khook
+  reportingInstance: ""
+  source:
+    component: khook
+  type: Warning
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T00:46:24.075782Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: commander-agent-5d5d99d659-44h7s
+    namespace: kagent
+    resourceVersion: "2761665"
+    uid: 991018ca-5278-43bd-b355-5435078d7ed4
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/commander-agent-5d5d99d659-44h7s to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent-5d5d99d659-44h7s.189fef05427034cf
+    namespace: kagent
+    resourceVersion: "2761674"
+    uid: d2e128d2-93a7-40ed-a813-cf3d4ee4dfe6
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T00:46:42.630399Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: commander-agent-5d5d99d659-l7vdd
+    namespace: kagent
+    resourceVersion: "2761852"
+    uid: e6fc8d38-1cdf-4990-b958-965df6362e34
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/commander-agent-5d5d99d659-l7vdd to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:42Z"
+    name: commander-agent-5d5d99d659-l7vdd.189fef09946125a3
+    namespace: kagent
+    resourceVersion: "2761855"
+    uid: d52e5acb-ead4-44f4-a357-d84b1672e998
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:42Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-5d5d99d659-l7vdd
+    namespace: kagent
+    resourceVersion: "2761853"
+    uid: e6fc8d38-1cdf-4990-b958-965df6362e34
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:42Z"
+  message: Container image "cr.kagent.dev/kagent-dev/kagent/app:0.7.23" already present
+    on machine
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:42Z"
+    name: commander-agent-5d5d99d659-l7vdd.189fef09a7c0a360
+    namespace: kagent
+    resourceVersion: "2761877"
+    uid: 73c64609-52f4-40b2-9c05-6d66d38eec41
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:43Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-5d5d99d659-l7vdd
+    namespace: kagent
+    resourceVersion: "2761853"
+    uid: e6fc8d38-1cdf-4990-b958-965df6362e34
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:43Z"
+  message: 'Created container: kagent'
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:43Z"
+    name: commander-agent-5d5d99d659-l7vdd.189fef09b4f1b3c6
+    namespace: kagent
+    resourceVersion: "2761880"
+    uid: 8e6cf0fb-8d43-4855-beed-e90eee14b184
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:43Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-5d5d99d659-l7vdd
+    namespace: kagent
+    resourceVersion: "2761853"
+    uid: e6fc8d38-1cdf-4990-b958-965df6362e34
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:43Z"
+  message: Started container kagent
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:43Z"
+    name: commander-agent-5d5d99d659-l7vdd.189fef09b9ad1f0d
+    namespace: kagent
+    resourceVersion: "2761881"
+    uid: f112199d-c753-4792-b82e-8a2ae38381e1
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:44Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-5d5d99d659-l7vdd
+    namespace: kagent
+    resourceVersion: "2761853"
+    uid: e6fc8d38-1cdf-4990-b958-965df6362e34
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:44Z"
+  message: Stopping container kagent
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:44Z"
+    name: commander-agent-5d5d99d659-l7vdd.189fef09ecd977a1
+    namespace: kagent
+    resourceVersion: "2761887"
+    uid: 456343c5-d674-4497-adec-07e589558299
+  reason: Killing
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:24Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: commander-agent-5d5d99d659
+    namespace: kagent
+    resourceVersion: "2761656"
+    uid: 6159b4d9-9cb2-401d-b808-22c61b9c807a
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:24Z"
+  message: 'Created pod: commander-agent-5d5d99d659-44h7s'
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent-5d5d99d659.189fef05419efd1d
+    namespace: kagent
+    resourceVersion: "2761669"
+    uid: a24e7f44-6877-4407-9f6d-da06a1a5c877
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:24Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: commander-agent-5d5d99d659
+    namespace: kagent
+    resourceVersion: "2761688"
+    uid: 6159b4d9-9cb2-401d-b808-22c61b9c807a
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:24Z"
+  message: 'Deleted pod: commander-agent-5d5d99d659-44h7s'
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent-5d5d99d659.189fef054c9b0a71
+    namespace: kagent
+    resourceVersion: "2761692"
+    uid: 6d8031a6-e5c0-4425-b3ae-bb7535636c1a
+  reason: SuccessfulDelete
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:42Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: commander-agent-5d5d99d659
+    namespace: kagent
+    resourceVersion: "2761846"
+    uid: 6159b4d9-9cb2-401d-b808-22c61b9c807a
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:42Z"
+  message: 'Created pod: commander-agent-5d5d99d659-l7vdd'
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:42Z"
+    name: commander-agent-5d5d99d659.189fef09941d5f04
+    namespace: kagent
+    resourceVersion: "2761856"
+    uid: ebc64538-5bb0-4b4b-bda1-3998d68895f2
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:42Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: commander-agent-5d5d99d659
+    namespace: kagent
+    resourceVersion: "2761868"
+    uid: 6159b4d9-9cb2-401d-b808-22c61b9c807a
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:42Z"
+  message: 'Deleted pod: commander-agent-5d5d99d659-l7vdd'
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:42Z"
+    name: commander-agent-5d5d99d659.189fef09a20c3892
+    namespace: kagent
+    resourceVersion: "2761873"
+    uid: fff7e5b1-20b3-48f1-a7fa-e1a32d6dd5b2
+  reason: SuccessfulDelete
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:41Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-6bc56758c6-g8m6k
+    namespace: kagent
+    resourceVersion: "2750406"
+    uid: 8fb4b92c-f0af-4903-a470-4b0b3eeca8af
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:41Z"
+  message: Stopping container kagent
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:41Z"
+    name: commander-agent-6bc56758c6-g8m6k.189fef0938977b13
+    namespace: kagent
+    resourceVersion: "2761826"
+    uid: 2b4af6ec-4fbb-436a-85e0-85cf5ee2a2f8
+  reason: Killing
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:41Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: commander-agent-6bc56758c6
+    namespace: kagent
+    resourceVersion: "2761819"
+    uid: 2ea5d25f-38c8-4988-8940-3c94cb0072d6
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:41Z"
+  message: 'Deleted pod: commander-agent-6bc56758c6-g8m6k'
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:41Z"
+    name: commander-agent-6bc56758c6.189fef0938765dca
+    namespace: kagent
+    resourceVersion: "2761823"
+    uid: 56b31b81-e53c-4189-b39c-0bf8815a72d1
+  reason: SuccessfulDelete
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T00:46:24.281473Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: commander-agent-787889d666-58xnh
+    namespace: kagent
+    resourceVersion: "2761694"
+    uid: c12496da-511c-4fe9-80ba-2bed3b2b8f7f
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/commander-agent-787889d666-58xnh to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent-787889d666-58xnh.189fef054eb2c4f0
+    namespace: kagent
+    resourceVersion: "2761700"
+    uid: 00486b68-103b-406f-bf96-aeba72cae6cc
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:24Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-787889d666-58xnh
+    namespace: kagent
+    resourceVersion: "2761696"
+    uid: c12496da-511c-4fe9-80ba-2bed3b2b8f7f
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:24Z"
+  message: Container image "cr.kagent.dev/kagent-dev/kagent/app:0.7.23" already present
+    on machine
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent-787889d666-58xnh.189fef0569080b69
+    namespace: kagent
+    resourceVersion: "2761711"
+    uid: e6cf4c75-2e8d-4220-a4bf-3767e40860f2
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:24Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-787889d666-58xnh
+    namespace: kagent
+    resourceVersion: "2761696"
+    uid: c12496da-511c-4fe9-80ba-2bed3b2b8f7f
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:24Z"
+  message: 'Created container: kagent'
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent-787889d666-58xnh.189fef05738427c9
+    namespace: kagent
+    resourceVersion: "2761712"
+    uid: 61e4266e-2e69-4659-a9d1-cb0d4962e5bd
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:24Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-787889d666-58xnh
+    namespace: kagent
+    resourceVersion: "2761696"
+    uid: c12496da-511c-4fe9-80ba-2bed3b2b8f7f
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:24Z"
+  message: Started container kagent
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent-787889d666-58xnh.189fef0578178ce4
+    namespace: kagent
+    resourceVersion: "2761713"
+    uid: cf284b27-4335-4c63-8e76-7d0d71920e6d
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T00:46:07.512514Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: commander-agent-787889d666-bxvkf
+    namespace: kagent
+    resourceVersion: "2761538"
+    uid: c42f35aa-b472-4343-a0e1-f7370af4d54b
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/commander-agent-787889d666-bxvkf to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:07Z"
+    name: commander-agent-787889d666-bxvkf.189fef016730c9b5
+    namespace: kagent
+    resourceVersion: "2761543"
+    uid: 5bd4b51f-c8c7-428c-8a61-8b15ce30690d
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:07Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-787889d666-bxvkf
+    namespace: kagent
+    resourceVersion: "2761539"
+    uid: c42f35aa-b472-4343-a0e1-f7370af4d54b
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:07Z"
+  message: Container image "cr.kagent.dev/kagent-dev/kagent/app:0.7.23" already present
+    on machine
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:07Z"
+    name: commander-agent-787889d666-bxvkf.189fef017edbbd08
+    namespace: kagent
+    resourceVersion: "2761548"
+    uid: 65597d03-4cad-4039-8843-ae1b181b3b0f
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:08Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-787889d666-bxvkf
+    namespace: kagent
+    resourceVersion: "2761539"
+    uid: c42f35aa-b472-4343-a0e1-f7370af4d54b
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:08Z"
+  message: 'Created container: kagent'
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:08Z"
+    name: commander-agent-787889d666-bxvkf.189fef0189568a8e
+    namespace: kagent
+    resourceVersion: "2761549"
+    uid: 0ca9d44f-b824-4791-b355-205c051a6d1a
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:08Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-787889d666-bxvkf
+    namespace: kagent
+    resourceVersion: "2761539"
+    uid: c42f35aa-b472-4343-a0e1-f7370af4d54b
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:08Z"
+  message: Started container kagent
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:08Z"
+    name: commander-agent-787889d666-bxvkf.189fef018dcbd3ca
+    namespace: kagent
+    resourceVersion: "2761553"
+    uid: a72a8307-262e-44fb-9a23-f389cfe0370d
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:24Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{kagent}
+    kind: Pod
+    name: commander-agent-787889d666-bxvkf
+    namespace: kagent
+    resourceVersion: "2761539"
+    uid: c42f35aa-b472-4343-a0e1-f7370af4d54b
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:24Z"
+  message: Stopping container kagent
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent-787889d666-bxvkf.189fef053e4ed45a
+    namespace: kagent
+    resourceVersion: "2761657"
+    uid: 475056b8-13a6-42cb-86df-9f2308be94f4
+  reason: Killing
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:07Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: commander-agent-787889d666
+    namespace: kagent
+    resourceVersion: "2761532"
+    uid: c99f0287-443e-4778-ab34-2df57dfe44ad
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:07Z"
+  message: 'Created pod: commander-agent-787889d666-bxvkf'
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:07Z"
+    name: commander-agent-787889d666.189fef016689485d
+    namespace: kagent
+    resourceVersion: "2761540"
+    uid: e6377def-12d4-4dd6-8a88-5c59b680d3f9
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:24Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: commander-agent-787889d666
+    namespace: kagent
+    resourceVersion: "2761653"
+    uid: c99f0287-443e-4778-ab34-2df57dfe44ad
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:24Z"
+  message: 'Deleted pod: commander-agent-787889d666-bxvkf'
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent-787889d666.189fef053e6ac5c7
+    namespace: kagent
+    resourceVersion: "2761658"
+    uid: b4a5959f-59d0-40b0-b93d-7bae59542c6b
+  reason: SuccessfulDelete
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:24Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: commander-agent-787889d666
+    namespace: kagent
+    resourceVersion: "2761691"
+    uid: c99f0287-443e-4778-ab34-2df57dfe44ad
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:24Z"
+  message: 'Created pod: commander-agent-787889d666-58xnh'
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent-787889d666.189fef054df9652a
+    namespace: kagent
+    resourceVersion: "2761698"
+    uid: 42b488cd-7773-458a-91fa-6074a52c9936
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 2
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:07Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: commander-agent
+    namespace: kagent
+    resourceVersion: "2761530"
+    uid: ec3e8bfa-05fc-4e6e-a4a7-df91ac5ec621
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:24Z"
+  message: Scaled up replica set commander-agent-787889d666 from 0 to 1
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:07Z"
+    name: commander-agent.189fef01623cb523
+    namespace: kagent
+    resourceVersion: "2761699"
+    uid: ffc79962-1bf7-43d6-9a58-13a661b12757
+  reason: ScalingReplicaSet
+  reportingComponent: deployment-controller
+  reportingInstance: ""
+  source:
+    component: deployment-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:23Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: commander-agent
+    namespace: kagent
+    resourceVersion: "2761647"
+    uid: ec3e8bfa-05fc-4e6e-a4a7-df91ac5ec621
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:23Z"
+  message: Scaled down replica set commander-agent-787889d666 from 1 to 0
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:23Z"
+    name: commander-agent.189fef053d60e49f
+    namespace: kagent
+    resourceVersion: "2761654"
+    uid: 161d2966-3e52-4406-be4d-60136a84c0dd
+  reason: ScalingReplicaSet
+  reportingComponent: deployment-controller
+  reportingInstance: ""
+  source:
+    component: deployment-controller
+  type: Normal
+- apiVersion: v1
+  count: 2
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:24Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: commander-agent
+    namespace: kagent
+    resourceVersion: "2761650"
+    uid: ec3e8bfa-05fc-4e6e-a4a7-df91ac5ec621
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:42Z"
+  message: Scaled up replica set commander-agent-5d5d99d659 from 0 to 1
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent.189fef053f5ef4d8
+    namespace: kagent
+    resourceVersion: "2761847"
+    uid: 8f5d8d8e-c22b-4da2-92b8-80b0a7372924
+  reason: ScalingReplicaSet
+  reportingComponent: deployment-controller
+  reportingInstance: ""
+  source:
+    component: deployment-controller
+  type: Normal
+- apiVersion: v1
+  count: 2
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:24Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: commander-agent
+    namespace: kagent
+    resourceVersion: "2761683"
+    uid: ec3e8bfa-05fc-4e6e-a4a7-df91ac5ec621
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:42Z"
+  message: Scaled down replica set commander-agent-5d5d99d659 from 1 to 0
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    name: commander-agent.189fef054bc63649
+    namespace: kagent
+    resourceVersion: "2761872"
+    uid: 2f50db3d-c7e4-4610-9554-97fa7aecbf05
+  reason: ScalingReplicaSet
+  reportingComponent: deployment-controller
+  reportingInstance: ""
+  source:
+    component: deployment-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:46:41Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: commander-agent
+    namespace: kagent
+    resourceVersion: "2761706"
+    uid: ec3e8bfa-05fc-4e6e-a4a7-df91ac5ec621
+  kind: Event
+  lastTimestamp: "2026-03-25T00:46:41Z"
+  message: Scaled down replica set commander-agent-6bc56758c6 from 1 to 0
+  metadata:
+    creationTimestamp: "2026-03-25T00:46:41Z"
+    name: commander-agent.189fef0937c65625
+    namespace: kagent
+    resourceVersion: "2761820"
+    uid: da903e68-23b2-4fcb-941c-15bb8d865a17
+  reason: ScalingReplicaSet
+  reportingComponent: deployment-controller
+  reportingInstance: ""
+  source:
+    component: deployment-controller
+  type: Normal
+- apiVersion: v1
+  count: 96
+  eventTime: null
+  firstTimestamp: "2026-03-22T02:31:41Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{watcher}
+    kind: Pod
+    name: commander-tools-watcher-cc9ff4967-pmhrb
+    namespace: kagent
+    resourceVersion: "1352116"
+    uid: 336f3c4f-bc83-4b03-a354-a27792a7367c
+  kind: Event
+  lastTimestamp: "2026-03-25T01:17:09Z"
+  message: Pulling image "docker.io/bitnami/kubectl:latest"
+  metadata:
+    creationTimestamp: "2026-03-22T02:31:41Z"
+    name: commander-tools-watcher-cc9ff4967-pmhrb.189f09065fa65f6c
+    namespace: kagent
+    resourceVersion: "2772258"
+    uid: 6bab6d48-548d-4f73-af7c-1fc8c0eeb5fb
+  reason: Pulling
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 96
+  eventTime: null
+  firstTimestamp: "2026-03-22T02:31:41Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{watcher}
+    kind: Pod
+    name: commander-tools-watcher-cc9ff4967-pmhrb
+    namespace: kagent
+    resourceVersion: "1352116"
+    uid: 336f3c4f-bc83-4b03-a354-a27792a7367c
+  kind: Event
+  lastTimestamp: "2026-03-25T01:17:09Z"
+  message: 'Created container: watcher'
+  metadata:
+    creationTimestamp: "2026-03-22T02:31:41Z"
+    name: commander-tools-watcher-cc9ff4967-pmhrb.189f09067a028601
+    namespace: kagent
+    resourceVersion: "2772265"
+    uid: c8945e1a-f102-4daa-82f8-ef7f91560d2d
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 96
+  eventTime: null
+  firstTimestamp: "2026-03-22T02:31:41Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{watcher}
+    kind: Pod
+    name: commander-tools-watcher-cc9ff4967-pmhrb
+    namespace: kagent
+    resourceVersion: "1352116"
+    uid: 336f3c4f-bc83-4b03-a354-a27792a7367c
+  kind: Event
+  lastTimestamp: "2026-03-25T01:17:09Z"
+  message: Started container watcher
+  metadata:
+    creationTimestamp: "2026-03-22T02:31:41Z"
+    name: commander-tools-watcher-cc9ff4967-pmhrb.189f0906803fdbf8
+    namespace: kagent
+    resourceVersion: "2772266"
+    uid: 69a9bc53-50ff-4e9c-96f1-415416edd28b
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:17:09Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{watcher}
+    kind: Pod
+    name: commander-tools-watcher-cc9ff4967-pmhrb
+    namespace: kagent
+    resourceVersion: "1352116"
+    uid: 336f3c4f-bc83-4b03-a354-a27792a7367c
+  kind: Event
+  lastTimestamp: "2026-03-25T01:17:09Z"
+  message: 'Successfully pulled image "docker.io/bitnami/kubectl:latest" in 411ms
+    (411ms including waiting). Image size: 204475069 bytes.'
+  metadata:
+    creationTimestamp: "2026-03-25T01:17:09Z"
+    name: commander-tools-watcher-cc9ff4967-pmhrb.189ff0b2e9fc7949
+    namespace: kagent
+    resourceVersion: "2772263"
+    uid: 0f5c674d-0c5a-4399-9d5d-a8df7eae672e
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 428
+  eventTime: null
+  firstTimestamp: "2026-03-23T13:30:22Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{curl-test}
+    kind: Pod
+    name: curl-test
+    namespace: kagent
+    resourceVersion: "2056505"
+    uid: 63205421-f4df-4985-82b6-ca2e4bec50de
+  kind: Event
+  lastTimestamp: "2026-03-25T01:35:33Z"
+  message: Pulling image "curlimages/curl"
+  metadata:
+    creationTimestamp: "2026-03-25T01:25:25Z"
+    name: curl-test.189f7b8cc80c7d0e
+    namespace: kagent
+    resourceVersion: "2778540"
+    uid: ab213c83-bef3-4bd6-8df3-cf517478e8ce
+  reason: Pulling
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 428
+  eventTime: null
+  firstTimestamp: "2026-03-23T13:30:22Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{curl-test}
+    kind: Pod
+    name: curl-test
+    namespace: kagent
+    resourceVersion: "2056505"
+    uid: 63205421-f4df-4985-82b6-ca2e4bec50de
+  kind: Event
+  lastTimestamp: "2026-03-25T01:35:33Z"
+  message: 'Failed to pull image "curlimages/curl": short name mode is enforcing,
+    but image name curlimages/curl:latest returns ambiguous list'
+  metadata:
+    creationTimestamp: "2026-03-25T01:25:25Z"
+    name: curl-test.189f7b8cc825ec5a
+    namespace: kagent
+    resourceVersion: "2778541"
+    uid: effdcbc5-d568-4f87-ae65-2a38de0c3a9a
+  reason: Failed
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Warning
+- apiVersion: v1
+  count: 9604
+  eventTime: null
+  firstTimestamp: "2026-03-23T13:30:23Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{curl-test}
+    kind: Pod
+    name: curl-test
+    namespace: kagent
+    resourceVersion: "2056505"
+    uid: 63205421-f4df-4985-82b6-ca2e4bec50de
+  kind: Event
+  lastTimestamp: "2026-03-25T01:40:28Z"
+  message: Back-off pulling image "curlimages/curl"
+  metadata:
+    creationTimestamp: "2026-03-23T13:30:23Z"
+    name: curl-test.189f7b8cfcc7a0b9
+    namespace: kagent
+    resourceVersion: "2780172"
+    uid: e5e296ef-44e5-402a-9d77-7d5b74090d69
+  reason: BackOff
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 9604
+  eventTime: null
+  firstTimestamp: "2026-03-23T13:30:23Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{curl-test}
+    kind: Pod
+    name: curl-test
+    namespace: kagent
+    resourceVersion: "2056505"
+    uid: 63205421-f4df-4985-82b6-ca2e4bec50de
+  kind: Event
+  lastTimestamp: "2026-03-25T01:40:28Z"
+  message: 'Error: ImagePullBackOff'
+  metadata:
+    creationTimestamp: "2026-03-23T13:30:23Z"
+    name: curl-test.189f7b8cfcc82309
+    namespace: kagent
+    resourceVersion: "2780173"
+    uid: fe339201-0019-4523-8c98-3cde05ed62d1
+  reason: Failed
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Warning
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T00:49:22.862633Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-67p9t
+    namespace: kagent
+    resourceVersion: "2762854"
+    uid: 110b5483-fe7d-464e-89fa-0c5bf0ad6b17
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/slack-bot-5c5bff4bc5-67p9t to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:22Z"
+    name: slack-bot-5c5bff4bc5-67p9t.189fef2ee2f7057a
+    namespace: kagent
+    resourceVersion: "2762859"
+    uid: 0e52b846-283f-441a-a855-c36af5dd0e49
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 2
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:23Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-67p9t
+    namespace: kagent
+    resourceVersion: "2762856"
+    uid: 110b5483-fe7d-464e-89fa-0c5bf0ad6b17
+  kind: Event
+  lastTimestamp: "2026-03-25T00:49:38Z"
+  message: Container image "docker.io/python:3.12-slim" already present on machine
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:23Z"
+    name: slack-bot-5c5bff4bc5-67p9t.189fef2efc7d40cd
+    namespace: kagent
+    resourceVersion: "2762964"
+    uid: 81dc5c78-2ab5-4d7d-8a55-2785ff6326a1
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 2
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:23Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-67p9t
+    namespace: kagent
+    resourceVersion: "2762856"
+    uid: 110b5483-fe7d-464e-89fa-0c5bf0ad6b17
+  kind: Event
+  lastTimestamp: "2026-03-25T00:49:39Z"
+  message: 'Created container: bot'
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:23Z"
+    name: slack-bot-5c5bff4bc5-67p9t.189fef2f0d97ecd1
+    namespace: kagent
+    resourceVersion: "2762975"
+    uid: 8f2e2760-cef0-4fba-ad85-8c7457cf520d
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 2
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:23Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-67p9t
+    namespace: kagent
+    resourceVersion: "2762856"
+    uid: 110b5483-fe7d-464e-89fa-0c5bf0ad6b17
+  kind: Event
+  lastTimestamp: "2026-03-25T00:49:39Z"
+  message: Started container bot
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:23Z"
+    name: slack-bot-5c5bff4bc5-67p9t.189fef2f12048289
+    namespace: kagent
+    resourceVersion: "2762976"
+    uid: cb41097c-4f2d-4c3a-8e9e-5e24b0b87fd4
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:48Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-67p9t
+    namespace: kagent
+    resourceVersion: "2762856"
+    uid: 110b5483-fe7d-464e-89fa-0c5bf0ad6b17
+  kind: Event
+  lastTimestamp: "2026-03-25T00:49:48Z"
+  message: Stopping container bot
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:48Z"
+    name: slack-bot-5c5bff4bc5-67p9t.189fef34f6c34c36
+    namespace: kagent
+    resourceVersion: "2763034"
+    uid: b2c0b366-467d-4a29-b2ef-28702160bb2b
+  reason: Killing
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T00:56:56.501255Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-7p5xc
+    namespace: kagent
+    resourceVersion: "2765500"
+    uid: 681e1dbb-69f7-4b42-a203-12fb5073e073
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/slack-bot-5c5bff4bc5-7p5xc to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T00:56:56Z"
+    name: slack-bot-5c5bff4bc5-7p5xc.189fef9881ef0991
+    namespace: kagent
+    resourceVersion: "2765503"
+    uid: 7b22f813-3395-4da7-815c-972412177ff7
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:56:56Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-7p5xc
+    namespace: kagent
+    resourceVersion: "2765501"
+    uid: 681e1dbb-69f7-4b42-a203-12fb5073e073
+  kind: Event
+  lastTimestamp: "2026-03-25T00:56:56Z"
+  message: Container image "docker.io/python:3.12-slim" already present on machine
+  metadata:
+    creationTimestamp: "2026-03-25T00:56:56Z"
+    name: slack-bot-5c5bff4bc5-7p5xc.189fef98992269d0
+    namespace: kagent
+    resourceVersion: "2765513"
+    uid: 7f220822-77d5-4797-807c-1a666788c850
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:56:57Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-7p5xc
+    namespace: kagent
+    resourceVersion: "2765501"
+    uid: 681e1dbb-69f7-4b42-a203-12fb5073e073
+  kind: Event
+  lastTimestamp: "2026-03-25T00:56:57Z"
+  message: 'Created container: bot'
+  metadata:
+    creationTimestamp: "2026-03-25T00:56:57Z"
+    name: slack-bot-5c5bff4bc5-7p5xc.189fef98aa675497
+    namespace: kagent
+    resourceVersion: "2765516"
+    uid: 34cd87e0-192c-47e0-8af7-6682f8ba322f
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:56:57Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-7p5xc
+    namespace: kagent
+    resourceVersion: "2765501"
+    uid: 681e1dbb-69f7-4b42-a203-12fb5073e073
+  kind: Event
+  lastTimestamp: "2026-03-25T00:56:57Z"
+  message: Started container bot
+  metadata:
+    creationTimestamp: "2026-03-25T00:56:57Z"
+    name: slack-bot-5c5bff4bc5-7p5xc.189fef98aed792cb
+    namespace: kagent
+    resourceVersion: "2765517"
+    uid: 49526d9b-2f34-4aae-9077-3ebeaf647f8c
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:02Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-7p5xc
+    namespace: kagent
+    resourceVersion: "2765501"
+    uid: 681e1dbb-69f7-4b42-a203-12fb5073e073
+  kind: Event
+  lastTimestamp: "2026-03-25T01:19:02Z"
+  message: Stopping container bot
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:02Z"
+    name: slack-bot-5c5bff4bc5-7p5xc.189ff0cd2bf5836f
+    namespace: kagent
+    resourceVersion: "2772895"
+    uid: 4b8d2e0b-762d-4458-8723-d987901c0eee
+  reason: Killing
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T00:49:48.985423Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-8kk8t
+    namespace: kagent
+    resourceVersion: "2763033"
+    uid: 107cc3be-2347-42a3-9459-84f512ee2f5c
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/slack-bot-5c5bff4bc5-8kk8t to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:48Z"
+    name: slack-bot-5c5bff4bc5-8kk8t.189fef34f8012740
+    namespace: kagent
+    resourceVersion: "2763039"
+    uid: 8113664f-5bcd-4013-860d-a62a1585cc3c
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 4
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:49Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-8kk8t
+    namespace: kagent
+    resourceVersion: "2763036"
+    uid: 107cc3be-2347-42a3-9459-84f512ee2f5c
+  kind: Event
+  lastTimestamp: "2026-03-25T00:51:15Z"
+  message: Container image "docker.io/python:3.12-slim" already present on machine
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:49Z"
+    name: slack-bot-5c5bff4bc5-8kk8t.189fef3511649a41
+    namespace: kagent
+    resourceVersion: "2763558"
+    uid: b637ab3a-bed0-4e35-971e-93a8b7d47ee3
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 4
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:49Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-8kk8t
+    namespace: kagent
+    resourceVersion: "2763036"
+    uid: 107cc3be-2347-42a3-9459-84f512ee2f5c
+  kind: Event
+  lastTimestamp: "2026-03-25T00:51:15Z"
+  message: 'Created container: bot'
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:49Z"
+    name: slack-bot-5c5bff4bc5-8kk8t.189fef3527b2a098
+    namespace: kagent
+    resourceVersion: "2763562"
+    uid: 320da049-cfe1-4df2-a90c-8d69dc08b6e0
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 4
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:49Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-8kk8t
+    namespace: kagent
+    resourceVersion: "2763036"
+    uid: 107cc3be-2347-42a3-9459-84f512ee2f5c
+  kind: Event
+  lastTimestamp: "2026-03-25T00:51:15Z"
+  message: Started container bot
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:49Z"
+    name: slack-bot-5c5bff4bc5-8kk8t.189fef352c18cf8c
+    namespace: kagent
+    resourceVersion: "2763563"
+    uid: 1507cdd4-4a26-44a3-a4cd-19d52e78189b
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 5
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:50:19Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-8kk8t
+    namespace: kagent
+    resourceVersion: "2763036"
+    uid: 107cc3be-2347-42a3-9459-84f512ee2f5c
+  kind: Event
+  lastTimestamp: "2026-03-25T00:51:42Z"
+  message: Back-off restarting failed container bot in pod slack-bot-5c5bff4bc5-8kk8t_kagent(107cc3be-2347-42a3-9459-84f512ee2f5c)
+  metadata:
+    creationTimestamp: "2026-03-25T00:50:19Z"
+    name: slack-bot-5c5bff4bc5-8kk8t.189fef3c28f936aa
+    namespace: kagent
+    resourceVersion: "2763729"
+    uid: 02a6cb9e-c092-4e0e-9c94-e964aa72dd17
+  reason: BackOff
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Warning
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T00:51:43.439355Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-d24n4
+    namespace: kagent
+    resourceVersion: "2763740"
+    uid: 5927762c-58eb-40b5-a2ab-cd13b62bce85
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/slack-bot-5c5bff4bc5-d24n4 to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T00:51:43Z"
+    name: slack-bot-5c5bff4bc5-d24n4.189fef4f9dfd8a52
+    namespace: kagent
+    resourceVersion: "2763745"
+    uid: 4e0163b5-649a-497a-9047-f74c66729afa
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:51:43Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-d24n4
+    namespace: kagent
+    resourceVersion: "2763741"
+    uid: 5927762c-58eb-40b5-a2ab-cd13b62bce85
+  kind: Event
+  lastTimestamp: "2026-03-25T00:51:43Z"
+  message: Container image "docker.io/python:3.12-slim" already present on machine
+  metadata:
+    creationTimestamp: "2026-03-25T00:51:43Z"
+    name: slack-bot-5c5bff4bc5-d24n4.189fef4fb64c365b
+    namespace: kagent
+    resourceVersion: "2763754"
+    uid: 8bf4915f-4078-49be-8787-88637bb69ab6
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:51:44Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-d24n4
+    namespace: kagent
+    resourceVersion: "2763741"
+    uid: 5927762c-58eb-40b5-a2ab-cd13b62bce85
+  kind: Event
+  lastTimestamp: "2026-03-25T00:51:44Z"
+  message: 'Created container: bot'
+  metadata:
+    creationTimestamp: "2026-03-25T00:51:44Z"
+    name: slack-bot-5c5bff4bc5-d24n4.189fef4fcaf29455
+    namespace: kagent
+    resourceVersion: "2763759"
+    uid: d276e5a2-9118-44b3-a506-6e0a2e055604
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:51:44Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-d24n4
+    namespace: kagent
+    resourceVersion: "2763741"
+    uid: 5927762c-58eb-40b5-a2ab-cd13b62bce85
+  kind: Event
+  lastTimestamp: "2026-03-25T00:51:44Z"
+  message: Started container bot
+  metadata:
+    creationTimestamp: "2026-03-25T00:51:44Z"
+    name: slack-bot-5c5bff4bc5-d24n4.189fef4fcf6f7798
+    namespace: kagent
+    resourceVersion: "2763760"
+    uid: 2e821cd2-e1b1-4df3-ad2e-2bcf7ff0899b
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:56:56Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-d24n4
+    namespace: kagent
+    resourceVersion: "2763741"
+    uid: 5927762c-58eb-40b5-a2ab-cd13b62bce85
+  kind: Event
+  lastTimestamp: "2026-03-25T00:56:56Z"
+  message: Stopping container bot
+  metadata:
+    creationTimestamp: "2026-03-25T00:56:56Z"
+    name: slack-bot-5c5bff4bc5-d24n4.189fef987db0d4d3
+    namespace: kagent
+    resourceVersion: "2765496"
+    uid: 5f4b125c-c9d2-41e6-b68d-b0300cb714f6
+  reason: Killing
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T01:19:02.274100Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-vn4lh
+    namespace: kagent
+    resourceVersion: "2772897"
+    uid: 84d49353-c736-4f52-b144-2bfa1b0f2f71
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/slack-bot-5c5bff4bc5-vn4lh to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:02Z"
+    name: slack-bot-5c5bff4bc5-vn4lh.189ff0cd30273d84
+    namespace: kagent
+    resourceVersion: "2772903"
+    uid: fb1968d4-bc9e-45d3-8e92-5b1eec368f07
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 4
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:02Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-vn4lh
+    namespace: kagent
+    resourceVersion: "2772899"
+    uid: 84d49353-c736-4f52-b144-2bfa1b0f2f71
+  kind: Event
+  lastTimestamp: "2026-03-25T01:20:29Z"
+  message: Container image "docker.io/python:3.12-slim" already present on machine
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:02Z"
+    name: slack-bot-5c5bff4bc5-vn4lh.189ff0cd480bc113
+    namespace: kagent
+    resourceVersion: "2773431"
+    uid: 548e3f87-9382-448d-be30-bc91fc652c75
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 4
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:02Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-vn4lh
+    namespace: kagent
+    resourceVersion: "2772899"
+    uid: 84d49353-c736-4f52-b144-2bfa1b0f2f71
+  kind: Event
+  lastTimestamp: "2026-03-25T01:20:29Z"
+  message: 'Created container: bot'
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:02Z"
+    name: slack-bot-5c5bff4bc5-vn4lh.189ff0cd5a139156
+    namespace: kagent
+    resourceVersion: "2773434"
+    uid: 5ba7cb61-331b-4ae2-a099-66c3f21c5960
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 4
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:03Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-vn4lh
+    namespace: kagent
+    resourceVersion: "2772899"
+    uid: 84d49353-c736-4f52-b144-2bfa1b0f2f71
+  kind: Event
+  lastTimestamp: "2026-03-25T01:20:29Z"
+  message: Started container bot
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:03Z"
+    name: slack-bot-5c5bff4bc5-vn4lh.189ff0cd5e7a9d4f
+    namespace: kagent
+    resourceVersion: "2773435"
+    uid: 7f468e1f-fd75-4f5b-94d6-7d246cf934a5
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 5
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:33Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-5c5bff4bc5-vn4lh
+    namespace: kagent
+    resourceVersion: "2772899"
+    uid: 84d49353-c736-4f52-b144-2bfa1b0f2f71
+  kind: Event
+  lastTimestamp: "2026-03-25T01:20:59Z"
+  message: Back-off restarting failed container bot in pod slack-bot-5c5bff4bc5-vn4lh_kagent(84d49353-c736-4f52-b144-2bfa1b0f2f71)
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:33Z"
+    name: slack-bot-5c5bff4bc5-vn4lh.189ff0d47578f8b6
+    namespace: kagent
+    resourceVersion: "2773623"
+    uid: de3e3b3f-4806-43f6-aaf5-f174a0eabce6
+  reason: BackOff
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Warning
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:22Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: slack-bot-5c5bff4bc5
+    namespace: kagent
+    resourceVersion: "2762850"
+    uid: c3174f2e-a84d-472a-860d-2d676c06a981
+  kind: Event
+  lastTimestamp: "2026-03-25T00:49:22Z"
+  message: 'Created pod: slack-bot-5c5bff4bc5-67p9t'
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:22Z"
+    name: slack-bot-5c5bff4bc5.189fef2ee2653bc5
+    namespace: kagent
+    resourceVersion: "2762855"
+    uid: 7cd1af5e-9e67-473b-9f37-1865f1093eee
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:48Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: slack-bot-5c5bff4bc5
+    namespace: kagent
+    resourceVersion: "2762982"
+    uid: c3174f2e-a84d-472a-860d-2d676c06a981
+  kind: Event
+  lastTimestamp: "2026-03-25T00:49:48Z"
+  message: 'Created pod: slack-bot-5c5bff4bc5-8kk8t'
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:48Z"
+    name: slack-bot-5c5bff4bc5.189fef34f74a3049
+    namespace: kagent
+    resourceVersion: "2763035"
+    uid: 19cc8b05-184f-4fb9-95b8-592470aa9202
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:51:43Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: slack-bot-5c5bff4bc5
+    namespace: kagent
+    resourceVersion: "2763658"
+    uid: c3174f2e-a84d-472a-860d-2d676c06a981
+  kind: Event
+  lastTimestamp: "2026-03-25T00:51:43Z"
+  message: 'Created pod: slack-bot-5c5bff4bc5-d24n4'
+  metadata:
+    creationTimestamp: "2026-03-25T00:51:43Z"
+    name: slack-bot-5c5bff4bc5.189fef4f9d52d1aa
+    namespace: kagent
+    resourceVersion: "2763743"
+    uid: 2d7b1f83-7000-4804-9ca6-32efee199736
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:56:56Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: slack-bot-5c5bff4bc5
+    namespace: kagent
+    resourceVersion: "2763765"
+    uid: c3174f2e-a84d-472a-860d-2d676c06a981
+  kind: Event
+  lastTimestamp: "2026-03-25T00:56:56Z"
+  message: 'Created pod: slack-bot-5c5bff4bc5-7p5xc'
+  metadata:
+    creationTimestamp: "2026-03-25T00:56:56Z"
+    name: slack-bot-5c5bff4bc5.189fef988178ac38
+    namespace: kagent
+    resourceVersion: "2765504"
+    uid: e373cd36-390f-492a-b8ff-96569a8839de
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:19:02Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: slack-bot-5c5bff4bc5
+    namespace: kagent
+    resourceVersion: "2765522"
+    uid: c3174f2e-a84d-472a-860d-2d676c06a981
+  kind: Event
+  lastTimestamp: "2026-03-25T01:19:02Z"
+  message: 'Created pod: slack-bot-5c5bff4bc5-vn4lh'
+  metadata:
+    creationTimestamp: "2026-03-25T01:19:02Z"
+    name: slack-bot-5c5bff4bc5.189ff0cd2f43aad4
+    namespace: kagent
+    resourceVersion: "2772901"
+    uid: 1894af0a-a8c9-4ae7-b7b8-d54fa92df635
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:20:59Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: slack-bot-5c5bff4bc5
+    namespace: kagent
+    resourceVersion: "2773642"
+    uid: c3174f2e-a84d-472a-860d-2d676c06a981
+  kind: Event
+  lastTimestamp: "2026-03-25T01:20:59Z"
+  message: 'Deleted pod: slack-bot-5c5bff4bc5-vn4lh'
+  metadata:
+    creationTimestamp: "2026-03-25T01:20:59Z"
+    name: slack-bot-5c5bff4bc5.189ff0e891243c31
+    namespace: kagent
+    resourceVersion: "2773647"
+    uid: 0f4a5c22-ab36-4a97-8f19-5f165e57766f
+  reason: SuccessfulDelete
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:13Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-b47656fd9-22dgv
+    namespace: kagent
+    resourceVersion: "2759352"
+    uid: 319e2fbc-c974-43c5-82d5-5533bf2af914
+  kind: Event
+  lastTimestamp: "2026-03-25T00:47:13Z"
+  message: Stopping container bot
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:13Z"
+    name: slack-bot-b47656fd9-22dgv.189fef10ccd6ba5d
+    namespace: kagent
+    resourceVersion: "2762055"
+    uid: f3c3f022-d2ab-4620-94be-6ebaf2ff7e0f
+  reason: Killing
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T00:47:13.696162Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: slack-bot-b47656fd9-cxqmk
+    namespace: kagent
+    resourceVersion: "2762057"
+    uid: 9acfce25-a6b9-4573-88cc-409c76e719bf
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/slack-bot-b47656fd9-cxqmk to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:13Z"
+    name: slack-bot-b47656fd9-cxqmk.189fef10d00b139b
+    namespace: kagent
+    resourceVersion: "2762063"
+    uid: 4ddd1c65-77a0-42ef-82f5-de284b1cbf15
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 4
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:14Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-b47656fd9-cxqmk
+    namespace: kagent
+    resourceVersion: "2762058"
+    uid: 9acfce25-a6b9-4573-88cc-409c76e719bf
+  kind: Event
+  lastTimestamp: "2026-03-25T00:48:37Z"
+  message: Container image "docker.io/python:3.12-slim" already present on machine
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:14Z"
+    name: slack-bot-b47656fd9-cxqmk.189fef10e718b041
+    namespace: kagent
+    resourceVersion: "2762581"
+    uid: 86627619-a97f-4d37-a80e-e267676fdca7
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 4
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:14Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-b47656fd9-cxqmk
+    namespace: kagent
+    resourceVersion: "2762058"
+    uid: 9acfce25-a6b9-4573-88cc-409c76e719bf
+  kind: Event
+  lastTimestamp: "2026-03-25T00:48:37Z"
+  message: 'Created container: bot'
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:14Z"
+    name: slack-bot-b47656fd9-cxqmk.189fef10f96d3929
+    namespace: kagent
+    resourceVersion: "2762582"
+    uid: e3a9e2cc-80ce-490a-93e7-b2b685cfa3a4
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 4
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:14Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-b47656fd9-cxqmk
+    namespace: kagent
+    resourceVersion: "2762058"
+    uid: 9acfce25-a6b9-4573-88cc-409c76e719bf
+  kind: Event
+  lastTimestamp: "2026-03-25T00:48:37Z"
+  message: Started container bot
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:14Z"
+    name: slack-bot-b47656fd9-cxqmk.189fef11008f09d7
+    namespace: kagent
+    resourceVersion: "2762583"
+    uid: 27508200-b273-4580-99e8-5ae58b3ab2f7
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 6
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:44Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-b47656fd9-cxqmk
+    namespace: kagent
+    resourceVersion: "2762058"
+    uid: 9acfce25-a6b9-4573-88cc-409c76e719bf
+  kind: Event
+  lastTimestamp: "2026-03-25T00:49:18Z"
+  message: Back-off restarting failed container bot in pod slack-bot-b47656fd9-cxqmk_kagent(9acfce25-a6b9-4573-88cc-409c76e719bf)
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:44Z"
+    name: slack-bot-b47656fd9-cxqmk.189fef17f23baffa
+    namespace: kagent
+    resourceVersion: "2762819"
+    uid: 7558da14-7183-42b1-98a2-9a852e6d65c0
+  reason: BackOff
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Warning
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:47:13Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: slack-bot-b47656fd9
+    namespace: kagent
+    resourceVersion: "2759373"
+    uid: f37d80c3-81bd-450d-a0be-c99a674bdf56
+  kind: Event
+  lastTimestamp: "2026-03-25T00:47:13Z"
+  message: 'Created pod: slack-bot-b47656fd9-cxqmk'
+  metadata:
+    creationTimestamp: "2026-03-25T00:47:13Z"
+    name: slack-bot-b47656fd9.189fef10cf3569e3
+    namespace: kagent
+    resourceVersion: "2762059"
+    uid: c2ce2e81-477a-4f44-b9e2-0af25495a642
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:23Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: slack-bot-b47656fd9
+    namespace: kagent
+    resourceVersion: "2762872"
+    uid: f37d80c3-81bd-450d-a0be-c99a674bdf56
+  kind: Event
+  lastTimestamp: "2026-03-25T00:49:23Z"
+  message: 'Deleted pod: slack-bot-b47656fd9-cxqmk'
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:23Z"
+    name: slack-bot-b47656fd9.189fef2f1607f8ac
+    namespace: kagent
+    resourceVersion: "2762877"
+    uid: e64f8719-6b67-4f28-92ff-d0fe00192ee6
+  reason: SuccessfulDelete
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T01:21:46.382191Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-jqmgs
+    namespace: kagent
+    resourceVersion: "2773914"
+    uid: a0a761b8-088d-41f9-9e8f-b2d1f23c9dca
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/slack-bot-d4fcfc4c9-jqmgs to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T01:21:46Z"
+    name: slack-bot-d4fcfc4c9-jqmgs.189ff0f365c1f964
+    namespace: kagent
+    resourceVersion: "2773919"
+    uid: be2a8946-a826-4361-a75b-12feba568f37
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:21:46Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-jqmgs
+    namespace: kagent
+    resourceVersion: "2773916"
+    uid: a0a761b8-088d-41f9-9e8f-b2d1f23c9dca
+  kind: Event
+  lastTimestamp: "2026-03-25T01:21:46Z"
+  message: Container image "docker.io/python:3.12-slim" already present on machine
+  metadata:
+    creationTimestamp: "2026-03-25T01:21:46Z"
+    name: slack-bot-d4fcfc4c9-jqmgs.189ff0f37e1dc088
+    namespace: kagent
+    resourceVersion: "2773926"
+    uid: 1243d599-3cd8-415f-aa24-bfc9a33c5b80
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:21:47Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-jqmgs
+    namespace: kagent
+    resourceVersion: "2773916"
+    uid: a0a761b8-088d-41f9-9e8f-b2d1f23c9dca
+  kind: Event
+  lastTimestamp: "2026-03-25T01:21:47Z"
+  message: 'Created container: bot'
+  metadata:
+    creationTimestamp: "2026-03-25T01:21:47Z"
+    name: slack-bot-d4fcfc4c9-jqmgs.189ff0f38f2624cd
+    namespace: kagent
+    resourceVersion: "2773927"
+    uid: fd9f2d97-9aee-44e8-9fa4-1a035d77728f
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:21:47Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-jqmgs
+    namespace: kagent
+    resourceVersion: "2773916"
+    uid: a0a761b8-088d-41f9-9e8f-b2d1f23c9dca
+  kind: Event
+  lastTimestamp: "2026-03-25T01:21:47Z"
+  message: Started container bot
+  metadata:
+    creationTimestamp: "2026-03-25T01:21:47Z"
+    name: slack-bot-d4fcfc4c9-jqmgs.189ff0f3939e9754
+    namespace: kagent
+    resourceVersion: "2773929"
+    uid: 4c52547a-dc24-482d-acc2-c726d90f344c
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:24:23Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-jqmgs
+    namespace: kagent
+    resourceVersion: "2773916"
+    uid: a0a761b8-088d-41f9-9e8f-b2d1f23c9dca
+  kind: Event
+  lastTimestamp: "2026-03-25T01:24:23Z"
+  message: Stopping container bot
+  metadata:
+    creationTimestamp: "2026-03-25T01:24:23Z"
+    name: slack-bot-d4fcfc4c9-jqmgs.189ff117ef52372e
+    namespace: kagent
+    resourceVersion: "2774799"
+    uid: 6f9d85e9-c873-4970-981d-ed73287b7196
+  reason: Killing
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T01:24:23.364998Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-l68c6
+    namespace: kagent
+    resourceVersion: "2774801"
+    uid: 0ec1986e-eb2c-437d-94eb-69fe8f1689e8
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/slack-bot-d4fcfc4c9-l68c6 to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T01:24:23Z"
+    name: slack-bot-d4fcfc4c9-l68c6.189ff117f2a98f56
+    namespace: kagent
+    resourceVersion: "2774805"
+    uid: f1209446-1051-47ee-8616-c883850b4a31
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:24:23Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-l68c6
+    namespace: kagent
+    resourceVersion: "2774802"
+    uid: 0ec1986e-eb2c-437d-94eb-69fe8f1689e8
+  kind: Event
+  lastTimestamp: "2026-03-25T01:24:23Z"
+  message: Container image "docker.io/python:3.12-slim" already present on machine
+  metadata:
+    creationTimestamp: "2026-03-25T01:24:23Z"
+    name: slack-bot-d4fcfc4c9-l68c6.189ff11809728d72
+    namespace: kagent
+    resourceVersion: "2774810"
+    uid: 907a430f-3266-494f-91eb-df9ebdeb8c69
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:24:24Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-l68c6
+    namespace: kagent
+    resourceVersion: "2774802"
+    uid: 0ec1986e-eb2c-437d-94eb-69fe8f1689e8
+  kind: Event
+  lastTimestamp: "2026-03-25T01:24:24Z"
+  message: 'Created container: bot'
+  metadata:
+    creationTimestamp: "2026-03-25T01:24:24Z"
+    name: slack-bot-d4fcfc4c9-l68c6.189ff1181d30d6a0
+    namespace: kagent
+    resourceVersion: "2774815"
+    uid: ab2640fe-5256-4af4-a068-4596f54c94b2
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:24:24Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-l68c6
+    namespace: kagent
+    resourceVersion: "2774802"
+    uid: 0ec1986e-eb2c-437d-94eb-69fe8f1689e8
+  kind: Event
+  lastTimestamp: "2026-03-25T01:24:24Z"
+  message: Started container bot
+  metadata:
+    creationTimestamp: "2026-03-25T01:24:24Z"
+    name: slack-bot-d4fcfc4c9-l68c6.189ff11821ccfea0
+    namespace: kagent
+    resourceVersion: "2774816"
+    uid: 8c0cfc59-46fb-42b8-883a-41fa23c5b351
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- action: Binding
+  apiVersion: v1
+  eventTime: "2026-03-25T01:20:58.801618Z"
+  firstTimestamp: null
+  involvedObject:
+    apiVersion: v1
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-wmg2f
+    namespace: kagent
+    resourceVersion: "2773613"
+    uid: ef346e93-9781-4a86-b6ad-b8d728717a06
+  kind: Event
+  lastTimestamp: null
+  message: Successfully assigned kagent/slack-bot-d4fcfc4c9-wmg2f to 10.0.10.201
+  metadata:
+    creationTimestamp: "2026-03-25T01:20:58Z"
+    name: slack-bot-d4fcfc4c9-wmg2f.189ff0e851bc10f2
+    namespace: kagent
+    resourceVersion: "2773617"
+    uid: e43e4059-c608-442d-ac75-6d8852facd81
+  reason: Scheduled
+  reportingComponent: default-scheduler
+  reportingInstance: default-scheduler-control-plane-host-10-65-207-52
+  source: {}
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:20:59Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-wmg2f
+    namespace: kagent
+    resourceVersion: "2773615"
+    uid: ef346e93-9781-4a86-b6ad-b8d728717a06
+  kind: Event
+  lastTimestamp: "2026-03-25T01:20:59Z"
+  message: Container image "docker.io/python:3.12-slim" already present on machine
+  metadata:
+    creationTimestamp: "2026-03-25T01:20:59Z"
+    name: slack-bot-d4fcfc4c9-wmg2f.189ff0e86b76bbae
+    namespace: kagent
+    resourceVersion: "2773629"
+    uid: 5e5b7b90-5926-4cce-b521-c68adbf8fd4b
+  reason: Pulled
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:20:59Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-wmg2f
+    namespace: kagent
+    resourceVersion: "2773615"
+    uid: ef346e93-9781-4a86-b6ad-b8d728717a06
+  kind: Event
+  lastTimestamp: "2026-03-25T01:20:59Z"
+  message: 'Created container: bot'
+  metadata:
+    creationTimestamp: "2026-03-25T01:20:59Z"
+    name: slack-bot-d4fcfc4c9-wmg2f.189ff0e88024dbe5
+    namespace: kagent
+    resourceVersion: "2773632"
+    uid: 3fae8fdb-660b-4cce-a3ea-fe11a4d6bbc3
+  reason: Created
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:20:59Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-wmg2f
+    namespace: kagent
+    resourceVersion: "2773615"
+    uid: ef346e93-9781-4a86-b6ad-b8d728717a06
+  kind: Event
+  lastTimestamp: "2026-03-25T01:20:59Z"
+  message: Started container bot
+  metadata:
+    creationTimestamp: "2026-03-25T01:20:59Z"
+    name: slack-bot-d4fcfc4c9-wmg2f.189ff0e884a76b30
+    namespace: kagent
+    resourceVersion: "2773634"
+    uid: c321808d-e052-4cbc-9fc7-46cabd8ae430
+  reason: Started
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:21:46Z"
+  involvedObject:
+    apiVersion: v1
+    fieldPath: spec.containers{bot}
+    kind: Pod
+    name: slack-bot-d4fcfc4c9-wmg2f
+    namespace: kagent
+    resourceVersion: "2773615"
+    uid: ef346e93-9781-4a86-b6ad-b8d728717a06
+  kind: Event
+  lastTimestamp: "2026-03-25T01:21:46Z"
+  message: Stopping container bot
+  metadata:
+    creationTimestamp: "2026-03-25T01:21:46Z"
+    name: slack-bot-d4fcfc4c9-wmg2f.189ff0f36452359c
+    namespace: kagent
+    resourceVersion: "2773913"
+    uid: 389b2606-e0fe-471e-afce-dab55b3cdcd1
+  reason: Killing
+  reportingComponent: kubelet
+  reportingInstance: 10.0.10.201
+  source:
+    component: kubelet
+    host: 10.0.10.201
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:20:58Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: slack-bot-d4fcfc4c9
+    namespace: kagent
+    resourceVersion: "2773609"
+    uid: 01272c8d-96d9-41b3-8fa2-8795d54cdb9d
+  kind: Event
+  lastTimestamp: "2026-03-25T01:20:58Z"
+  message: 'Created pod: slack-bot-d4fcfc4c9-wmg2f'
+  metadata:
+    creationTimestamp: "2026-03-25T01:20:58Z"
+    name: slack-bot-d4fcfc4c9.189ff0e850ace927
+    namespace: kagent
+    resourceVersion: "2773614"
+    uid: 21394434-87bc-4a3f-9602-7b4ba26a682a
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:21:46Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: slack-bot-d4fcfc4c9
+    namespace: kagent
+    resourceVersion: "2773640"
+    uid: 01272c8d-96d9-41b3-8fa2-8795d54cdb9d
+  kind: Event
+  lastTimestamp: "2026-03-25T01:21:46Z"
+  message: 'Created pod: slack-bot-d4fcfc4c9-jqmgs'
+  metadata:
+    creationTimestamp: "2026-03-25T01:21:46Z"
+    name: slack-bot-d4fcfc4c9.189ff0f3652599be
+    namespace: kagent
+    resourceVersion: "2773918"
+    uid: 446669d1-1e59-4c30-9cf8-28daeca9375b
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:24:23Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: slack-bot-d4fcfc4c9
+    namespace: kagent
+    resourceVersion: "2773937"
+    uid: 01272c8d-96d9-41b3-8fa2-8795d54cdb9d
+  kind: Event
+  lastTimestamp: "2026-03-25T01:24:23Z"
+  message: 'Created pod: slack-bot-d4fcfc4c9-l68c6'
+  metadata:
+    creationTimestamp: "2026-03-25T01:24:23Z"
+    name: slack-bot-d4fcfc4c9.189ff117f23a9bb1
+    namespace: kagent
+    resourceVersion: "2774804"
+    uid: fbbd8c1c-3d7f-4be0-b649-ff38af2e4b7b
+  reason: SuccessfulCreate
+  reportingComponent: replicaset-controller
+  reportingInstance: ""
+  source:
+    component: replicaset-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:22Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: slack-bot
+    namespace: kagent
+    resourceVersion: "2762847"
+    uid: 13fc98c8-fb7a-4593-b423-7b3d087632d3
+  kind: Event
+  lastTimestamp: "2026-03-25T00:49:22Z"
+  message: Scaled up replica set slack-bot-5c5bff4bc5 from 0 to 1
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:22Z"
+    name: slack-bot.189fef2edf1e7281
+    namespace: kagent
+    resourceVersion: "2762852"
+    uid: 75763eaa-57dd-4943-bd01-b17fff1b02b0
+  reason: ScalingReplicaSet
+  reportingComponent: deployment-controller
+  reportingInstance: ""
+  source:
+    component: deployment-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T00:49:23Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: slack-bot
+    namespace: kagent
+    resourceVersion: "2762860"
+    uid: 13fc98c8-fb7a-4593-b423-7b3d087632d3
+  kind: Event
+  lastTimestamp: "2026-03-25T00:49:23Z"
+  message: Scaled down replica set slack-bot-b47656fd9 from 1 to 0
+  metadata:
+    creationTimestamp: "2026-03-25T00:49:23Z"
+    name: slack-bot.189fef2f154047f8
+    namespace: kagent
+    resourceVersion: "2762873"
+    uid: 8e4cd5ef-9125-4838-b335-815b9d05ff71
+  reason: ScalingReplicaSet
+  reportingComponent: deployment-controller
+  reportingInstance: ""
+  source:
+    component: deployment-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:20:58Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: slack-bot
+    namespace: kagent
+    resourceVersion: "2773608"
+    uid: 13fc98c8-fb7a-4593-b423-7b3d087632d3
+  kind: Event
+  lastTimestamp: "2026-03-25T01:20:58Z"
+  message: Scaled up replica set slack-bot-d4fcfc4c9 from 0 to 1
+  metadata:
+    creationTimestamp: "2026-03-25T01:20:58Z"
+    name: slack-bot.189ff0e84c2113f2
+    namespace: kagent
+    resourceVersion: "2773611"
+    uid: bdd9c4cf-e649-40a2-86f7-ce2995ea6efc
+  reason: ScalingReplicaSet
+  reportingComponent: deployment-controller
+  reportingInstance: ""
+  source:
+    component: deployment-controller
+  type: Normal
+- apiVersion: v1
+  count: 1
+  eventTime: null
+  firstTimestamp: "2026-03-25T01:20:59Z"
+  involvedObject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: slack-bot
+    namespace: kagent
+    resourceVersion: "2773620"
+    uid: 13fc98c8-fb7a-4593-b423-7b3d087632d3
+  kind: Event
+  lastTimestamp: "2026-03-25T01:20:59Z"
+  message: Scaled down replica set slack-bot-5c5bff4bc5 from 1 to 0
+  metadata:
+    creationTimestamp: "2026-03-25T01:20:59Z"
+    name: slack-bot.189ff0e8900aef5d
+    namespace: kagent
+    resourceVersion: "2773643"
+    uid: 51b69c10-6c11-42d6-b7c3-df53bca16dea
+  reason: ScalingReplicaSet
+  reportingComponent: deployment-controller
+  reportingInstance: ""
+  source:
+    component: deployment-controller
+  type: Normal
+kind: List
+metadata:
+  resourceVersion: ""

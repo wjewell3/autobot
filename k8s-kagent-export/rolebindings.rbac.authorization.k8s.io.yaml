@@ -1,0 +1,56 @@
+apiVersion: v1
+items:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: kagent
+      meta.helm.sh/release-namespace: kagent
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: kmcp
+      app.kubernetes.io/version: 0.2.7
+      control-plane: controller-manager
+      helm.sh/chart: kmcp-0.2.7
+    name: kagent-kmcp-leader-election-rolebinding
+    namespace: kagent
+    resourceVersion: "129843"
+    uid: 5a424bbe-2219-4a35-b53e-c13738bd0edd
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: kagent-kmcp-leader-election-role
+  subjects:
+  - kind: ServiceAccount
+    name: kagent-kmcp-controller-manager
+    namespace: kagent
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: khook
+      meta.helm.sh/release-namespace: kagent
+    creationTimestamp: "2026-03-21T00:04:14Z"
+    labels:
+      app.kubernetes.io/instance: khook
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: khook
+      app.kubernetes.io/version: v0.0.0-9c3ffe6
+      helm.sh/chart: khook-v0.0.0-9c3ffe6
+    name: khook-leader-election-rolebinding
+    namespace: kagent
+    resourceVersion: "818534"
+    uid: e977281d-0354-4b91-b234-66e1b95ed5b5
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: khook-leader-election-role
+  subjects:
+  - kind: ServiceAccount
+    name: khook
+    namespace: kagent
+kind: List
+metadata:
+  resourceVersion: ""

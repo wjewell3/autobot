@@ -1,0 +1,42 @@
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+
+[notice] A new release of pip is available: 24.0 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8089 (Press CTRL+C to quit)
+[create] token=a6b97d97-5ff2-4525-847b-89dcaff29353 business=Test Business
+INFO:     10.244.0.31:40212 - "POST /approval/create HTTP/1.1" 200 OK
+INFO:     10.244.0.29:56456 - "GET /approval/status?token=a6b97d97-5ff2-4525-847b-89dcaff29353 HTTP/1.0" 200 OK
+[respond] token=a6b97d97-5ff2-4525-847b-89dcaff29353 decision=APPROVED
+INFO:     10.244.0.29:56462 - "GET /approval/respond?token=a6b97d97-5ff2-4525-847b-89dcaff29353&action=yes HTTP/1.0" 200 OK
+[create] token=d7214707-fed6-49c2-9bea-905ad485b7f8 business=Test Email Request
+INFO:     10.244.0.67:40060 - "POST /approval/create HTTP/1.1" 200 OK
+[create] token=d04b2528-5402-47f0-a1d4-5967f9b9dbd5 business=dashboard-test
+INFO:     10.244.0.67:43196 - "POST /approval/create HTTP/1.1" 200 OK
+[create] token=d0f8eacf-427a-4c5f-aba7-cd4228e253ba business=Web Design Service
+INFO:     10.244.0.67:52110 - "POST /approval/create HTTP/1.1" 200 OK
+INFO:     10.244.0.29:33868 - "GET /approval/status?token=d0f8eacf-427a-4c5f-aba7-cd4228e253ba HTTP/1.0" 200 OK
+[respond] token=d0f8eacf-427a-4c5f-aba7-cd4228e253ba decision=APPROVED
+INFO:     10.244.0.29:33874 - "GET /approval/respond?token=d0f8eacf-427a-4c5f-aba7-cd4228e253ba&action=yes HTTP/1.0" 200 OK
+[create] token=6ec88c95-394f-4516-899c-b53742b162fd business=Web Design Service
+INFO:     10.244.0.67:49730 - "POST /approval/create HTTP/1.1" 200 OK
+[create] token=a13792fb-ea38-41c7-b7f3-5999cd393df1 business=Web Design Service
+INFO:     10.244.0.67:35216 - "POST /approval/create HTTP/1.1" 200 OK
+[create] token=c0ce9a9c-ecd9-424f-9af7-481352ece4b6 business=Web Design Service
+INFO:     10.244.0.67:38396 - "POST /approval/create HTTP/1.1" 200 OK
+[create] token=63c04a18-1058-4d94-a96e-8ec563aa7517 business=Web Design Service
+INFO:     10.244.0.67:60460 - "POST /approval/create HTTP/1.1" 200 OK
+[create] token=0cf17678-3f7d-4d64-b62d-697cb5dec778 business=Web Design Service
+INFO:     10.244.0.67:42352 - "POST /approval/create HTTP/1.1" 200 OK
+[create] token=e7738bd4-571d-4af9-b2a0-d623933be918 business=Web Design Service
+INFO:     10.244.0.67:33106 - "POST /approval/create HTTP/1.1" 200 OK
+INFO:     10.244.0.29:60550 - "GET /approval/status?token=e7738bd4-571d-4af9-b2a0-d623933be918 HTTP/1.0" 200 OK
+[respond] token=e7738bd4-571d-4af9-b2a0-d623933be918 decision=APPROVED
+INFO:     10.244.0.29:60562 - "GET /approval/respond?token=e7738bd4-571d-4af9-b2a0-d623933be918&action=yes HTTP/1.0" 200 OK
+[create] token=7fa0e6c8-f9f5-436b-b06f-120f252f91ff business=Web Design Outreach to test@example.com
+INFO:     10.244.0.67:45456 - "POST /approval/create HTTP/1.1" 200 OK
+INFO:     10.244.0.29:57352 - "GET /approval/status?token=7fa0e6c8-f9f5-436b-b06f-120f252f91ff HTTP/1.0" 200 OK
+[respond] token=7fa0e6c8-f9f5-436b-b06f-120f252f91ff decision=APPROVED
+INFO:     10.244.0.29:57368 - "GET /approval/respond?token=7fa0e6c8-f9f5-436b-b06f-120f252f91ff&action=yes HTTP/1.0" 200 OK

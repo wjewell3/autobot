@@ -1,0 +1,60 @@
+apiVersion: v1
+items:
+- apiVersion: kagent.dev/v1alpha2
+  kind: ModelConfig
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha1","kind":"ModelConfig","metadata":{"annotations":{},"name":"copilot-gpt41","namespace":"kagent"},"spec":{"apiKeySecretKey":"key","apiKeySecretRef":"copilot-api-key","model":"gpt-4.1","modelInfo":{"family":"unknown","functionCalling":true,"jsonOutput":true,"multipleSystemMessages":false,"structuredOutput":true,"vision":false},"openAI":{"baseUrl":"http://litellm-service.kagent.svc.cluster.local:4000"}}}
+    creationTimestamp: "2026-03-19T11:10:20Z"
+    generation: 1
+    name: copilot-gpt41
+    namespace: kagent
+    resourceVersion: "151873"
+    uid: 441d9d3a-d0c1-4d01-84ce-5e9a05bdfa96
+  spec:
+    apiKeySecretKey: key
+    model: gpt-4.1
+    openAI:
+      baseUrl: http://litellm-service.kagent.svc.cluster.local:4000
+    provider: OpenAI
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-19T11:10:20Z"
+      message: Model configuration accepted
+      reason: ModelConfigReconciled
+      status: "True"
+      type: Accepted
+    observedGeneration: 1
+    secretHash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+- apiVersion: kagent.dev/v1alpha2
+  kind: ModelConfig
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"ModelConfig","metadata":{"annotations":{},"name":"default-model-config","namespace":"kagent"},"spec":{"apiKeySecret":"kagent-openai","apiKeySecretKey":"OPENAI_API_KEY","model":"gpt-4.1","openAI":{"baseUrl":"http://litellm-service.kagent.svc.cluster.local:4000"},"provider":"OpenAI"}}
+    creationTimestamp: "2026-03-19T11:00:04Z"
+    generation: 1
+    name: default-model-config
+    namespace: kagent
+    resourceVersion: "148293"
+    uid: 4f3e8d8d-d0c7-49fd-8623-853aaf42b6fe
+  spec:
+    apiKeySecret: kagent-openai
+    apiKeySecretKey: OPENAI_API_KEY
+    model: gpt-4.1
+    openAI:
+      baseUrl: http://litellm-service.kagent.svc.cluster.local:4000
+    provider: OpenAI
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-19T11:00:04Z"
+      message: Model configuration accepted
+      reason: ModelConfigReconciled
+      status: "True"
+      type: Accepted
+    observedGeneration: 1
+    secretHash: 777f4d2e815b01ce906b9f8e911e04e70ed1d7dd6817db33e61440f3a07e42e7
+kind: List
+metadata:
+  resourceVersion: ""

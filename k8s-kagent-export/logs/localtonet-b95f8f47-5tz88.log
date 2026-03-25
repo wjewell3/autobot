@@ -1,0 +1,15 @@
+[1;38;5;12mWelcome to Localtonet[0m
+
+Localtonet - headless log
+2026-03-19 18:20:57 AuthTokenName loaded: Default
+2026-03-19 18:21:01 ADDED   ct0nsvobr7.localto.net:5290 HTTP -> 
+10.96.104.136:8080
+2026-03-19 18:21:11 DELETED ct0nsvobr7.localto.net:5290 HTTP -> 
+10.96.104.136:8080
+2026-03-19 18:21:43 ADDED   ct0nsvobr7.localto.net:4328 HTTP -> 
+10.96.180.135:8081
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  5 69.66M   5  4.06M   0      0  3.86M      0   00:18   00:01   00:17  3.86M 61 69.66M  61 42.54M   0      0 20.73M      0   00:03   00:02   00:01 20.74M100 69.66M 100 69.66M   0      0 25.70M      0   00:02   00:02         20.74M100 69.66M 100 69.66M   0      0 25.69M      0   00:02   00:02         20.74M100 69.66M 100 69.66M   0      0 25.69M      0   00:02   00:02         20.74M
+Archive:  /tmp/ln.zip
+  inflating: localtonet

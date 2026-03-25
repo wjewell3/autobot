@@ -1,0 +1,196 @@
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+
+   ██╗     ██╗████████╗███████╗██╗     ██╗     ███╗   ███╗
+   ██║     ██║╚══██╔══╝██╔════╝██║     ██║     ████╗ ████║
+   ██║     ██║   ██║   █████╗  ██║     ██║     ██╔████╔██║
+   ██║     ██║   ██║   ██╔══╝  ██║     ██║     ██║╚██╔╝██║
+   ███████╗██║   ██║   ███████╗███████╗███████╗██║ ╚═╝ ██║
+   ╚══════╝╚═╝   ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝     ╚═╝
+
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:4000 (Press CTRL+C to quit)
+
+[1;37m#------------------------------------------------------------#[0m
+[1;37m#                                                            #[0m
+[1;37m#            'This product would be better if...'             #[0m
+[1;37m#        https://github.com/BerriAI/litellm/issues/new        #[0m
+[1;37m#                                                            #[0m
+[1;37m#------------------------------------------------------------#[0m
+
+ Thank you for using LiteLLM! - Krrish & Ishaan
+
+
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+
+
+[94m Initialized Success Callbacks - ['langfuse'] [0m
+[94m Initialized Failure Callbacks - ['langfuse'] [0m
+[32mLiteLLM: Proxy initialized with Config, Set models:[0m
+[32m    gpt-4.1[0m
+INFO:     10.244.0.26:47302 - "POST /chat/completions HTTP/1.1" 200 OK
+[92m23:00:10 - LiteLLM:WARNING[0m: authenticator.py:99 - API key expired, refreshing
+INFO:     10.244.0.60:50406 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:50406 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:50406 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:50406 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:50406 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:50406 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:50406 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:50406 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:50406 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:50406 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:56540 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:56540 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:56540 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:56540 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:41880 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:41880 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:41880 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:41880 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:43756 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:43756 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:43756 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:43756 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:51066 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:43756 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:51066 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:51066 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:51066 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:51066 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:51066 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:51066 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:51066 - "POST /chat/completions HTTP/1.1" 200 OK
+[92m23:48:28 - LiteLLM:WARNING[0m: authenticator.py:99 - API key expired, refreshing
+INFO:     10.244.0.60:59318 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.60:59318 - "POST /chat/completions HTTP/1.1" 200 OK
+[92m13:16:40 - LiteLLM:WARNING[0m: authenticator.py:99 - API key expired, refreshing
+INFO:     10.244.0.114:41766 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.114:41766 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.114:55728 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.114:55728 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.114:36424 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.114:36424 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.121:60588 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.121:60588 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.124:37536 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.124:37536 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.124:45858 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.124:45858 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.124:45858 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.124:57296 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.124:57296 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.124:42074 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.124:42074 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.124:56260 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.124:56260 - "POST /chat/completions HTTP/1.1" 200 OK
+[92m14:21:40 - LiteLLM:WARNING[0m: authenticator.py:99 - API key expired, refreshing
+INFO:     10.244.0.18:49072 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.18:49072 - "POST /chat/completions HTTP/1.1" 200 OK
+[92m02:18:11 - LiteLLM:WARNING[0m: authenticator.py:99 - API key expired, refreshing
+INFO:     10.244.0.18:56152 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.18:53380 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.18:53380 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.18:46964 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.18:46964 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.15:43772 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.18:46964 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.16:45244 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.18:46964 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.17:40598 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.18:46964 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.19:41148 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.18:46964 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.18:55990 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.28:43836 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.28:43836 - "POST /chat/completions HTTP/1.1" 200 OK
+[92m00:22:39 - LiteLLM:WARNING[0m: authenticator.py:99 - API key expired, refreshing
+INFO:     10.244.0.31:48152 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.31:48152 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.31:35516 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.31:51878 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.31:51878 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.31:59464 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.31:59464 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.31:33544 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.31:33544 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55124 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:50004 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:50004 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:50004 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:50004 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:50004 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:50004 - "POST /chat/completions HTTP/1.1" 200 OK
+[92m00:52:54 - LiteLLM:WARNING[0m: authenticator.py:99 - API key expired, refreshing
+INFO:     10.244.0.37:49890 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:49890 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:60360 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:60360 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:38654 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:38654 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55128 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55128 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55128 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:44310 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:44310 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:44324 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:44336 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:44324 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:44336 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:44324 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:44324 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:59176 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:59176 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:36630 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:33864 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:39978 - "POST /chat/completions HTTP/1.1" 200 OK
+[92m01:25:12 - LiteLLM:WARNING[0m: authenticator.py:99 - API key expired, refreshing
+INFO:     10.244.0.37:40868 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:40868 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:48884 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:35360 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:35360 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55206 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:48232 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55206 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:55206 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:48232 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:48232 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:48232 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:49628 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:48232 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:49628 - "POST /chat/completions HTTP/1.1" 200 OK
+INFO:     10.244.0.37:49628 - "POST /chat/completions HTTP/1.1" 200 OK

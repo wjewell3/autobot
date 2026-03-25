@@ -1,0 +1,5358 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/restartedAt: "2026-03-21T21:40:45-04:00"
+    creationTimestamp: "2026-03-22T01:40:45Z"
+    generateName: approval-server-575f5b47f-
+    generation: 1
+    labels:
+      app: approval-server
+      pod-template-hash: 575f5b47f
+    name: approval-server-575f5b47f-cmqkt
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: approval-server-575f5b47f
+      uid: e32b6b04-a353-4c5f-9a26-38616e4e5511
+    resourceVersion: "1334821"
+    uid: b304257e-d426-4c61-90b9-5f02711fddde
+  spec:
+    containers:
+    - args:
+      - pip install fastapi uvicorn --quiet && python /app/server.py
+      command:
+      - /bin/bash
+      - -c
+      env:
+      - name: BASE_URL
+        value: https://ct0nsvobr7.localto.net
+      image: docker.io/python:3.11-slim
+      imagePullPolicy: IfNotPresent
+      name: server
+      ports:
+      - containerPort: 8089
+        protocol: TCP
+      resources:
+        limits:
+          memory: 128Mi
+        requests:
+          memory: 64Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /app
+        name: script
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-krj5r
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: approval-server
+      name: script
+    - name: kube-api-access-krj5r
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T01:40:45Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T01:40:45Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T01:40:45Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T01:40:45Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T01:40:45Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        memory: 64Mi
+      containerID: cri-o://7eb67cfa85171c818b840895659696f4f8d935ceaafd957a402edd3f315aea22
+      image: docker.io/library/python:3.11-slim
+      imageID: docker.io/library/python@sha256:77411cf6fbec5540a8b956963f5d6e969d304cfee24fed7c0ef42f22c49e608a
+      lastState: {}
+      name: server
+      ready: true
+      resources:
+        limits:
+          memory: 128Mi
+        requests:
+          memory: 64Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-22T01:40:45Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /app
+        name: script
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-krj5r
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.30
+    podIPs:
+    - ip: 10.244.0.30
+    qosClass: Burstable
+    startTime: "2026-03-22T01:40:45Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kagent.dev/config-hash: "13284892851965097177"
+    creationTimestamp: "2026-03-25T00:46:24Z"
+    generateName: commander-agent-787889d666-
+    generation: 1
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: commander-agent
+      app.kubernetes.io/part-of: kagent
+      kagent: commander-agent
+      pod-template-hash: 787889d666
+    name: commander-agent-787889d666-58xnh
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: commander-agent-787889d666
+      uid: c99f0287-443e-4778-ab34-2df57dfe44ad
+    resourceVersion: "2761815"
+    uid: c12496da-511c-4fe9-80ba-2bed3b2b8f7f
+  spec:
+    containers:
+    - args:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --filepath
+      - /config
+      env:
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            key: OPENAI_API_KEY
+            name: kagent-openai
+      - name: OTEL_LOGGING_ENABLED
+        value: "false"
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KAGENT_NAME
+        value: commander-agent
+      - name: KAGENT_URL
+        value: http://kagent-controller.kagent:8083
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: kagent
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /.well-known/agent-card.json
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 15
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-mkxq2
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: commander-agent
+    serviceAccountName: commander-agent
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: config
+      secret:
+        defaultMode: 420
+        secretName: commander-agent
+    - name: kagent-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            audience: kagent
+            expirationSeconds: 3600
+            path: kagent-token
+    - name: kube-api-access-mkxq2
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T00:46:25Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T00:46:24Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T00:46:41Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T00:46:41Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T00:46:24Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 384Mi
+      containerID: cri-o://cd41ec493d66860a5be9f0d6a92dc58161db9238ffca622e428e39b46457be18
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b
+      lastState: {}
+      name: kagent
+      ready: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-25T00:46:24Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-mkxq2
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.37
+    podIPs:
+    - ip: 10.244.0.37
+    qosClass: Burstable
+    startTime: "2026-03-25T00:46:24Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/restartedAt: "2026-03-21T22:31:40-04:00"
+    creationTimestamp: "2026-03-22T02:31:40Z"
+    generateName: commander-tools-watcher-cc9ff4967-
+    generation: 1
+    labels:
+      app: commander-tools-watcher
+      pod-template-hash: cc9ff4967
+    name: commander-tools-watcher-cc9ff4967-pmhrb
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: commander-tools-watcher-cc9ff4967
+      uid: a61d7a19-9312-4fe8-9ad9-7a5b2a2bebe2
+    resourceVersion: "2772267"
+    uid: 336f3c4f-bc83-4b03-a354-a27792a7367c
+  spec:
+    containers:
+    - command:
+      - /bin/bash
+      - /scripts/watch.sh
+      image: docker.io/bitnami/kubectl:latest
+      imagePullPolicy: Always
+      name: watcher
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /scripts
+        name: script
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-xrc44
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: kagent-controller
+    serviceAccountName: kagent-controller
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 493
+        name: tools-watcher
+      name: script
+    - name: kube-api-access-xrc44
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:31:42Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:31:40Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T01:17:10Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T01:17:10Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:31:40Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: cri-o://ae761b23cfe1a44fe6a9b64f5b9d1ae89926ec211382e56721a9f6f656b1fe2e
+      image: docker.io/bitnami/kubectl:latest
+      imageID: docker.io/bitnami/kubectl@sha256:bbaacd3e8a863f057b0e54bad421ffbe8a52caca0b05fd824f5847a0088b7ea9
+      lastState:
+        terminated:
+          containerID: cri-o://9ff3ec0031ab8959f72a962f771895b30045304cde7c447736afde45339237b2
+          exitCode: 0
+          finishedAt: "2026-03-25T01:17:08Z"
+          reason: Completed
+          startedAt: "2026-03-25T00:34:19Z"
+      name: watcher
+      ready: true
+      resources: {}
+      restartCount: 95
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-25T01:17:09Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 1001
+      volumeMounts:
+      - mountPath: /scripts
+        name: script
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-xrc44
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.40
+    podIPs:
+    - ip: 10.244.0.40
+    qosClass: BestEffort
+    startTime: "2026-03-22T02:31:40Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kagentFix: "2026-03-21T18:09:42Z"
+      kubectl.kubernetes.io/restartedAt: "2026-03-21T21:33:20-04:00"
+    creationTimestamp: "2026-03-22T01:33:20Z"
+    generateName: cors-proxy-58dd99c5bb-
+    generation: 1
+    labels:
+      app: cors-proxy
+      pod-template-hash: 58dd99c5bb
+    name: cors-proxy-58dd99c5bb-jtx7l
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: cors-proxy-58dd99c5bb
+      uid: 28bc40d5-4b6c-48cd-8392-448a8f42a732
+    resourceVersion: "1332320"
+    uid: 72b7dbba-d3ea-4af5-99d0-89d819b80dee
+  spec:
+    containers:
+    - command:
+      - nginx
+      - -g
+      - daemon off;
+      - -c
+      - /etc/nginx/nginx-cors.conf
+      image: docker.io/nginx:alpine
+      imagePullPolicy: IfNotPresent
+      name: nginx
+      ports:
+      - containerPort: 8081
+        protocol: TCP
+      resources:
+        limits:
+          cpu: 100m
+          memory: 64Mi
+        requests:
+          cpu: 50m
+          memory: 32Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /etc/nginx/nginx-cors.conf
+        name: config
+        subPath: nginx.conf
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w4zdb
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: nginx-cors
+      name: config
+    - name: kube-api-access-w4zdb
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T01:33:22Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T01:33:20Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T01:33:22Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T01:33:22Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T01:33:20Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 50m
+        memory: 32Mi
+      containerID: cri-o://7b601e83cdbb1570220734e46370c5eb461fb49c9c0f36daffb0bd57c9239806
+      image: docker.io/library/nginx:alpine
+      imageID: docker.io/library/nginx@sha256:59dfef79926174d0e2c5eafdd13521fb1b8871522da11f26d3af8d5c50a402cf
+      lastState: {}
+      name: nginx
+      ready: true
+      resources:
+        limits:
+          cpu: 100m
+          memory: 64Mi
+        requests:
+          cpu: 50m
+          memory: 32Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-22T01:33:21Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 6
+          - 10
+          - 11
+          - 20
+          - 26
+          - 27
+          uid: 0
+      volumeMounts:
+      - mountPath: /etc/nginx/nginx-cors.conf
+        name: config
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w4zdb
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.29
+    podIPs:
+    - ip: 10.244.0.29
+    qosClass: Burstable
+    startTime: "2026-03-22T01:33:20Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kagent.dev/config-hash: "16003576350973607833"
+    creationTimestamp: "2026-03-21T11:24:08Z"
+    generateName: critic-agent-6764bc558b-
+    generation: 1
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: critic-agent
+      app.kubernetes.io/part-of: kagent
+      kagent: critic-agent
+      pod-template-hash: 6764bc558b
+    name: critic-agent-6764bc558b-ch7q2
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: critic-agent-6764bc558b
+      uid: ee53ac90-02b5-4fcf-8645-55b6fa588946
+    resourceVersion: "1047401"
+    uid: 998275c8-6087-4288-92f8-9d76676b7276
+  spec:
+    containers:
+    - args:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --filepath
+      - /config
+      env:
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            key: OPENAI_API_KEY
+            name: kagent-openai
+      - name: OTEL_LOGGING_ENABLED
+        value: "false"
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KAGENT_NAME
+        value: critic-agent
+      - name: KAGENT_URL
+        value: http://kagent-controller.kagent:8083
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: kagent
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /.well-known/agent-card.json
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 15
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-mrjc8
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: critic-agent
+    serviceAccountName: critic-agent
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: config
+      secret:
+        defaultMode: 420
+        secretName: critic-agent
+    - name: kagent-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            audience: kagent
+            expirationSeconds: 3600
+            path: kagent-token
+    - name: kube-api-access-mrjc8
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:10Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:08Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:26Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:26Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:08Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 384Mi
+      containerID: cri-o://e7dcf8554b5674e6d6132fa3267b147c782711c43b4cfca888a0279cc0e8774b
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b
+      lastState: {}
+      name: kagent
+      ready: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-21T11:24:09Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-mrjc8
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.72
+    podIPs:
+    - ip: 10.244.0.72
+    qosClass: Burstable
+    startTime: "2026-03-21T11:24:08Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/restartedAt: "2026-03-22T14:33:52-04:00"
+    creationTimestamp: "2026-03-22T18:35:05Z"
+    generateName: github-mcp-65d87bf647-
+    generation: 1
+    labels:
+      app: github-mcp
+      pod-template-hash: 65d87bf647
+    name: github-mcp-65d87bf647-tfzd8
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: github-mcp-65d87bf647
+      uid: 2f59cd2e-ea1c-45bc-af4c-70a7cb8eb849
+    resourceVersion: "1679348"
+    uid: 31f70ad3-d4cd-445b-9c05-0e94aa98f19c
+  spec:
+    containers:
+    - args:
+      - pip install fastapi uvicorn mcp httpx --quiet && python /app/server.py
+      command:
+      - /bin/bash
+      - -c
+      env:
+      - name: GITHUB_TOKEN
+        valueFrom:
+          secretKeyRef:
+            key: token
+            name: github-token
+      - name: FASTMCP_HOST
+        value: 0.0.0.0
+      - name: FASTMCP_PORT
+        value: "8087"
+      image: docker.io/python:3.11-slim
+      imagePullPolicy: IfNotPresent
+      name: server
+      ports:
+      - containerPort: 8087
+        protocol: TCP
+      resources:
+        limits:
+          memory: 256Mi
+        requests:
+          memory: 128Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /app
+        name: script
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-k4pmw
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: github-mcp-server
+      name: script
+    - name: kube-api-access-k4pmw
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T18:35:06Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T18:35:05Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T18:35:06Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T18:35:06Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T18:35:05Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        memory: 128Mi
+      containerID: cri-o://d136d50449b846738c75a29d5c6564631dbf335a6899775a88fe4a68c70e87f2
+      image: docker.io/library/python:3.11-slim
+      imageID: docker.io/library/python@sha256:77411cf6fbec5540a8b956963f5d6e969d304cfee24fed7c0ef42f22c49e608a
+      lastState: {}
+      name: server
+      ready: true
+      resources:
+        limits:
+          memory: 256Mi
+        requests:
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-22T18:35:06Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /app
+        name: script
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-k4pmw
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.110
+    podIPs:
+    - ip: 10.244.0.110
+    qosClass: Burstable
+    startTime: "2026-03-22T18:35:05Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/restartedAt: "2026-03-21T22:37:49-04:00"
+    creationTimestamp: "2026-03-22T02:37:49Z"
+    generateName: gmail-mcp-687b8cd7fc-
+    generation: 1
+    labels:
+      app: gmail-mcp
+      pod-template-hash: 687b8cd7fc
+    name: gmail-mcp-687b8cd7fc-9t96r
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: gmail-mcp-687b8cd7fc
+      uid: bf8462a0-04de-40c7-a3de-0bb499f83ff6
+    resourceVersion: "1355723"
+    uid: 0bf7e98b-f22d-4824-8972-02f0fc2216a4
+  spec:
+    containers:
+    - args:
+      - pip install fastapi uvicorn httpx --quiet && python /app/server.py
+      command:
+      - /bin/bash
+      - -c
+      env:
+      - name: GMAIL_EMAIL
+        valueFrom:
+          secretKeyRef:
+            key: email
+            name: gmail-credentials
+      - name: GMAIL_APP_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            key: app_password
+            name: gmail-credentials
+      image: docker.io/python:3.11-slim
+      imagePullPolicy: IfNotPresent
+      name: server
+      ports:
+      - containerPort: 8088
+        protocol: TCP
+      resources:
+        limits:
+          memory: 128Mi
+        requests:
+          memory: 64Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /app
+        name: script
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-tzwng
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: gmail-mcp-server
+      name: script
+    - name: kube-api-access-tzwng
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:37:50Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:37:49Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:37:50Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:37:50Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:37:49Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        memory: 64Mi
+      containerID: cri-o://65e42d30d6a1fdcbf2b68be06b17a6757da1eb72e9aab2c4f336b6640868fef7
+      image: docker.io/library/python:3.11-slim
+      imageID: docker.io/library/python@sha256:77411cf6fbec5540a8b956963f5d6e969d304cfee24fed7c0ef42f22c49e608a
+      lastState: {}
+      name: server
+      ready: true
+      resources:
+        limits:
+          memory: 128Mi
+        requests:
+          memory: 64Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-22T02:37:50Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /app
+        name: script
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-tzwng
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.67
+    podIPs:
+    - ip: 10.244.0.67
+    qosClass: Burstable
+    startTime: "2026-03-22T02:37:49Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-03-23T13:33:21Z"
+    generateName: hitl-tool-server-5cc9b47746-
+    generation: 1
+    labels:
+      app: hitl-tool-server
+      pod-template-hash: 5cc9b47746
+    name: hitl-tool-server-5cc9b47746-55ttn
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: hitl-tool-server-5cc9b47746
+      uid: 65097260-8568-4976-b3d7-c406e0e5e094
+    resourceVersion: "2057623"
+    uid: 2226d544-1b34-4560-be90-9aeac74a2b08
+  spec:
+    containers:
+    - args:
+      - pip install fastapi uvicorn mcp httpx anyio --quiet && python /app/server.py
+      command:
+      - /bin/sh
+      - -c
+      env:
+      - name: SLACK_BOT_TOKEN
+        valueFrom:
+          secretKeyRef:
+            key: SLACK_BOT_TOKEN
+            name: hitl-tool-secret
+      - name: SLACK_HITL_CHANNEL_ID
+        valueFrom:
+          secretKeyRef:
+            key: SLACK_HITL_CHANNEL_ID
+            name: hitl-tool-secret
+      - name: SLACK_ESCALATION_CHANNEL_ID
+        valueFrom:
+          secretKeyRef:
+            key: SLACK_ESCALATION_CHANNEL_ID
+            name: hitl-tool-secret
+      - name: HITL_TOOL_PORT
+        value: "8091"
+      image: python:3.12-slim
+      imagePullPolicy: IfNotPresent
+      name: hitl-tool-server
+      ports:
+      - containerPort: 8091
+        protocol: TCP
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 50m
+          memory: 128Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /app
+        name: server-code
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-nnbjk
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: hitl-tool-server-code
+      name: server-code
+    - name: kube-api-access-nnbjk
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-23T13:33:23Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-23T13:33:21Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-23T13:33:23Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-23T13:33:23Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-23T13:33:21Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 50m
+        memory: 128Mi
+      containerID: cri-o://e580b6da06236495a429bde6c647942e8185c03fef021e16f2f0cbe0e1e3d232
+      image: docker.io/library/python:3.12-slim
+      imageID: docker.io/library/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+      lastState: {}
+      name: hitl-tool-server
+      ready: true
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 50m
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-23T13:33:22Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /app
+        name: server-code
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-nnbjk
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.122
+    podIPs:
+    - ip: 10.244.0.122
+    qosClass: Burstable
+    startTime: "2026-03-23T13:33:21Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      checksum/configmap: e48abcd726abbe9ef07eb9b696bae5c4d2c0c0a3bd9581dfd19b5b3fef9738b1
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    generateName: kagent-controller-7f7868b65c-
+    generation: 1
+    labels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/name: kagent
+      pod-template-hash: 7f7868b65c
+    name: kagent-controller-7f7868b65c-xgqcd
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: kagent-controller-7f7868b65c
+      uid: d7bf9e52-ca8e-45eb-9548-319f0511e81c
+    resourceVersion: "130504"
+    uid: 193c9eb5-d119-49f6-9ec0-ad8644b1bf0b
+  spec:
+    containers:
+    - env:
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      envFrom:
+      - configMapRef:
+          name: kagent-controller
+      image: cr.kagent.dev/kagent-dev/kagent/controller:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: controller
+      ports:
+      - containerPort: 8083
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /health
+          port: http
+          scheme: HTTP
+        periodSeconds: 30
+        successThreshold: 1
+        timeoutSeconds: 1
+      resources:
+        limits:
+          cpu: "2"
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      startupProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /health
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 1
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /sqlite-volume
+        name: sqlite-volume
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-slrwh
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: kagent-controller
+    serviceAccountName: kagent-controller
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - emptyDir:
+        medium: Memory
+        sizeLimit: 500Mi
+      name: sqlite-volume
+    - name: kube-api-access-slrwh
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:53Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:08:15Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:08:15Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: cri-o://1c62a1d695f7ad3ef5684d62f0496501e63912575377acdd981ca77e55d5e33c
+      image: cr.kagent.dev/kagent-dev/kagent/controller:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/controller@sha256:07ae55806f8803896b51a54f7302fcf1557602403ca7d8cc03914a237df9f068
+      lastState: {}
+      name: controller
+      ready: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-19T10:07:53Z"
+      user:
+        linux:
+          gid: 65532
+          supplementalGroups:
+          - 65532
+          uid: 65532
+      volumeMounts:
+      - mountPath: /sqlite-volume
+        name: sqlite-volume
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-slrwh
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.8
+    podIPs:
+    - ip: 10.244.0.8
+    qosClass: Burstable
+    startTime: "2026-03-19T10:07:30Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/default-container: manager
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    generateName: kagent-kmcp-controller-manager-b8dd8ccfd-
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/name: kmcp
+      control-plane: controller-manager
+      pod-template-hash: b8dd8ccfd
+    name: kagent-kmcp-controller-manager-b8dd8ccfd-hw7lj
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: kagent-kmcp-controller-manager-b8dd8ccfd
+      uid: 4a457f50-61a2-4e4b-99c1-62881284d8a1
+    resourceVersion: "130391"
+    uid: 71f90701-9e86-4b9f-8f36-7757369e8474
+  spec:
+    containers:
+    - args:
+      - --leader-elect
+      - --health-probe-bind-address=:8081
+      - --metrics-bind-address=:8443
+      command:
+      - /manager
+      image: ghcr.io/kagent-dev/kmcp/controller:0.2.7
+      imagePullPolicy: IfNotPresent
+      livenessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /healthz
+          port: health
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 20
+        successThreshold: 1
+        timeoutSeconds: 1
+      name: manager
+      ports:
+      - containerPort: 8443
+        name: metrics
+        protocol: TCP
+      - containerPort: 8081
+        name: health
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /readyz
+          port: health
+          scheme: HTTP
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 1
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 10m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-mpbck
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    serviceAccount: kagent-kmcp-controller-manager
+    serviceAccountName: kagent-kmcp-controller-manager
+    terminationGracePeriodSeconds: 10
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-mpbck
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:46Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:57Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:57Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 10m
+        memory: 64Mi
+      containerID: cri-o://a440dde5ed40646d1fcc960f3580a32c2419340804d4e6311fdcf0a91608cc61
+      image: ghcr.io/kagent-dev/kmcp/controller:0.2.7
+      imageID: ghcr.io/kagent-dev/kmcp/controller@sha256:22ee8c4a914ff8275e45d9d0948a823559955f3bed00e19a6ee1d0f83f1b1478
+      lastState: {}
+      name: manager
+      ready: true
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 10m
+          memory: 64Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-19T10:07:46Z"
+      user:
+        linux:
+          gid: 65532
+          supplementalGroups:
+          - 65532
+          uid: 65532
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-mpbck
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.7
+    podIPs:
+    - ip: 10.244.0.7
+    qosClass: Burstable
+    startTime: "2026-03-19T10:07:30Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      checksum/configmap: 92413479fda27d011ad7b7c535bab47d95a6eac80569ba5a0b1031822241a5cd
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    generateName: kagent-querydoc-5944ddc7bf-
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/name: querydoc
+      pod-template-hash: 5944ddc7bf
+    name: kagent-querydoc-5944ddc7bf-vmc9d
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: kagent-querydoc-5944ddc7bf
+      uid: e0329e4d-35e5-4299-a611-3812196c1fc2
+    resourceVersion: "130499"
+    uid: 67a0f95f-aeb1-44ae-99f8-73d23d81abb4
+  spec:
+    containers:
+    - envFrom:
+      - configMapRef:
+          name: kagent-querydoc
+      image: ghcr.io/kagent-dev/doc2vec/mcp:1.1.14
+      imagePullPolicy: IfNotPresent
+      name: querydoc
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /health
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 10
+        periodSeconds: 30
+        successThreshold: 1
+        timeoutSeconds: 10
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext: {}
+      startupProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /health
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 10
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 10
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5fb6l
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: kagent-querydoc
+    serviceAccountName: kagent-querydoc
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-5fb6l
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:53Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:08:15Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:08:15Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: cri-o://51908ff08ef5bda766e178c68a0562a034ed21d4fdef6e3d50ac7aa2c858dd87
+      image: ghcr.io/kagent-dev/doc2vec/mcp:1.1.14
+      imageID: ghcr.io/kagent-dev/doc2vec/mcp@sha256:3e3d9b0f9da7edbd7397ffd58cbc79018e70ca45e378dd4257dc6304ecc2ca9c
+      lastState: {}
+      name: querydoc
+      ready: true
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-19T10:07:53Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 6
+          - 10
+          - 11
+          - 20
+          - 26
+          - 27
+          uid: 0
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5fb6l
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.5
+    podIPs:
+    - ip: 10.244.0.5
+    qosClass: Burstable
+    startTime: "2026-03-19T10:07:30Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-03-19T10:07:29Z"
+    generateName: kagent-tools-7f477dcb7b-
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/name: kagent-tools
+      pod-template-hash: 7f477dcb7b
+    name: kagent-tools-7f477dcb7b-7kcm8
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: kagent-tools-7f477dcb7b
+      uid: ad98aa47-8332-444b-9120-43b1c3ca9add
+    resourceVersion: "130423"
+    uid: 80b2d06b-e8ba-4fdf-9330-82c3a351b33f
+  spec:
+    containers:
+    - args:
+      - --port
+      - "8084"
+      - --metrics-port
+      - "8085"
+      command:
+      - /tool-server
+      env:
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            key: OPENAI_API_KEY
+            name: kagent-tools-openai
+            optional: true
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://host.docker.internal:4317
+      - name: OTEL_EXPORTER_OTLP_TRACES_TIMEOUT
+        value: "15"
+      - name: OTEL_EXPORTER_OTLP_TRACES_INSECURE
+        value: "true"
+      - name: TOKEN_PASSTHROUGH
+        value: "false"
+      image: ghcr.io/kagent-dev/kagent/tools:0.1.1
+      imagePullPolicy: IfNotPresent
+      name: tools
+      ports:
+      - containerPort: 8084
+        name: http-tools
+        protocol: TCP
+      - containerPort: 8085
+        name: http-metrics
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        tcpSocket:
+          port: http-tools
+        timeoutSeconds: 1
+      resources:
+        limits:
+          cpu: "1"
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w4d7l
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: kagent-tools
+    serviceAccountName: kagent-tools
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-w4d7l
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:46Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:08:02Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:08:02Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: cri-o://c52464d00a87a101da1c508e89df14fa0ed7f86d1e06180fd0ad9406afd274b6
+      image: ghcr.io/kagent-dev/kagent/tools:0.1.1
+      imageID: ghcr.io/kagent-dev/kagent/tools@sha256:4ca0ebd304a35588305e55dc00e5da90c1230d54ed70a2f73a2826274398907b
+      lastState: {}
+      name: tools
+      ready: true
+      resources:
+        limits:
+          cpu: "1"
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-19T10:07:46Z"
+      user:
+        linux:
+          gid: 65532
+          supplementalGroups:
+          - 65532
+          uid: 65532
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w4d7l
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.4
+    podIPs:
+    - ip: 10.244.0.4
+    qosClass: Burstable
+    startTime: "2026-03-19T10:07:30Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-03-19T10:07:30Z"
+    generateName: kagent-ui-87c7cd66b-
+    generation: 1
+    labels:
+      app.kubernetes.io/component: ui
+      app.kubernetes.io/instance: kagent
+      app.kubernetes.io/name: kagent
+      pod-template-hash: 87c7cd66b
+    name: kagent-ui-87c7cd66b-sc958
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: kagent-ui-87c7cd66b
+      uid: ff872039-bb90-4622-ad66-58250f7b743d
+    resourceVersion: "130247"
+    uid: a15f873b-ec22-4b55-8b3f-981c48439eb8
+  spec:
+    containers:
+    - env:
+      - name: NEXT_PUBLIC_BACKEND_URL
+        value: http://kagent-controller.kagent.svc.cluster.local:8083/api
+      image: cr.kagent.dev/kagent-dev/kagent/ui:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: ui
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /health
+          port: http
+          scheme: HTTP
+        periodSeconds: 30
+        successThreshold: 1
+        timeoutSeconds: 1
+      resources:
+        limits:
+          cpu: "1"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 256Mi
+      securityContext: {}
+      startupProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /health
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 1
+        periodSeconds: 1
+        successThreshold: 1
+        timeoutSeconds: 1
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-v6ckl
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: kagent-ui
+    serviceAccountName: kagent-ui
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-v6ckl
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:53Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:54Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:54Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T10:07:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 256Mi
+      containerID: cri-o://f232cea204b931de0bca16dc23ac5a9275f8822d21b06ac911d87f276326f298
+      image: cr.kagent.dev/kagent-dev/kagent/ui:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/ui@sha256:188ce841ddf6a0239328f4f48f9e1559265bfe4f79a3aae207d30b1e3da4c485
+      lastState: {}
+      name: ui
+      ready: true
+      resources:
+        limits:
+          cpu: "1"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 256Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-19T10:07:53Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-v6ckl
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.9
+    podIPs:
+    - ip: 10.244.0.9
+    qosClass: Burstable
+    startTime: "2026-03-19T10:07:30Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/default-container: manager
+    creationTimestamp: "2026-03-21T00:16:15Z"
+    generateName: khook-589b86668-
+    generation: 1
+    labels:
+      app.kubernetes.io/instance: khook
+      app.kubernetes.io/name: khook
+      pod-template-hash: 589b86668
+    name: khook-589b86668-wnhxz
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: khook-589b86668
+      uid: 47159d76-e887-4501-8e3c-eb2ad340b37c
+    resourceVersion: "822436"
+    uid: c0bf284d-8212-4572-9269-a86dcf80e306
+  spec:
+    containers:
+    - args:
+      - --leader-elect
+      - --config=/etc/config/controller_manager_config.yaml
+      command:
+      - /manager
+      env:
+      - name: KAGENT_API_URL
+        value: http://kagent-controller.kagent.svc.cluster.local:8083
+      - name: KAGENT_USER_ID
+        value: admin@kagent.dev
+      - name: LOG_LEVEL
+        valueFrom:
+          configMapKeyRef:
+            key: log-level
+            name: khook-config
+      - name: METRICS_BIND_ADDRESS
+        value: :8080
+      - name: HEALTH_PROBE_BIND_ADDRESS
+        value: :8081
+      image: ghcr.io/wjewell3/khook:latest
+      imagePullPolicy: IfNotPresent
+      livenessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /healthz
+          port: 8081
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 20
+        successThreshold: 1
+        timeoutSeconds: 1
+      name: manager
+      ports:
+      - containerPort: 8080
+        name: metrics
+        protocol: TCP
+      - containerPort: 8081
+        name: health
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /readyz
+          port: 8081
+          scheme: HTTP
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 1
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 10m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        readOnlyRootFilesystem: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /etc/config
+        name: config
+        readOnly: true
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-hx2rj
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    serviceAccount: khook
+    serviceAccountName: khook
+    terminationGracePeriodSeconds: 10
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: khook-config
+      name: config
+    - name: kube-api-access-hx2rj
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T00:16:17Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T00:16:15Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T00:16:28Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T00:16:28Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T00:16:15Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 10m
+        memory: 64Mi
+      containerID: cri-o://b59b110161dba51bb115e837bb76c7cd6b48cc20733cf0e6ae8f456c8414ad71
+      image: ghcr.io/wjewell3/khook:latest
+      imageID: ghcr.io/wjewell3/khook@sha256:50b861d43476b88340505b63132af995fb1977bd7af02c6979b13bf8dc0421c1
+      lastState: {}
+      name: manager
+      ready: true
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 10m
+          memory: 64Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-21T00:16:17Z"
+      user:
+        linux:
+          gid: 65532
+          supplementalGroups:
+          - 65532
+          uid: 65532
+      volumeMounts:
+      - mountPath: /etc/config
+        name: config
+        readOnly: true
+        recursiveReadOnly: Disabled
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-hx2rj
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.120
+    podIPs:
+    - ip: 10.244.0.120
+    qosClass: Burstable
+    startTime: "2026-03-21T00:16:15Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-03-19T18:30:14Z"
+    generateName: kubectl-proxy-585c644c4b-
+    generation: 1
+    labels:
+      app: kubectl-proxy
+      pod-template-hash: 585c644c4b
+    name: kubectl-proxy-585c644c4b-nmj4v
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: kubectl-proxy-585c644c4b
+      uid: d34922df-cfa7-466e-a471-3bebee26d1eb
+    resourceVersion: "285021"
+    uid: 72e1556f-fa5b-4f75-9845-13af7a0208f9
+  spec:
+    containers:
+    - args:
+      - proxy
+      - --port=8888
+      - --address=0.0.0.0
+      - --accept-hosts=.*
+      image: docker.io/bitnami/kubectl:latest
+      imagePullPolicy: Always
+      name: kubectl-proxy
+      ports:
+      - containerPort: 8888
+        protocol: TCP
+      resources:
+        limits:
+          cpu: 200m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-zplb4
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: kagent-controller
+    serviceAccountName: kagent-controller
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: kube-api-access-zplb4
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T18:30:18Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T18:30:14Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T18:30:18Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T18:30:18Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T18:30:14Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 64Mi
+      containerID: cri-o://2a03f385ef1023ed99a757ac98d86d3a4e6a9cf90cbcc8cb4a9e6049df9964ea
+      image: docker.io/bitnami/kubectl:latest
+      imageID: docker.io/bitnami/kubectl@sha256:7fc66a99e38500a5ceb81583856f89ee589bdffd885c895e42a76dce45a3bc73
+      lastState: {}
+      name: kubectl-proxy
+      ready: true
+      resources:
+        limits:
+          cpu: 200m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-19T18:30:18Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 1001
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-zplb4
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.98
+    podIPs:
+    - ip: 10.244.0.98
+    qosClass: Burstable
+    startTime: "2026-03-19T18:30:14Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/restartedAt: "2026-03-21T22:09:09-04:00"
+    creationTimestamp: "2026-03-22T02:09:09Z"
+    generateName: litellm-777679b9b7-
+    generation: 1
+    labels:
+      app: litellm
+      pod-template-hash: 777679b9b7
+    name: litellm-777679b9b7-hndtd
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: litellm-777679b9b7
+      uid: d84037d2-f279-4fa6-ad03-26151c1056cf
+    resourceVersion: "1344364"
+    uid: f3881b00-e5b4-452c-93c0-dc2bbac7eae5
+  spec:
+    containers:
+    - args:
+      - --config
+      - /app/config.yaml
+      - --port
+      - "4000"
+      env:
+      - name: LANGFUSE_PUBLIC_KEY
+        value: pk-lf-792ef561-d69f-4c32-a171-3456bcadc22e
+      - name: LANGFUSE_SECRET_KEY
+        value: sk-lf-041e1d63-d6be-4956-ad89-22d1ad633516
+      - name: LANGFUSE_HOST
+        value: https://us.cloud.langfuse.com
+      image: ghcr.io/berriai/litellm:main-latest
+      imagePullPolicy: IfNotPresent
+      name: litellm
+      ports:
+      - containerPort: 4000
+        protocol: TCP
+      resources:
+        limits:
+          cpu: 500m
+          memory: 1536Mi
+        requests:
+          cpu: 250m
+          memory: 512Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /app/config.yaml
+        name: litellm-config
+        subPath: config.yaml
+      - mountPath: /root/.config/litellm/github_copilot
+        name: copilot-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-4t9ms
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: litellm-config
+      name: litellm-config
+    - hostPath:
+        path: /home/opc/.config/litellm/github_copilot
+        type: DirectoryOrCreate
+      name: copilot-token
+    - name: kube-api-access-4t9ms
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:09:10Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:09:09Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:09:10Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:09:10Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T02:09:09Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 250m
+        memory: 512Mi
+      containerID: cri-o://681efdc62047ab722a3e5d608ed6fad9b1c903e939d2e79c16ff98a75a5dcd0e
+      image: ghcr.io/berriai/litellm:main-latest
+      imageID: ghcr.io/berriai/litellm@sha256:48fbad5dfd885f7e59a20a2e671c38175aa3251fcb91ed0e9c82f65dda66c25c
+      lastState: {}
+      name: litellm
+      ready: true
+      resources:
+        limits:
+          cpu: 500m
+          memory: 1536Mi
+        requests:
+          cpu: 250m
+          memory: 512Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-22T02:09:09Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 6
+          - 10
+          - 11
+          - 20
+          - 26
+          - 27
+          uid: 0
+      volumeMounts:
+      - mountPath: /app/config.yaml
+        name: litellm-config
+      - mountPath: /root/.config/litellm/github_copilot
+        name: copilot-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-4t9ms
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.33
+    podIPs:
+    - ip: 10.244.0.33
+    qosClass: Burstable
+    startTime: "2026-03-22T02:09:09Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-03-19T18:20:43Z"
+    generateName: localtonet-b95f8f47-
+    generation: 1
+    labels:
+      app: localtonet
+      pod-template-hash: b95f8f47
+    name: localtonet-b95f8f47-5tz88
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: localtonet-b95f8f47
+      uid: e93824b6-cb87-479f-9e16-233557ffd453
+    resourceVersion: "282084"
+    uid: a5b9bfa6-9da2-42db-9bfe-ab03046ef575
+  spec:
+    containers:
+    - command:
+      - /bin/sh
+      - -c
+      - /app/localtonet --authtoken $AUTHTOKEN
+      env:
+      - name: AUTHTOKEN
+        valueFrom:
+          secretKeyRef:
+            key: token
+            name: localtonet-token
+      - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+        value: "1"
+      image: docker.io/ubuntu:22.04
+      imagePullPolicy: IfNotPresent
+      name: localtonet
+      resources:
+        limits:
+          cpu: 200m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /app
+        name: binary
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-hc7bt
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    initContainers:
+    - command:
+      - sh
+      - -c
+      - |
+        curl -L https://localtonet.com/download/localtonet-linux-arm64.zip -o /tmp/ln.zip
+        unzip /tmp/ln.zip -d /app
+        chmod +x /app/localtonet
+      image: docker.io/curlimages/curl:latest
+      imagePullPolicy: Always
+      name: download
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /app
+        name: binary
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-hc7bt
+        readOnly: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - emptyDir: {}
+      name: binary
+    - name: kube-api-access-hc7bt
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T18:20:45Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T18:20:50Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T18:20:51Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T18:20:51Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-19T18:20:43Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 64Mi
+      containerID: cri-o://e0bf50814209bce70b0e1b530bd57723d9c896ecf222186033c0e5d64343b2b7
+      image: docker.io/library/ubuntu:22.04
+      imageID: docker.io/library/ubuntu@sha256:ce4a593b4e323dcc3dd728e397e0a866a1bf516a1b7c31d6aa06991baec4f2e0
+      lastState: {}
+      name: localtonet
+      ready: true
+      resources:
+        limits:
+          cpu: 200m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-19T18:20:50Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /app
+        name: binary
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-hc7bt
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    initContainerStatuses:
+    - containerID: cri-o://86dd88b185ef85f40217acfd784e0b3914f68b9c579ca812bfff97aca0e55ef0
+      image: docker.io/curlimages/curl:latest
+      imageID: docker.io/curlimages/curl@sha256:48efbba753c4c5f2ecb9080106da07c0bf19b7fdd066e2b1b46dcdc15b5e544b
+      lastState: {}
+      name: download
+      ready: true
+      resources: {}
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: cri-o://86dd88b185ef85f40217acfd784e0b3914f68b9c579ca812bfff97aca0e55ef0
+          exitCode: 0
+          finishedAt: "2026-03-19T18:20:49Z"
+          reason: Completed
+          startedAt: "2026-03-19T18:20:44Z"
+      user:
+        linux:
+          gid: 102
+          supplementalGroups:
+          - 102
+          uid: 101
+      volumeMounts:
+      - mountPath: /app
+        name: binary
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-hc7bt
+        readOnly: true
+        recursiveReadOnly: Disabled
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.95
+    podIPs:
+    - ip: 10.244.0.95
+    qosClass: Burstable
+    startTime: "2026-03-19T18:20:43Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kagent.dev/config-hash: "7171837518026260593"
+    creationTimestamp: "2026-03-24T02:20:27Z"
+    generateName: number-agent-1-8f8c8bbf9-
+    generation: 1
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: number-agent-1
+      app.kubernetes.io/part-of: kagent
+      kagent: number-agent-1
+      pod-template-hash: 8f8c8bbf9
+    name: number-agent-1-8f8c8bbf9-pwhgx
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: number-agent-1-8f8c8bbf9
+      uid: 04fde09d-0897-46fd-af79-4c6c2002424a
+    resourceVersion: "2313874"
+    uid: 0b23c9a3-c111-4af0-948d-3db802cecf85
+  spec:
+    containers:
+    - args:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --filepath
+      - /config
+      env:
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            key: OPENAI_API_KEY
+            name: kagent-openai
+      - name: OTEL_LOGGING_ENABLED
+        value: "false"
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KAGENT_NAME
+        value: number-agent-1
+      - name: KAGENT_URL
+        value: http://kagent-controller.kagent:8083
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: kagent
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /.well-known/agent-card.json
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 15
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-wkspx
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: number-agent-1
+    serviceAccountName: number-agent-1
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: config
+      secret:
+        defaultMode: 420
+        secretName: number-agent-1
+    - name: kagent-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            audience: kagent
+            expirationSeconds: 3600
+            path: kagent-token
+    - name: kube-api-access-wkspx
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:28Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:27Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:44Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:44Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:27Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 384Mi
+      containerID: cri-o://4df43ee18ff3a2dc384cf9cfd8910b1916c5f3c4a983771b30fc7f5d5737db09
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b
+      lastState: {}
+      name: kagent
+      ready: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-24T02:20:28Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-wkspx
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.24
+    podIPs:
+    - ip: 10.244.0.24
+    qosClass: Burstable
+    startTime: "2026-03-24T02:20:27Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kagent.dev/config-hash: "17996475517405963818"
+    creationTimestamp: "2026-03-24T02:20:27Z"
+    generateName: number-agent-2-784cf56b95-
+    generation: 1
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: number-agent-2
+      app.kubernetes.io/part-of: kagent
+      kagent: number-agent-2
+      pod-template-hash: 784cf56b95
+    name: number-agent-2-784cf56b95-q6vkj
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: number-agent-2-784cf56b95
+      uid: bb73caa8-9f53-4205-a493-7a9e8f387ff5
+    resourceVersion: "2313935"
+    uid: f4d1dd9a-8ce2-4410-8feb-691ea777d66e
+  spec:
+    containers:
+    - args:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --filepath
+      - /config
+      env:
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            key: OPENAI_API_KEY
+            name: kagent-openai
+      - name: OTEL_LOGGING_ENABLED
+        value: "false"
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KAGENT_NAME
+        value: number-agent-2
+      - name: KAGENT_URL
+        value: http://kagent-controller.kagent:8083
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: kagent
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /.well-known/agent-card.json
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 15
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-qnfvb
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: number-agent-2
+    serviceAccountName: number-agent-2
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: config
+      secret:
+        defaultMode: 420
+        secretName: number-agent-2
+    - name: kagent-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            audience: kagent
+            expirationSeconds: 3600
+            path: kagent-token
+    - name: kube-api-access-qnfvb
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:29Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:27Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:46Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:46Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:27Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 384Mi
+      containerID: cri-o://b1a54c174cdd85bf6439ec0da19b88b8712d28cb219d633e5c159f9f61b46b23
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b
+      lastState: {}
+      name: kagent
+      ready: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-24T02:20:28Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-qnfvb
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.26
+    podIPs:
+    - ip: 10.244.0.26
+    qosClass: Burstable
+    startTime: "2026-03-24T02:20:27Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kagent.dev/config-hash: "4754031093612121430"
+    creationTimestamp: "2026-03-24T02:20:27Z"
+    generateName: number-agent-3-856d565c94-
+    generation: 1
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: number-agent-3
+      app.kubernetes.io/part-of: kagent
+      kagent: number-agent-3
+      pod-template-hash: 856d565c94
+    name: number-agent-3-856d565c94-4tf7n
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: number-agent-3-856d565c94
+      uid: 467f2dd5-0fed-44a2-a598-784d81498ade
+    resourceVersion: "2313870"
+    uid: 9d69321d-1a66-4975-b538-889d36b222f0
+  spec:
+    containers:
+    - args:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --filepath
+      - /config
+      env:
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            key: OPENAI_API_KEY
+            name: kagent-openai
+      - name: OTEL_LOGGING_ENABLED
+        value: "false"
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KAGENT_NAME
+        value: number-agent-3
+      - name: KAGENT_URL
+        value: http://kagent-controller.kagent:8083
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: kagent
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /.well-known/agent-card.json
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 15
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-tvb2b
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: number-agent-3
+    serviceAccountName: number-agent-3
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: config
+      secret:
+        defaultMode: 420
+        secretName: number-agent-3
+    - name: kagent-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            audience: kagent
+            expirationSeconds: 3600
+            path: kagent-token
+    - name: kube-api-access-tvb2b
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:28Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:27Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:44Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:44Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:27Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 384Mi
+      containerID: cri-o://961f254f18b5a8e0e211b5534428e1acba11d8f98a3352a612de76f968e8448f
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b
+      lastState: {}
+      name: kagent
+      ready: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-24T02:20:28Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-tvb2b
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.25
+    podIPs:
+    - ip: 10.244.0.25
+    qosClass: Burstable
+    startTime: "2026-03-24T02:20:27Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kagent.dev/config-hash: "2349907783057611114"
+    creationTimestamp: "2026-03-21T11:24:07Z"
+    generateName: publisher-agent-74b9dcbf44-
+    generation: 1
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: publisher-agent
+      app.kubernetes.io/part-of: kagent
+      kagent: publisher-agent
+      pod-template-hash: 74b9dcbf44
+    name: publisher-agent-74b9dcbf44-9579t
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: publisher-agent-74b9dcbf44
+      uid: 70e9cd64-26ec-4c24-98ce-8a19d312de31
+    resourceVersion: "1047435"
+    uid: ee0b9544-908d-47bb-8ddc-b5b7a4fd8926
+  spec:
+    containers:
+    - args:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --filepath
+      - /config
+      env:
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            key: OPENAI_API_KEY
+            name: kagent-openai
+      - name: OTEL_LOGGING_ENABLED
+        value: "false"
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KAGENT_NAME
+        value: publisher-agent
+      - name: KAGENT_URL
+        value: http://kagent-controller.kagent:8083
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: kagent
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /.well-known/agent-card.json
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 15
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-nz9b6
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: publisher-agent
+    serviceAccountName: publisher-agent
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: config
+      secret:
+        defaultMode: 420
+        secretName: publisher-agent
+    - name: kagent-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            audience: kagent
+            expirationSeconds: 3600
+            path: kagent-token
+    - name: kube-api-access-nz9b6
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:10Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:08Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:27Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:27Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:07Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 384Mi
+      containerID: cri-o://19f339af77f55b36d84dd7ed6f27dbaa2b0ad270411fd6936a2ef3c2f0788818
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b
+      lastState: {}
+      name: kagent
+      ready: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-21T11:24:09Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-nz9b6
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.71
+    podIPs:
+    - ip: 10.244.0.71
+    qosClass: Burstable
+    startTime: "2026-03-21T11:24:08Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kagent.dev/config-hash: "7332952712647775968"
+      kubectl.kubernetes.io/restartedAt: "2026-03-21T07:40:30-04:00"
+    creationTimestamp: "2026-03-21T11:40:30Z"
+    generateName: researcher-agent-77bfb6b4c5-
+    generation: 1
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: researcher-agent
+      app.kubernetes.io/part-of: kagent
+      kagent: researcher-agent
+      pod-template-hash: 77bfb6b4c5
+    name: researcher-agent-77bfb6b4c5-7n5tp
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: researcher-agent-77bfb6b4c5
+      uid: c0982aa5-9457-4576-adf0-31f4774bd6c0
+    resourceVersion: "1053092"
+    uid: bb427710-e158-4ff3-bc05-fb4a3069f799
+  spec:
+    containers:
+    - args:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --filepath
+      - /config
+      env:
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            key: OPENAI_API_KEY
+            name: kagent-openai
+      - name: OTEL_LOGGING_ENABLED
+        value: "false"
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KAGENT_NAME
+        value: researcher-agent
+      - name: KAGENT_URL
+        value: http://kagent-controller.kagent:8083
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: kagent
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /.well-known/agent-card.json
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 15
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-trpjt
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: researcher-agent
+    serviceAccountName: researcher-agent
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: config
+      secret:
+        defaultMode: 420
+        secretName: researcher-agent
+    - name: kagent-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            audience: kagent
+            expirationSeconds: 3600
+            path: kagent-token
+    - name: kube-api-access-trpjt
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:40:31Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:40:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:40:47Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:40:47Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:40:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 384Mi
+      containerID: cri-o://662a981b90f5640f61104bf86e197aa887a31bfad46d3354e0d95e904ba88ab6
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b
+      lastState: {}
+      name: kagent
+      ready: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-21T11:40:31Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-trpjt
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.80
+    podIPs:
+    - ip: 10.244.0.80
+    qosClass: Burstable
+    startTime: "2026-03-21T11:40:30Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/restartedAt: "2026-03-22T14:33:52-04:00"
+    creationTimestamp: "2026-03-22T18:35:03Z"
+    generateName: search-mcp-64c54cb69b-
+    generation: 1
+    labels:
+      app: search-mcp
+      pod-template-hash: 64c54cb69b
+    name: search-mcp-64c54cb69b-g7j55
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: search-mcp-64c54cb69b
+      uid: b35006e9-8fcf-4591-9895-f54cf696f72d
+    resourceVersion: "1679313"
+    uid: 5424c212-461c-41b6-aead-3631ea9c2f7e
+  spec:
+    containers:
+    - args:
+      - pip install fastapi uvicorn mcp httpx ddgs --quiet && python /app/server.py
+      command:
+      - /bin/bash
+      - -c
+      env:
+      - name: JINA_API_KEY
+        value: jina_2e1bf7b96bfa4414adb966c334d54fa8vb9zwQmZJc37mFALIHNevj8wGCLg
+      - name: FASTMCP_HOST
+        value: 0.0.0.0
+      - name: FASTMCP_PORT
+        value: "8086"
+      image: docker.io/python:3.11-slim
+      imagePullPolicy: IfNotPresent
+      name: server
+      ports:
+      - containerPort: 8086
+        protocol: TCP
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /app
+        name: script
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-cl2vt
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: search-mcp-server
+      name: script
+    - name: kube-api-access-cl2vt
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T18:35:04Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T18:35:03Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T18:35:04Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T18:35:04Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T18:35:03Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: cri-o://e4cdc278e0fd0ab3685fa969f389040d263fe5762b030d9d1144d505f82af239
+      image: docker.io/library/python:3.11-slim
+      imageID: docker.io/library/python@sha256:77411cf6fbec5540a8b956963f5d6e969d304cfee24fed7c0ef42f22c49e608a
+      lastState: {}
+      name: server
+      ready: true
+      resources: {}
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-22T18:35:04Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /app
+        name: script
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-cl2vt
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.109
+    podIPs:
+    - ip: 10.244.0.109
+    qosClass: BestEffort
+    startTime: "2026-03-22T18:35:03Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-03-21T17:35:35Z"
+    generateName: searxng-79d64598c5-
+    generation: 1
+    labels:
+      app: searxng
+      pod-template-hash: 79d64598c5
+    name: searxng-79d64598c5-6hqsj
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: searxng-79d64598c5
+      uid: 21a06729-c5f0-4311-8b69-5cd2fba8763e
+    resourceVersion: "1170930"
+    uid: 294cb9c6-dea3-40a7-9cbe-b9296babdff7
+  spec:
+    containers:
+    - env:
+      - name: SEARXNG_BASE_URL
+        value: http://searxng.kagent:8080
+      image: docker.io/searxng/searxng:latest
+      imagePullPolicy: Always
+      name: searxng
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+      resources:
+        limits:
+          memory: 512Mi
+        requests:
+          memory: 256Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /etc/searxng
+        name: config
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-z8x92
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: searxng-config
+      name: config
+    - name: kube-api-access-z8x92
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T17:35:39Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T17:35:35Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T17:35:39Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T17:35:39Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T17:35:35Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        memory: 256Mi
+      containerID: cri-o://7035681bb8d81ac211050236f9be32c9f34f5109dfb3c3d6a36a92474793fefa
+      image: docker.io/searxng/searxng:latest
+      imageID: docker.io/searxng/searxng@sha256:a3f5331c79c581fc377adcc7abe8ada57a301a929102ce46fcb7f42ec9defa3f
+      lastState: {}
+      name: searxng
+      ready: true
+      resources:
+        limits:
+          memory: 512Mi
+        requests:
+          memory: 256Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-21T17:35:39Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /etc/searxng
+        name: config
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-z8x92
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.83
+    podIPs:
+    - ip: 10.244.0.83
+    qosClass: Burstable
+    startTime: "2026-03-21T17:35:35Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kagent.dev/config-hash: "2142161536371090168"
+    creationTimestamp: "2026-03-22T00:14:02Z"
+    generateName: send-email-test-96494b966-
+    generation: 1
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: send-email-test
+      app.kubernetes.io/part-of: kagent
+      kagent: send-email-test
+      pod-template-hash: 96494b966
+    name: send-email-test-96494b966-h8fbx
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: send-email-test-96494b966
+      uid: e4bbecd3-33d5-42cb-9302-7c837838c14c
+    resourceVersion: "1303873"
+    uid: 00f6dbb8-7c6f-4207-8f3d-583457e9eba8
+  spec:
+    containers:
+    - args:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --filepath
+      - /config
+      env:
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            key: OPENAI_API_KEY
+            name: kagent-openai
+      - name: OTEL_LOGGING_ENABLED
+        value: "false"
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KAGENT_NAME
+        value: send-email-test
+      - name: KAGENT_URL
+        value: http://kagent-controller.kagent:8083
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: kagent
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /.well-known/agent-card.json
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 15
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-mqmf5
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: send-email-test
+    serviceAccountName: send-email-test
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: config
+      secret:
+        defaultMode: 420
+        secretName: send-email-test
+    - name: kagent-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            audience: kagent
+            expirationSeconds: 3600
+            path: kagent-token
+    - name: kube-api-access-mqmf5
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T00:14:04Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T00:14:03Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T00:14:20Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T00:14:20Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-22T00:14:03Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 384Mi
+      containerID: cri-o://3758710bac9a8c41c70a247ef16dadb96d36ea3f1532bdc18b262e6094fd297e
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b
+      lastState: {}
+      name: kagent
+      ready: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-22T00:14:04Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-mqmf5
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.96
+    podIPs:
+    - ip: 10.244.0.96
+    qosClass: Burstable
+    startTime: "2026-03-22T00:14:03Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2026-03-25T01:24:23Z"
+    generateName: slack-bot-d4fcfc4c9-
+    generation: 1
+    labels:
+      app: slack-bot
+      pod-template-hash: d4fcfc4c9
+    name: slack-bot-d4fcfc4c9-l68c6
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: slack-bot-d4fcfc4c9
+      uid: 01272c8d-96d9-41b3-8fa2-8795d54cdb9d
+    resourceVersion: "2774819"
+    uid: 0ec1986e-eb2c-437d-94eb-69fe8f1689e8
+  spec:
+    containers:
+    - command:
+      - sh
+      - -c
+      - pip install slack-bolt httpx --quiet || exit 1; python /app/bot.py || sleep
+        3600
+      env:
+      - name: SLACK_BOT_TOKEN
+        valueFrom:
+          secretKeyRef:
+            key: bot-token
+            name: slack-credentials
+      - name: SLACK_APP_TOKEN
+        valueFrom:
+          secretKeyRef:
+            key: app-token
+            name: slack-credentials
+      - name: KAGENT_URL
+        value: http://kagent-controller.kagent.svc.cluster.local:8083
+      - name: KAGENT_NS
+        value: kagent
+      - name: AGENT_NAME
+        value: commander-agent
+      image: docker.io/python:3.12-slim
+      imagePullPolicy: IfNotPresent
+      name: bot
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /app/bot.py
+        name: config
+        subPath: bot.py
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-wnz98
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: slack-bot-config
+      name: config
+    - name: kube-api-access-wnz98
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T01:24:24Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T01:24:23Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T01:24:24Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T01:24:24Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-25T01:24:23Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: cri-o://7bc892e544642a1878ae60afd766b96274b0a9a6241eccd8f7ef96cdd27b1ee3
+      image: docker.io/library/python:3.12-slim
+      imageID: docker.io/library/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+      lastState: {}
+      name: bot
+      ready: true
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-25T01:24:24Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /app/bot.py
+        name: config
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-wnz98
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.48
+    podIPs:
+    - ip: 10.244.0.48
+    qosClass: Burstable
+    startTime: "2026-03-25T01:24:23Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kagent.dev/config-hash: "12800544255583764236"
+    creationTimestamp: "2026-03-24T02:20:27Z"
+    generateName: sum-agent-799fcf7c6b-
+    generation: 1
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: sum-agent
+      app.kubernetes.io/part-of: kagent
+      kagent: sum-agent
+      pod-template-hash: 799fcf7c6b
+    name: sum-agent-799fcf7c6b-ffjwn
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: sum-agent-799fcf7c6b
+      uid: cbaa9ced-0f53-4106-b4de-a91cf2ae4f6e
+    resourceVersion: "2313881"
+    uid: 486ee980-017f-4561-9cbc-233d18e5fd71
+  spec:
+    containers:
+    - args:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --filepath
+      - /config
+      env:
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            key: OPENAI_API_KEY
+            name: kagent-openai
+      - name: OTEL_LOGGING_ENABLED
+        value: "false"
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KAGENT_NAME
+        value: sum-agent
+      - name: KAGENT_URL
+        value: http://kagent-controller.kagent:8083
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: kagent
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /.well-known/agent-card.json
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 15
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-rbp66
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: sum-agent
+    serviceAccountName: sum-agent
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: config
+      secret:
+        defaultMode: 420
+        secretName: sum-agent
+    - name: kagent-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            audience: kagent
+            expirationSeconds: 3600
+            path: kagent-token
+    - name: kube-api-access-rbp66
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:28Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:27Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:44Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:44Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-24T02:20:27Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 384Mi
+      containerID: cri-o://ae92f900fdb10eb078ac28e71ac36cb084d074126a05082ae2d50e66b918a8e5
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b
+      lastState: {}
+      name: kagent
+      ready: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-24T02:20:28Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-rbp66
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.27
+    podIPs:
+    - ip: 10.244.0.27
+    qosClass: Burstable
+    startTime: "2026-03-24T02:20:27Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kagent.dev/config-hash: "11014623775542175671"
+    creationTimestamp: "2026-03-21T11:24:07Z"
+    generateName: writer-agent-f57769dff-
+    generation: 1
+    labels:
+      app: kagent
+      app.kubernetes.io/managed-by: kagent
+      app.kubernetes.io/name: writer-agent
+      app.kubernetes.io/part-of: kagent
+      kagent: writer-agent
+      pod-template-hash: f57769dff
+    name: writer-agent-f57769dff-6kxgc
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: writer-agent-f57769dff
+      uid: 39b1efea-4a84-45e7-b295-d973f61ee6e2
+    resourceVersion: "1047385"
+    uid: ebe955b5-9a14-4955-af91-fccd3fba01ed
+  spec:
+    containers:
+    - args:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --filepath
+      - /config
+      env:
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            key: OPENAI_API_KEY
+            name: kagent-openai
+      - name: OTEL_LOGGING_ENABLED
+        value: "false"
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+      - name: KAGENT_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KAGENT_NAME
+        value: writer-agent
+      - name: KAGENT_URL
+        value: http://kagent-controller.kagent:8083
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imagePullPolicy: IfNotPresent
+      name: kagent
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /.well-known/agent-card.json
+          port: http
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 15
+        successThreshold: 1
+        timeoutSeconds: 15
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-rb62f
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: 10.0.10.201
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: writer-agent
+    serviceAccountName: writer-agent
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: config
+      secret:
+        defaultMode: 420
+        secretName: writer-agent
+    - name: kagent-token
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            audience: kagent
+            expirationSeconds: 3600
+            path: kagent-token
+    - name: kube-api-access-rb62f
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken: REDACTED
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:09Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:07Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:25Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:25Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-03-21T11:24:07Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 384Mi
+      containerID: cri-o://83f3fd91657fe814c460a1f7fb6c51b0c35eb3096182b591b5627bd18901c2f1
+      image: cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+      imageID: cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b
+      lastState: {}
+      name: kagent
+      ready: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-03-21T11:24:08Z"
+      user:
+        linux:
+          gid: 1001
+          supplementalGroups:
+          - 1001
+          uid: 1001
+      volumeMounts:
+      - mountPath: /config
+        name: config
+      - mountPath: /var/run/secrets/tokens
+        name: kagent-token
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-rb62f
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.0.10.201
+    hostIPs:
+    - ip: 10.0.10.201
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.70
+    podIPs:
+    - ip: 10.244.0.70
+    qosClass: Burstable
+    startTime: "2026-03-21T11:24:07Z"
+kind: List
+metadata:
+  resourceVersion: ""

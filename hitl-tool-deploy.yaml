@@ -1,0 +1,99 @@
+---
+# hitl-tool-deploy.yaml
+# Deploys slack_poster.py as an in-cluster MCP server
+# and registers it with kagent as a RemoteMCPServer.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hitl-tool-server
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hitl-tool-server
+  template:
+    metadata:
+      labels:
+        app: hitl-tool-server
+    spec:
+      containers:
+        - name: hitl-tool-server
+          image: python:3.12-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn mcp httpx anyio --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8091
+          env:
+            - name: SLACK_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hitl-tool-secret
+                  key: SLACK_BOT_TOKEN
+            - name: SLACK_HITL_CHANNEL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: hitl-tool-secret
+                  key: SLACK_HITL_CHANNEL_ID
+            - name: SLACK_ESCALATION_CHANNEL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: hitl-tool-secret
+                  key: SLACK_ESCALATION_CHANNEL_ID
+            - name: HITL_TOOL_PORT
+              value: "8091"
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: hitl-tool-server-code
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hitl-tool-server
+  namespace: kagent
+spec:
+  selector:
+    app: hitl-tool-server
+  ports:
+    - port: 8091
+      targetPort: 8091
+
+---
+# ConfigMap holds the server code.
+# To update: kubectl create configmap hitl-tool-server-code --from-file=server.py=slack_poster.py -n kagent --dry-run=client -o yaml | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hitl-tool-server-code
+  namespace: kagent
+binaryData: {}
+# Populate with:
+# kubectl create configmap hitl-tool-server-code \
+#   --from-file=server.py=slack_poster.py \
+#   --namespace kagent \
+#   --dry-run=client -o yaml | kubectl apply -f -
+
+---
+apiVersion: kagent.dev/v1alpha1
+kind: RemoteMCPServer
+metadata:
+  name: hitl-tool-server
+  namespace: kagent
+spec:
+  url: http://hitl-tool-server.kagent.svc.cluster.local:8091/mcp
