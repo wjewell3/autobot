@@ -29,7 +29,7 @@ A self-managing agentic software company with a pre-architected org structure. Y
 |---|---|---|
 | **CEO** | Holds original vision, never touches execution, ultimate source of truth for "why". Scope anchor. | ✅ deployed |
 | **COO** | Drift detector. Continuously compares current work against original intent. Scope watcher. | ✅ deployed |
-| **CFO** | Watches token budgets, API costs, step counts. Flags disproportionate resource consumption. | ⬜ next |
+| **CFO** | Watches token limits, context windows, cluster resources, action budgets. READ-ONLY monitor. | ✅ deployed + tested |
 | **CSO** | HITL-gated enforcer. AUDIT / ENFORCE / EXECUTE modes. Registry governance. | ✅ deployed + tested |
 | **PM** | Breaks work into tasks, sequences them, manages dependencies, handles blockers. | ✅ deployed |
 | **Hardening Agent** | Watches patterns across all agents. Progressively converts repetitive LLM decisions into deterministic rules. **v1 deployed — analyzing patterns every 5 min, creates PRs via github-mcp.** | ✅ deployed |
@@ -37,9 +37,9 @@ A self-managing agentic software company with a pre-architected org structure. Y
 > **Commander refactor note:** The current commander is doing too much — CEO + COO + PM + router simultaneously. As C-suite agents are added, commander should become a thin protocol dispatcher: it knows how to reach agents and manages A2A mechanics, but has zero opinion about *what* to do. All intent lives in CEO, all sequencing lives in PM. Plan this refactor before scaling worker agents.
 
 ### Worker Agents (narrow, single-purpose, no awareness of bigger picture)
-- Prospecting agent — scrapes Google Maps / LinkedIn for business targets
-- Outreach agent — sends cold emails via Gmail MCP
-- Site builder agent — generates demo websites via GitHub Copilot
+- Prospecting agent — scrapes Google Maps / LinkedIn for business targets ✅ deployed
+- Site builder agent — creates demo GitHub Pages websites for prospects ✅ deployed + tested (created live site)
+- Outreach agent — sends cold emails via Gmail MCP (next)
 - Follow-up agent — nurtures leads until conversion
 
 ---
@@ -382,8 +382,10 @@ Key schema notes:
 | `ceo-agent` | Vision/strategy — no tools, pure reasoning | ✅ |
 | `coo-agent` | Ops oversight — audit read + Slack notifications | ✅ |
 | `cso-agent` | Security enforcement — AUDIT/ENFORCE/EXECUTE modes, HITL-gated | ✅ |
+| `cfo-agent` | Token limits, context windows, cluster resources, action budgets (READ-ONLY) | ✅ |
 | `pm-agent` | Project manager — backlog, triage, delegates to workers | ✅ |
 | `prospecting-agent` | Finds local businesses needing websites | ✅ |
+| `site-builder-agent` | Creates demo GitHub Pages sites for prospects | ✅ |
 
 **Legacy demo agents deleted by CSO on 2026-03-26:** number-agent-1/2/3, sum-agent, researcher-agent, critic-agent, writer-agent, publisher-agent, send-email-test
 
@@ -419,6 +421,11 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 | `vercel.json` | Build config + rewrites |
 | `deploy.yaml` | LiteLLM + nginx + kubectl-proxy + localtonet manifests |
 | `agent_army.yaml` | Agent definitions |
+| `infra/phase1-admission-control/policy-server.py` | Admission webhook — enforce mode, forbidden_tools with allowed_tools override |
+| `infra/phase1-admission-control/capability-registry.yaml` | Per-agent tool/agent-call permissions, HITL label enforcement |
+| `infra/phase3-resource-governor/budgets.yaml` | Per-agent + global action budget limits |
+| `agents/cfo-agent.yaml` | CFO agent — token limits, cluster resources, action budgets |
+| `agents/site-builder-agent.yaml` | Site builder — creates GitHub Pages demo sites |
 | `infra/phase2-audit-log/audit-logger.py` | K8s Agent CR watcher + MCP audit tools |
 | `infra/phase2-audit-log/deploy.yaml` | Audit logger deployment + RBAC + RemoteMCPServer |
 | `infra/phase4-hardening-loop/hardening-agent.py` | Pattern analyzer + github-mcp PR flow |
@@ -456,20 +463,16 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 ## Next Steps (In Priority Order)
 
 ### Immediate
-- [ ] **Switch Phase 1 webhook to `enforcement_mode: enforce`** — webhook is deployed but still in audit mode. CSO cleanup just proved the registry is clean and agent set is stable. Safe to flip now. Edit `capability-registry.yaml` line 1, run `./bootstrap.sh 1`.
+- [x] **Switch Phase 1 webhook to `enforcement_mode: enforce`** — ✅ done 2026-03-26. Registry clean, all 8 agents passing.
 - [ ] **Real Slack button test** — HITL_RESUME was verified in-cluster but not via the actual Slack button path (Slack → Vercel `api/hitl.js` → commander → CSO). Trigger one fresh CSO enforce run, let it post to Slack, click ✅ on your phone.
 - [ ] Set `SLACK_PROPOSALS_CHANNEL_ID` on hardening-agent and `SLACK_AUDIT_CHANNEL_ID` on audit-logger
 
-### Next Capability: Site Builder
-- [ ] **`site-builder-agent`** — the natural next unlock. Prospecting works and HOT leads are being found. Site builder takes a prospect and auto-creates a demo GitHub Pages site as the pitch artifact.
-  - Tools: github_create_repo, github_push_file, github_enable_pages, github_get_pages_url
-  - Input: business name + address from prospecting-agent
-  - Output: live GitHub Pages URL for the prospect
-  - Wire PM → prospecting-agent → site-builder-agent as the first full pipeline
-  - Add to capability-registry.yaml before deploying (template already commented in)
-- [ ] **`outreach-agent`** — after site builder. Sends HITL-gated cold emails with the demo site URL.
+### Next Capability: Outreach Agent
+- [x] **`site-builder-agent`** — ✅ deployed + tested 2026-03-26. Created live GitHub Pages site (wjewell3/test-plumbing-demo). PM-agent has A2A tool to delegate to it.
+- [ ] **`outreach-agent`** — next unlock. Sends HITL-gated cold emails with the demo site URL.
   - Tools: gmail_request_approval, gmail_check_approval, audit-logger
   - Every send requires HITL approval (high severity)
+  - Wire PM → prospecting-agent → site-builder-agent → outreach-agent as the full pipeline
 
 ### Agent Org Build-Out
 - [x] CEO agent — vision/strategy, no tools
@@ -478,16 +481,17 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 - [x] PM agent — backlog management, delegates to prospecting-agent
 - [x] Commander → thin router with HITL_RESUME routing
 - [x] Hardening agent — deployed, analyzing patterns every 5 min, creates PRs via github-mcp
-- [ ] CFO agent — token/cost budget watcher (Phase 3 resource-governor MCP already running)
+- [x] CFO agent — ✅ deployed + tested 2026-03-26. Monitors token limits, cluster resources, action budgets. Uses resource-governor MCP tools.
 
 ### Safety
-- [x] Phase 1: Admission control webhook — deployed, `audit` mode
+- [x] Phase 1: Admission control webhook — deployed, **`enforce` mode** ✅ 2026-03-26
 - [x] Phase 2: Audit logger — deployed, watches Agent CRs, MCP tools available
 - [x] Phase 3: Resource governor — deployed (MCP running at :8093)
 - [x] Phase 4: Hardening loop — deployed, reads audit log, proposes rules via GitHub PRs
 - [x] HITL pipeline — CSO audit→enforce→approval→execute fully working end-to-end
-- [ ] **Flip Phase 1 to `enforcement_mode: enforce`** (next action)
-- [ ] `require_hitl_label_for_mcp: true` — enable after labeling existing agents
+- [x] **Phase 1 `enforcement_mode: enforce`** — ✅ flipped 2026-03-26, all agents passing
+- [x] **`require_hitl_label_for_mcp: true`** — ✅ enabled 2026-03-26. All 8 agents labeled `hitl-reviewed=true`. Unlabeled agents with MCP tools are rejected.
+- [x] **forbidden_tools override** — policy-server.py updated to allow explicit `allowed_tools` overrides for forbidden tools (needed for khook auto-synced tools on commander)
 - [ ] Install Calico CNI for NetworkPolicy enforcement (Flannel doesn't enforce)
 
 ### Infrastructure
