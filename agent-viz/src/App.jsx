@@ -843,13 +843,231 @@ function TestsTab() {
   );
 }
 
+// ── Tab: Roadmap ─────────────────────────────────────────
+
+// Strategic milestones — human-owned, update here when priorities change.
+// Status: "done" | "active" | "next" | "pending"
+const ROADMAP = [
+  {
+    phase: "SAFETY",
+    color: "#f87171",
+    items: [
+      { status: "done",    label: "Phase 2: Audit logger",              note: "watches Agent CRs, MCP tools" },
+      { status: "done",    label: "Phase 3: Resource governor",          note: "MCP running :8093" },
+      { status: "done",    label: "Phase 4: Hardening loop",             note: "5min interval, GitHub PRs" },
+      { status: "done",    label: "Phase 1: Admission webhook",          note: "deployed, audit mode" },
+      { status: "done",    label: "HITL pipeline end-to-end",            note: "CSO audit→enforce→approve→execute" },
+      { status: "next",    label: "Flip Phase 1 → enforce mode",         note: "edit capability-registry.yaml L1" },
+      { status: "pending", label: "require_hitl_label_for_mcp: true",    note: "after labeling existing agents" },
+      { status: "pending", label: "Calico CNI for NetworkPolicy",        note: "Flannel doesn't enforce" },
+    ],
+  },
+  {
+    phase: "AGENT ORG",
+    color: "#a78bfa",
+    items: [
+      { status: "done",    label: "commander-agent (thin router)",       note: "HITL_RESUME routing" },
+      { status: "done",    label: "ceo-agent",                           note: "vision/strategy, no tools" },
+      { status: "done",    label: "coo-agent",                           note: "audit read + Slack" },
+      { status: "done",    label: "cso-agent",                           note: "AUDIT/ENFORCE/EXECUTE tested" },
+      { status: "done",    label: "pm-agent",                            note: "backlog + prospecting delegation" },
+      { status: "done",    label: "hardening-agent",                     note: "patterns every 5min, PRs" },
+      { status: "next",    label: "cfo-agent",                           note: "resource-governor MCP ready" },
+    ],
+  },
+  {
+    phase: "WORKER PIPELINE",
+    color: "#34d399",
+    items: [
+      { status: "done",    label: "prospecting-agent",                   note: "search_find_businesses + web" },
+      { status: "next",    label: "site-builder-agent",                  note: "github Pages demo for HOT leads" },
+      { status: "pending", label: "outreach-agent",                      note: "HITL-gated cold emails" },
+      { status: "pending", label: "follow-up-agent",                     note: "lead nurturing" },
+      { status: "pending", label: "PM → prospect → site → outreach",    note: "first full autonomous pipeline" },
+    ],
+  },
+  {
+    phase: "INFRASTRUCTURE",
+    color: "#38bdf8",
+    items: [
+      { status: "done",    label: "github-mcp 7 tools",                  note: "branch + PR creation" },
+      { status: "done",    label: "hitl-tool-server",                    note: "Slack buttons, severity timeouts" },
+      { status: "done",    label: "api/hitl.js bugs fixed",              note: "message/send, kind, namespace" },
+      { status: "pending", label: "kagent memory on all agents",         note: "context persistence" },
+      { status: "pending", label: "business metrics in dashboard",       note: "leads found, emails, revenue" },
+      { status: "pending", label: "pin image digests",                   note: "reproducible deploys" },
+    ],
+  },
+];
+
+const STATUS_META = {
+  done:    { icon: "✓", color: "#22c55e", label: "DONE" },
+  active:  { icon: "▶", color: "#facc15", label: "ACTIVE" },
+  next:    { icon: "→", color: "#a78bfa", label: "NEXT" },
+  pending: { icon: "○", color: "#334155", label: "PENDING" },
+};
+
+function RoadmapTab() {
+  const [tasks, setTasks] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await fetch("/api/audit?n=200");
+        const d = await r.json();
+        const lines = (d.entries || d.result || "").trim().split("\n").filter(Boolean);
+        const parsed = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+        // Only pm-agent task lifecycle entries
+        const taskEntries = parsed.filter(e =>
+          e.action && (e.action.startsWith("task_") || ["task_created","task_done","task_step_done","task_blocked","task_cancelled"].includes(e.action))
+        );
+        // Deduplicate by task id — keep latest status per task
+        const byId = {};
+        taskEntries.forEach(e => {
+          const id = e.details?.task_id || e.id;
+          if (!byId[id] || new Date(e.timestamp) > new Date(byId[id].timestamp)) byId[id] = e;
+        });
+        setTasks(Object.values(byId).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 30));
+      } catch {
+        setTasks([]);
+      } finally {
+        setLoadingTasks(false);
+      }
+    };
+    load();
+    const t = setInterval(load, 15000);
+    return () => clearInterval(t);
+  }, []);
+
+  const taskStatusColor = (action) => {
+    if (!action) return MUTED;
+    if (action === "task_done") return "#22c55e";
+    if (action === "task_blocked") return "#ef4444";
+    if (action === "task_cancelled") return "#f87171";
+    if (action === "task_created") return "#a78bfa";
+    return "#facc15"; // step_done / in-progress
+  };
+
+  const taskStatusLabel = (action) => {
+    const map = { task_created: "QUEUED", task_done: "DONE", task_blocked: "BLOCKED", task_cancelled: "CANCELLED", task_step_done: "IN PROGRESS" };
+    return map[action] || action?.replace("task_", "").toUpperCase();
+  };
+
+  // Count by phase
+  const summary = ROADMAP.map(phase => ({
+    phase: phase.phase,
+    color: phase.color,
+    done: phase.items.filter(i => i.status === "done").length,
+    total: phase.items.length,
+  }));
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 12, height: "100%", overflow: "hidden" }}>
+
+      {/* Left: Strategic Roadmap */}
+      <div style={{ overflowY: "auto", paddingRight: 4 }}>
+        {/* Progress summary bar */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          {summary.map(s => (
+            <div key={s.phase} style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "6px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: s.color, fontSize: 9, letterSpacing: 1 }}>{s.phase}</span>
+              <div style={{ width: 60, height: 3, background: BORDER, borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ width: `${(s.done / s.total) * 100}%`, height: "100%", background: s.color, borderRadius: 2, transition: "width 0.4s" }} />
+              </div>
+              <span style={{ color: MUTED, fontSize: 9 }}>{s.done}/{s.total}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Phase sections */}
+        {ROADMAP.map(phase => (
+          <div key={phase.phase} style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <div style={{ width: 3, height: 16, background: phase.color, borderRadius: 2 }} />
+              <span style={{ color: phase.color, fontSize: 10, fontWeight: 600, letterSpacing: 2 }}>{phase.phase}</span>
+              <div style={{ flex: 1, height: 1, background: BORDER }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {phase.items.map((item, i) => {
+                const meta = STATUS_META[item.status];
+                return (
+                  <div key={i} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    background: item.status === "next" ? "rgba(167,139,250,0.06)" : "transparent",
+                    border: `1px solid ${item.status === "next" ? "rgba(167,139,250,0.2)" : "transparent"}`,
+                    borderRadius: 4, padding: "5px 8px",
+                    opacity: item.status === "pending" ? 0.45 : 1,
+                  }}>
+                    <span style={{ color: meta.color, fontSize: 11, width: 12, textAlign: "center", flexShrink: 0 }}>{meta.icon}</span>
+                    <span style={{ color: item.status === "done" ? MUTED : TEXT, fontSize: 11, textDecoration: item.status === "done" ? "line-through" : "none", flex: 1 }}>{item.label}</span>
+                    {item.note && <span style={{ color: MUTED, fontSize: 9, letterSpacing: 0.5 }}>{item.note}</span>}
+                    {item.status === "next" && <span style={{ color: "#a78bfa", fontSize: 8, letterSpacing: 1, background: "rgba(167,139,250,0.15)", padding: "1px 5px", borderRadius: 3 }}>NEXT</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Right: Live Task Log from pm-agent */}
+      <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ padding: "10px 14px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ color: ACCENT, fontSize: 10, letterSpacing: 1.5 }}>LIVE TASK LOG</span>
+          <span style={{ color: MUTED, fontSize: 9 }}>pm-agent • 15s refresh</span>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+          {loadingTasks && (
+            <div style={{ padding: 16, color: MUTED, fontSize: 10, textAlign: "center" }}>loading...</div>
+          )}
+          {!loadingTasks && tasks.length === 0 && (
+            <div style={{ padding: 16, color: MUTED, fontSize: 10, textAlign: "center" }}>
+              no task entries yet<br />
+              <span style={{ fontSize: 9, opacity: 0.6 }}>pm-agent writes task_ audit entries</span>
+            </div>
+          )}
+          {tasks.map((t, i) => (
+            <div key={i} style={{
+              padding: "7px 14px",
+              borderBottom: `1px solid ${BORDER}`,
+              display: "flex", flexDirection: "column", gap: 3,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ color: taskStatusColor(t.action), fontSize: 9, letterSpacing: 1 }}>
+                  {taskStatusLabel(t.action)}
+                </span>
+                {t.details?.priority && (
+                  <span style={{ color: MUTED, fontSize: 9 }}>{t.details.priority}</span>
+                )}
+              </div>
+              <span style={{ color: TEXT, fontSize: 10 }}>
+                {t.details?.task || t.details?.description || t.agent_name || "—"}
+              </span>
+              {(t.details?.step || t.details?.result) && (
+                <span style={{ color: MUTED, fontSize: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {t.details.step || t.details.result}
+                </span>
+              )}
+              <span style={{ color: MUTED, fontSize: 8 }}>
+                {t.timestamp ? new Date(t.timestamp).toLocaleString() : ""}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Dashboard ───────────────────────────────────────
 
 const TABS = [
-  { id: "agents", label: "AGENTS", icon: "[]" },
-  { id: "audit", label: "AUDIT FEED", icon: ">>" },
+  { id: "agents",  label: "AGENTS",   icon: "[]" },
+  { id: "audit",   label: "AUDIT FEED", icon: ">>" },
+  { id: "roadmap", label: "ROADMAP",  icon: "#" },
   { id: "pipeline", label: "PIPELINE", icon: "|>" },
-  { id: "tests", label: "TESTS", icon: "ok" },
+  { id: "tests",   label: "TESTS",    icon: "ok" },
 ];
 
 function Dashboard() {
@@ -949,6 +1167,7 @@ function Dashboard() {
             setSessionMap={setSessionMap} selected={selected} setSelected={setSelected} />
         )}
         {tab === "audit" && <AuditTab />}
+        {tab === "roadmap" && <RoadmapTab />}
         {tab === "pipeline" && <PipelineTab agents={agents} />}
         {tab === "tests" && <TestsTab />}
       </div>
