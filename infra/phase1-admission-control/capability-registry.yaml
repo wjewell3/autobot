@@ -20,8 +20,8 @@
 # ─────────────────────────────────────────────────────────
 
 # Enforcement mode: "enforce" = block violations, "audit" = log only
-# Start in audit mode to observe what would be blocked, then switch.
-enforcement_mode: audit
+# Switched to enforce on 2026-03-26 after CSO cleanup verified the registry is clean.
+enforcement_mode: enforce
 
 # Hard cap on total agents in namespace. Prevents runaway creation.
 max_agents: 25
@@ -127,51 +127,24 @@ allowed_agents:
       - hitl-tool-server/post_notification
     allowed_agent_calls: []
 
-  # ── Demo/Legacy agents ─────────────────────────────────
-
-  number-agent-1:
-    description: "Demo — picks a number"
-    allowed_tools: []
-    allowed_agent_calls: []
-
-  number-agent-2:
-    description: "Demo — picks a number"
-    allowed_tools: []
-    allowed_agent_calls: []
-
-  number-agent-3:
-    description: "Demo — picks a number"
-    allowed_tools: []
-    allowed_agent_calls: []
-
-  sum-agent:
-    description: "Demo — calculates sum"
-    allowed_tools: []
-    allowed_agent_calls: []
-
-  researcher-agent:
-    description: "Web search for facts"
-    allowed_tools:
-      - search-tool-server/web_search
-      - search-tool-server/news_search
-    allowed_agent_calls: []
-
-  critic-agent:
-    description: "Picks interesting facts"
-    allowed_tools: []
-    allowed_agent_calls: []
-
-  writer-agent:
-    description: "Writes content"
-    allowed_tools: []
-    allowed_agent_calls: []
-
-  publisher-agent:
-    description: "Publishes content"
-    allowed_tools: []
-    allowed_agent_calls: []
-
-  send-email-test:
-    description: "Test email sender"
-    allowed_tools: []
-    allowed_agent_calls: []
+  # ── Future Workers (uncomment when ready to deploy) ────
+  # site-builder-agent:
+  #   description: "Creates GitHub Pages sites for businesses"
+  #   allowed_tools:
+  #     - github-tool-server/github_create_repo
+  #     - github-tool-server/github_push_file
+  #     - github-tool-server/github_enable_pages
+  #     - github-tool-server/github_get_pages_url
+  #     - github-tool-server/github_create_branch
+  #     - audit-logger/write_audit
+  #     - hitl-tool-server/post_notification
+  #   allowed_agent_calls: []
+  #
+  # outreach-agent:
+  #   description: "Sends outreach emails to prospects"
+  #   allowed_tools:
+  #     - gmail-tool-server/gmail_send_email   # must remove from forbidden_tools first!
+  #     - audit-logger/write_audit
+  #     - hitl-tool-server/request_approval
+  #     - hitl-tool-server/post_notification
+  #   allowed_agent_calls: []
