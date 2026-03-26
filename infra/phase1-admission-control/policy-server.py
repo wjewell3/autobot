@@ -118,16 +118,26 @@ def validate_agent(agent: dict, registry: dict, operation: str) -> tuple[bool, s
                 )
 
     # ── Rule 3: Globally forbidden tools ──
+    # A forbidden tool is blocked unless the operator explicitly added
+    # it to this agent's allowed_tools (intentional override, e.g. for
+    # tools auto-synced by khook that need to stay in the spec).
     for tool in tools:
         if tool.get("type") == "McpServer":
             mcp = tool.get("mcpServer", {})
+            server_name = mcp.get("name", "")
             for tn in mcp.get("toolNames", []):
                 if tn in forbidden_tools:
-                    return False, (
-                        f"Tool '{tn}' is globally forbidden. "
-                        f"This tool is blocked by deterministic policy and cannot be "
-                        f"assigned to any agent. Contact the operator to update the "
-                        f"capability registry."
+                    ref = f"{server_name}/{tn}"
+                    if ref not in allowed_tool_refs:
+                        return False, (
+                            f"Tool '{tn}' is globally forbidden. "
+                            f"This tool is blocked by deterministic policy and cannot be "
+                            f"assigned to any agent. Contact the operator to update the "
+                            f"capability registry."
+                        )
+                    log.info(
+                        f"Forbidden tool '{tn}' allowed for '{agent_name}' via "
+                        f"explicit allowed_tools override"
                     )
 
     # ── Rule 4: HITL label required for MCP tools ──

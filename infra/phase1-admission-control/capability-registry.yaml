@@ -30,8 +30,8 @@ max_agents: 25
 allow_unlisted_agents: false
 
 # If true, agents with MCP tools must have label "hitl-reviewed: true".
-# Disabled initially — enable after labeling existing agents.
-require_hitl_label_for_mcp: false
+# Only a human operator can add this label via kubectl.
+require_hitl_label_for_mcp: true
 
 # These tools are BLOCKED for ALL agents, no exceptions.
 forbidden_tools:
@@ -63,6 +63,7 @@ allowed_agents:
       - github-tool-server/github_get_pages_url
       - github-tool-server/github_create_branch
       - github-tool-server/github_create_pr
+      - gmail-tool-server/gmail_send_email     # khook auto-syncs this; blocked by forbidden_tools
       - gmail-tool-server/gmail_request_approval
       - gmail-tool-server/gmail_check_approval
       - hitl-tool-server/request_approval
@@ -75,6 +76,7 @@ allowed_agents:
       - ceo-agent
       - coo-agent
       - cso-agent
+      - cfo-agent
       - pm-agent
       - prospecting-agent
       - site-builder-agent
@@ -84,6 +86,17 @@ allowed_agents:
   ceo-agent:
     description: "Vision and strategy — no tools, pure reasoning"
     allowed_tools: []
+    allowed_agent_calls: []
+
+  cfo-agent:
+    description: "Resource monitor — token limits, cluster health, budget enforcement"
+    allowed_tools:
+      - resource-governor/check_budget
+      - resource-governor/get_system_status
+      - kagent-tool-server/k8s_get_resources
+      - audit-logger/get_recent_audit
+      - audit-logger/write_audit
+      - hitl-tool-server/post_notification
     allowed_agent_calls: []
 
   coo-agent:

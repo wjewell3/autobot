@@ -26,29 +26,13 @@ agents:
     max_actions_per_hour: 100
   cso-agent:
     max_actions_per_hour: 100
+  cfo-agent:
+    max_actions_per_hour: 80
   pm-agent:
     max_actions_per_hour: 150
 
   # Workers — higher limits as they do real work
   prospecting-agent:
     max_actions_per_hour: 100
-
-  # Demo/legacy — low limits
-  researcher-agent:
-    max_actions_per_hour: 50
-  number-agent-1:
-    max_actions_per_hour: 20
-  number-agent-2:
-    max_actions_per_hour: 20
-  number-agent-3:
-    max_actions_per_hour: 20
-  sum-agent:
-    max_actions_per_hour: 20
-  critic-agent:
-    max_actions_per_hour: 30
-  writer-agent:
-    max_actions_per_hour: 30
-  publisher-agent:
-    max_actions_per_hour: 30
-  send-email-test:
-    max_actions_per_hour: 10
+  site-builder-agent:
+    max_actions_per_hour: 100
