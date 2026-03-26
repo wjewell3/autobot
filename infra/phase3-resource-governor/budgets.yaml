@@ -1,0 +1,54 @@
+# ── Resource Governor Budget Configuration ───────────────
+# Deterministic budget limits. Cannot be overridden by agents.
+#
+# Update: edit this file, then:
+#   kubectl create configmap governor-budgets \
+#     --from-file=budgets.yaml=infra/phase3-resource-governor/budgets.yaml \
+#     -n kagent --dry-run=client -o yaml | kubectl apply -f -
+#   kubectl delete pod -l app=resource-governor -n kagent
+
+# ── Global limits ────────────────────────────────────────
+global:
+  max_total_actions_per_hour: 500
+  max_total_actions_hard_cap: 1000
+
+# ── Per-agent limits ─────────────────────────────────────
+agents:
+  _default:
+    max_actions_per_hour: 50
+
+  # C-suite — moderate limits, mostly reasoning
+  commander-agent:
+    max_actions_per_hour: 200
+  ceo-agent:
+    max_actions_per_hour: 50
+  coo-agent:
+    max_actions_per_hour: 100
+  cso-agent:
+    max_actions_per_hour: 100
+  pm-agent:
+    max_actions_per_hour: 150
+
+  # Workers — higher limits as they do real work
+  prospecting-agent:
+    max_actions_per_hour: 100
+
+  # Demo/legacy — low limits
+  researcher-agent:
+    max_actions_per_hour: 50
+  number-agent-1:
+    max_actions_per_hour: 20
+  number-agent-2:
+    max_actions_per_hour: 20
+  number-agent-3:
+    max_actions_per_hour: 20
+  sum-agent:
+    max_actions_per_hour: 20
+  critic-agent:
+    max_actions_per_hour: 30
+  writer-agent:
+    max_actions_per_hour: 30
+  publisher-agent:
+    max_actions_per_hour: 30
+  send-email-test:
+    max_actions_per_hour: 10

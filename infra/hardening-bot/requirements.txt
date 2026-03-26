@@ -1,0 +1,6 @@
+fastapi==0.101.1
+uvicorn==0.22.0
+httpx==0.25.0
+mcp==0.1.0
+pydantic
+PyYAML==6.0

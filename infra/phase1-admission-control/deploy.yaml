@@ -1,0 +1,180 @@
+---
+# Phase 1: Admission Control — Deterministic Agent Policy Enforcement
+#
+# Deploy order:
+#   1. Run setup-certs.sh (creates TLS secret + CA bundle)
+#   2. kubectl apply -f capability-registry.yaml (this is just the source;
+#      actual ConfigMap created below)
+#   3. kubectl apply -f deploy.yaml (this file)
+#
+# What this does:
+#   - Deploys a Python webhook server that validates all Agent CRs
+#   - Registers a ValidatingWebhookConfiguration so K8s calls it
+#   - Agent creation/updates are BLOCKED if they violate the registry
+#
+# This cannot be bypassed by prompt injection, jailbreaks, or LLM reasoning.
+# It's a Kubernetes admission webhook — the API server enforces it.
+
+# ── RBAC: Let the policy server read agents ──────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-policy-server
+  namespace: kagent
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-policy-reader
+  namespace: kagent
+rules:
+  - apiGroups: ["kagent.dev"]
+    resources: ["agents"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-policy-reader-binding
+  namespace: kagent
+subjects:
+  - kind: ServiceAccount
+    name: agent-policy-server
+    namespace: kagent
+roleRef:
+  kind: Role
+  name: agent-policy-reader
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ── ConfigMaps (loaded BEFORE this file) ──────────────────
+# Do NOT define ConfigMaps here — data: {} overwrites loaded code.
+# Load them first:
+#   kubectl create configmap agent-policy-server-code \
+#     --from-file=server.py=infra/phase1-admission-control/policy-server.py \
+#     -n kagent --dry-run=client -o yaml | kubectl apply -f -
+#   kubectl create configmap capability-registry \
+#     --from-file=capability-registry.yaml=infra/phase1-admission-control/capability-registry.yaml \
+#     -n kagent --dry-run=client -o yaml | kubectl apply -f -
+
+---
+# ── Deployment ───────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-policy-server
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-policy-server
+  template:
+    metadata:
+      labels:
+        app: agent-policy-server
+    spec:
+      serviceAccountName: agent-policy-server
+      containers:
+        - name: policy-server
+          image: docker.io/python:3.12-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn httpx pyyaml --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8443
+          env:
+            - name: WATCH_NAMESPACE
+              value: "kagent"
+            - name: POLICY_SERVER_PORT
+              value: "8443"
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+            - name: tls-certs
+              mountPath: /certs
+              readOnly: true
+            - name: capability-registry
+              mountPath: /etc/policy
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "25m"
+            limits:
+              memory: "192Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: server-code
+          configMap:
+            name: agent-policy-server-code
+        - name: tls-certs
+          secret:
+            secretName: agent-policy-tls
+        - name: capability-registry
+          configMap:
+            name: capability-registry
+
+---
+# ── Service ──────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-policy-server
+  namespace: kagent
+spec:
+  selector:
+    app: agent-policy-server
+  ports:
+    - port: 443
+      targetPort: 8443
+
+---
+# ── ValidatingWebhookConfiguration ──────────────────────
+# caBundle is injected by setup-certs.sh or bootstrap.sh
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: agent-policy-webhook
+webhooks:
+  - name: agent-policy.kagent.svc
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    timeoutSeconds: 10
+    # Only validate Agent CRs in the kagent namespace
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: kagent
+    rules:
+      - apiGroups: ["kagent.dev"]
+        apiVersions: ["v1alpha2"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["agents"]
+    clientConfig:
+      service:
+        name: agent-policy-server
+        namespace: kagent
+        path: /validate
+      # PLACEHOLDER — replaced by setup-certs.sh or bootstrap.sh
+      caBundle: ""
+    failurePolicy: Fail
+    # Fail closed: if webhook is unreachable, agent creation is BLOCKED.
+    # This is the safe default. Change to Ignore only if you understand
+    # the risk (agents could be created without validation).

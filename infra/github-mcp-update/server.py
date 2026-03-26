@@ -1,0 +1,158 @@
+from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
+from pydantic import BaseModel, Field
+from typing import Optional
+import json, os, base64, httpx
+
+mcp = FastMCP("github_mcp", transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+BASE = "https://api.github.com"
+
+class CreateRepoInput(BaseModel):
+    name: str = Field(description="Repo name, use hyphens not spaces")
+    description: Optional[str] = Field(default="")
+    private: Optional[bool] = Field(default=False)
+
+class PushFileInput(BaseModel):
+    repo: str = Field(description="owner/repo format e.g. wjewell3/my-site")
+    path: str = Field(description="File path e.g. index.html")
+    content: str = Field(description="Full file content")
+    message: str = Field(description="Commit message")
+    branch: Optional[str] = Field(default="main", description="Branch to push to (default: main)")
+
+class RepoInput(BaseModel):
+    repo: str = Field(description="owner/repo format")
+
+class EmptyInput(BaseModel):
+    pass
+
+class CreateBranchInput(BaseModel):
+    repo: str = Field(description="owner/repo format")
+    branch: str = Field(description="New branch name e.g. hardening/pin-images-1234")
+    from_branch: Optional[str] = Field(default="main", description="Source branch to branch from (default: main)")
+
+class CreatePRInput(BaseModel):
+    repo: str = Field(description="owner/repo format")
+    title: str = Field(description="PR title")
+    body: str = Field(description="PR description (markdown)")
+    head: str = Field(description="Branch containing changes")
+    base: Optional[str] = Field(default="main", description="Target branch (default: main)")
+
+@mcp.tool(name="github_list_repos", annotations={"readOnlyHint": True})
+async def github_list_repos(params: EmptyInput) -> str:
+    """List GitHub repos for authenticated user."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(f"{BASE}/user/repos?per_page=30&sort=updated", headers=HEADERS)
+            r.raise_for_status()
+            repos = [{"name": x["name"], "url": x["html_url"], "has_pages": x.get("has_pages")} for x in r.json()]
+        return json.dumps(repos, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_create_repo", annotations={"destructiveHint": False})
+async def github_create_repo(params: CreateRepoInput) -> str:
+    """Create a new GitHub repo. Returns full_name (owner/repo) needed for other tools."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(f"{BASE}/user/repos", headers=HEADERS, json={"name": params.name, "description": params.description, "private": params.private, "auto_init": True})
+            r.raise_for_status()
+            data = r.json()
+        print(f"[github_create_repo] created={data['full_name']}")
+        return json.dumps({"name": data["name"], "full_name": data["full_name"], "url": data["html_url"]}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_push_file", annotations={"destructiveHint": True, "idempotentHint": True})
+async def github_push_file(params: PushFileInput) -> str:
+    """Create or update a file in a GitHub repo. Handles SHA automatically."""
+    try:
+        content_b64 = base64.b64encode(params.content.encode()).decode()
+        async with httpx.AsyncClient(timeout=15) as client:
+            check = await client.get(f"{BASE}/repos/{params.repo}/contents/{params.path}?ref={params.branch}", headers=HEADERS)
+            payload = {"message": params.message, "content": content_b64, "branch": params.branch}
+            if check.status_code == 200:
+                payload["sha"] = check.json()["sha"]
+            r = await client.put(f"{BASE}/repos/{params.repo}/contents/{params.path}", headers=HEADERS, json=payload)
+            r.raise_for_status()
+            data = r.json()
+        print(f"[github_push_file] repo={params.repo} path={params.path} branch={params.branch}")
+        return json.dumps({"path": params.path, "commit": data.get("commit",{}).get("sha","")}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_enable_pages", annotations={"idempotentHint": True})
+async def github_enable_pages(params: RepoInput) -> str:
+    """Enable GitHub Pages on main branch. Site goes live at https://owner.github.io/repo"""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(f"{BASE}/repos/{params.repo}/pages", headers=HEADERS, json={"source": {"branch": "main", "path": "/"}})
+            data = r.json()
+        print(f"[github_enable_pages] repo={params.repo}")
+        return json.dumps({"url": data.get("html_url",""), "status": data.get("status","")}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_get_pages_url", annotations={"readOnlyHint": True})
+async def github_get_pages_url(params: RepoInput) -> str:
+    """Get GitHub Pages URL and status. May take 1-2 minutes to go live after enabling."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(f"{BASE}/repos/{params.repo}/pages", headers=HEADERS)
+            data = r.json()
+        return json.dumps({"url": data.get("html_url",""), "status": data.get("status",""), "live": data.get("status")=="built"}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_create_branch", annotations={"destructiveHint": False})
+async def github_create_branch(params: CreateBranchInput) -> str:
+    """Create a new branch in a GitHub repo from an existing branch."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            # Get the SHA of the source branch
+            r = await client.get(f"{BASE}/repos/{params.repo}/git/ref/heads/{params.from_branch}", headers=HEADERS)
+            r.raise_for_status()
+            sha = r.json()["object"]["sha"]
+            # Create the new branch
+            r2 = await client.post(f"{BASE}/repos/{params.repo}/git/refs", headers=HEADERS, json={
+                "ref": f"refs/heads/{params.branch}",
+                "sha": sha
+            })
+            r2.raise_for_status()
+            data = r2.json()
+        print(f"[github_create_branch] repo={params.repo} branch={params.branch} from={params.from_branch}")
+        return json.dumps({"ref": data["ref"], "sha": data["object"]["sha"]}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_create_pr", annotations={"destructiveHint": False})
+async def github_create_pr(params: CreatePRInput) -> str:
+    """Create a pull request. Returns PR URL and number for review."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(f"{BASE}/repos/{params.repo}/pulls", headers=HEADERS, json={
+                "title": params.title,
+                "body": params.body,
+                "head": params.head,
+                "base": params.base
+            })
+            r.raise_for_status()
+            data = r.json()
+        print(f"[github_create_pr] repo={params.repo} pr=#{data['number']}")
+        return json.dumps({
+            "number": data["number"],
+            "url": data["html_url"],
+            "state": data["state"],
+            "title": data["title"]
+        }, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+if __name__ == "__main__":
+    import uvicorn
+    app = mcp.streamable_http_app()
+    config = uvicorn.Config(app, host="0.0.0.0", port=8087, log_level="info")
+    server = uvicorn.Server(config)
+    import anyio
+    anyio.run(server.serve)

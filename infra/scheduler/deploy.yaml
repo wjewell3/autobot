@@ -1,0 +1,141 @@
+---
+# Scheduler — Sends periodic autonomous tasks to commander via A2A
+#
+# ConfigMap loaded BEFORE this file:
+#   kubectl create configmap scheduler-code \
+#     --from-file=scheduler.py=infra/scheduler/scheduler.py \
+#     -n kagent --dry-run=client -o yaml | kubectl apply -f -
+#
+# Three CronJobs, each sending a different task type:
+#   1. CSO security audit  — every 6 hours
+#   2. PM prospecting      — daily at 9am UTC
+#   3. COO status check    — every 4 hours
+
+---
+# ── CSO Security Audit — every 6 hours ──────────────────
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduler-cso-audit
+  namespace: kagent
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: scheduler
+              image: docker.io/python:3.12-slim
+              command: ["/bin/sh", "-c"]
+              args:
+                - pip install httpx --quiet && python /app/scheduler.py
+              env:
+                - name: TASK_TYPE
+                  value: "cso-security-audit"
+              volumeMounts:
+                - name: code
+                  mountPath: /app
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "25m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "100m"
+          volumes:
+            - name: code
+              configMap:
+                name: scheduler-code
+
+---
+# ── PM Prospecting — daily at 9am UTC ───────────────────
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduler-pm-prospecting
+  namespace: kagent
+spec:
+  schedule: "0 9 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: scheduler
+              image: docker.io/python:3.12-slim
+              command: ["/bin/sh", "-c"]
+              args:
+                - pip install httpx --quiet && python /app/scheduler.py
+              env:
+                - name: TASK_TYPE
+                  value: "pm-prospecting"
+              volumeMounts:
+                - name: code
+                  mountPath: /app
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "25m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "100m"
+          volumes:
+            - name: code
+              configMap:
+                name: scheduler-code
+
+---
+# ── COO Status Check — every 4 hours ────────────────────
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduler-coo-status
+  namespace: kagent
+spec:
+  schedule: "0 */4 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: scheduler
+              image: docker.io/python:3.12-slim
+              command: ["/bin/sh", "-c"]
+              args:
+                - pip install httpx --quiet && python /app/scheduler.py
+              env:
+                - name: TASK_TYPE
+                  value: "coo-status-check"
+              volumeMounts:
+                - name: code
+                  mountPath: /app
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "25m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "100m"
+          volumes:
+            - name: code
+              configMap:
+                name: scheduler-code

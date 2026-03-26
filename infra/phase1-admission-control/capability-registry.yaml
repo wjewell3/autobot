@@ -1,0 +1,181 @@
+# ── Capability Registry ──────────────────────────────────
+# This file defines EXACTLY which agents can exist and what
+# tools each one is allowed to use. The admission webhook
+# reads this on every Agent CREATE/UPDATE.
+#
+# To update: edit this file, then:
+#   kubectl create configmap capability-registry \
+#     --from-file=capability-registry.yaml=infra/phase1-admission-control/capability-registry.yaml \
+#     -n kagent --dry-run=client -o yaml | kubectl apply -f -
+#   kubectl delete pod -l app=agent-policy-server -n kagent
+#
+# IMPORTANT: This is the ONLY place where agent permissions
+# are defined. Prompt-level instructions are a SECOND layer,
+# not the primary control.
+#
+# NOTE: khook auto-syncs commander-agent with A2A tools for
+# every agent in the namespace. The commander entry below must
+# list all agents in allowed_agent_calls to avoid blocking
+# khook's sync. MCP tools are the real control surface.
+# ─────────────────────────────────────────────────────────
+
+# Enforcement mode: "enforce" = block violations, "audit" = log only
+# Start in audit mode to observe what would be blocked, then switch.
+enforcement_mode: audit
+
+# Hard cap on total agents in namespace. Prevents runaway creation.
+max_agents: 25
+
+# If false, any agent not listed below is REJECTED on create/update.
+allow_unlisted_agents: false
+
+# If true, agents with MCP tools must have label "hitl-reviewed: true".
+# Disabled initially — enable after labeling existing agents.
+require_hitl_label_for_mcp: false
+
+# These tools are BLOCKED for ALL agents, no exceptions.
+forbidden_tools:
+  - gmail_send_email
+
+# ── Per-Agent Permissions ────────────────────────────────
+allowed_agents:
+
+  # ── Commander (thin router) ─────────────────────────────
+  # khook auto-adds A2A for all agents + MCP from all servers.
+  # We allow the full khook set EXCEPT gmail_send_email (forbidden).
+  commander-agent:
+    description: "Thin router — dispatches to C-suite agents"
+    allowed_tools:
+      - kagent-tool-server/k8s_get_resources
+      - kagent-tool-server/k8s_describe_resource
+      - kagent-tool-server/k8s_apply_manifest
+      - kagent-tool-server/k8s_delete_resource
+      - kagent-tool-server/k8s_create_resource
+      - kagent-tool-server/k8s_get_resource_yaml
+      - kagent-tool-server/k8s_patch_resource
+      - search-tool-server/search_web
+      - search-tool-server/search_news
+      - search-tool-server/search_find_businesses
+      - github-tool-server/github_list_repos
+      - github-tool-server/github_create_repo
+      - github-tool-server/github_push_file
+      - github-tool-server/github_enable_pages
+      - github-tool-server/github_get_pages_url
+      - github-tool-server/github_create_branch
+      - github-tool-server/github_create_pr
+      - gmail-tool-server/gmail_request_approval
+      - gmail-tool-server/gmail_check_approval
+      - hitl-tool-server/request_approval
+      - hitl-tool-server/post_notification
+      - audit-logger/write_audit
+      - audit-logger/get_recent_audit
+      - resource-governor/check_budget
+      - resource-governor/get_system_status
+    allowed_agent_calls:
+      - ceo-agent
+      - coo-agent
+      - cso-agent
+      - pm-agent
+      - prospecting-agent
+      - number-agent-1
+      - number-agent-2
+      - number-agent-3
+      - sum-agent
+      - researcher-agent
+      - critic-agent
+      - writer-agent
+      - publisher-agent
+      - send-email-test
+
+  # ── C-Suite ────────────────────────────────────────────
+
+  ceo-agent:
+    description: "Vision and strategy — no tools, pure reasoning"
+    allowed_tools: []
+    allowed_agent_calls: []
+
+  coo-agent:
+    description: "Operations oversight — audit read + Slack"
+    allowed_tools:
+      - audit-logger/get_recent_audit
+      - hitl-tool-server/post_notification
+    allowed_agent_calls: []
+
+  cso-agent:
+    description: "Security governance — read-only k8s + audit"
+    allowed_tools:
+      - kagent-tool-server/k8s_get_resources
+      - kagent-tool-server/k8s_describe_resource
+      - kagent-tool-server/k8s_get_resource_yaml
+      - audit-logger/get_recent_audit
+    allowed_agent_calls: []
+
+  pm-agent:
+    description: "Project manager — delegates to workers, tracks backlog"
+    allowed_tools:
+      - audit-logger/write_audit
+      - audit-logger/get_recent_audit
+      - hitl-tool-server/post_notification
+      - hitl-tool-server/request_approval
+    allowed_agent_calls:
+      - prospecting-agent
+
+  # ── Workers ────────────────────────────────────────────
+
+  prospecting-agent:
+    description: "Finds local businesses that need websites"
+    allowed_tools:
+      - search-tool-server/search_find_businesses
+      - search-tool-server/search_web
+      - audit-logger/write_audit
+      - hitl-tool-server/post_notification
+    allowed_agent_calls: []
+
+  # ── Demo/Legacy agents ─────────────────────────────────
+
+  number-agent-1:
+    description: "Demo — picks a number"
+    allowed_tools: []
+    allowed_agent_calls: []
+
+  number-agent-2:
+    description: "Demo — picks a number"
+    allowed_tools: []
+    allowed_agent_calls: []
+
+  number-agent-3:
+    description: "Demo — picks a number"
+    allowed_tools: []
+    allowed_agent_calls: []
+
+  sum-agent:
+    description: "Demo — calculates sum"
+    allowed_tools: []
+    allowed_agent_calls: []
+
+  researcher-agent:
+    description: "Web search for facts"
+    allowed_tools:
+      - search-tool-server/web_search
+      - search-tool-server/news_search
+    allowed_agent_calls: []
+
+  critic-agent:
+    description: "Picks interesting facts"
+    allowed_tools: []
+    allowed_agent_calls: []
+
+  writer-agent:
+    description: "Writes content"
+    allowed_tools: []
+    allowed_agent_calls: []
+
+  publisher-agent:
+    description: "Publishes content"
+    allowed_tools: []
+    allowed_agent_calls: []
+
+  send-email-test:
+    description: "Test email sender"
+    allowed_tools: []
+    allowed_agent_calls: []

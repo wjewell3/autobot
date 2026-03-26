@@ -1,12 +1,12 @@
 # Autobot Project Summary
-> Last updated: March 20, 2026
+> Last updated: March 25, 2026
 
-## Goal
-Build an autonomous AI agent army running on free infrastructure, powered by GitHub Copilot (gpt-4.1), capable of finding and executing business opportunities. Live dashboard at https://autobot-chi-tawny.vercel.app
+## Vision
+A self-managing agentic software company with a pre-architected org structure. You provide high-level direction — the agent org executes, self-governs, and gets more reliable over time via a hardening loop.
 
 ---
 
-## Stack
+## Current Stack
 | Layer | Tool | Cost |
 |---|---|---|
 | AI model | GitHub Copilot (gpt-4.1) | $10/mo (already paying) |
@@ -14,10 +14,210 @@ Build an autonomous AI agent army running on free infrastructure, powered by Git
 | Agent runtime | kagent 0.7.23 | Free |
 | Kubernetes | Oracle OKE (ARM) | Free forever |
 | Compute | VM.Standard.A1.Flex (4 OCPU / 24GB RAM) | Free forever |
+| Event triggers | Khook | Free (built from source) |
 | Public tunnel | Localtonet (ct0nsvobr7.localto.net) | Free (persistent URL) |
 | CORS proxy | nginx in-cluster | Free |
 | K8s API proxy | kubectl proxy in-cluster | Free |
 | Dashboard | Vercel (autobot-chi-tawny.vercel.app) | Free |
+
+---
+
+## Target Agent Org Structure
+
+### C-Suite Agents (to be built)
+| Agent | Role |
+|---|---|
+| **CEO** | Holds original vision, never touches execution, ultimate source of truth for "why". Scope anchor. |
+| **COO** | Drift detector. Continuously compares current work against original intent. Scope watcher. |
+| **CFO** | Watches token budgets, API costs, step counts. Flags disproportionate resource consumption. |
+| **CSO** | Governs capability surface. Maintains approved MCP server registry and approved skills list. Role-specific permissions. Nothing gets used that hasn't been vetted. |
+| **PM** | Breaks work into tasks, sequences them, manages dependencies, handles blockers. |
+| **Hardening Agent** | Watches patterns across all agents. Progressively converts repetitive LLM decisions into deterministic rules. System gets more reliable over time automatically. **✅ v1 deployed — analyzing patterns every 5 min, creates PRs via github-mcp.** |
+
+> **Commander refactor note:** The current commander is doing too much — CEO + COO + PM + router simultaneously. As C-suite agents are added, commander should become a thin protocol dispatcher: it knows how to reach agents and manages A2A mechanics, but has zero opinion about *what* to do. All intent lives in CEO, all sequencing lives in PM. Plan this refactor before scaling worker agents.
+
+### Worker Agents (narrow, single-purpose, no awareness of bigger picture)
+- Prospecting agent — scrapes Google Maps / LinkedIn for business targets
+- Outreach agent — sends cold emails via Gmail MCP
+- Site builder agent — generates demo websites via GitHub Copilot
+- Follow-up agent — nurtures leads until conversion
+
+---
+
+## Capability Layer Architecture
+
+### MCP Servers
+| Server | Purpose | Status |
+|---|---|---|
+| `kagent-tool-server` | K8s ops (spawn/kill/modify agents) | ✅ Running + Accepted |
+| `gmail-tool-server` | Email outreach | ✅ Running + Accepted |
+| `search-tool-server` | Web search + business prospecting via SearXNG + Overpass API | ✅ Running + Accepted |
+| `github-tool-server` | Repo create/push/enable Pages + branch/PR creation (7 tools) | ✅ Running + Accepted |
+| `audit-logger` | Independent audit trail — watches Agent CRs, MCP tools: `write_audit`, `get_recent_audit` | ✅ Running + Accepted |
+| `hardening-agent` | Pattern analysis + rule proposals — MCP tools: `get_patterns`, `get_active_rules` | ✅ Running + Accepted |
+| `kagent-grafana-mcp` | Metrics (intentionally disabled) | ❌ Disabled in helm |
+| `hitl-mcp` | Slack HITL approvals | ❌ To build |
+
+### Skills (instructional only — different risk profile from MCP servers)
+- Build a **private tiered skills repo**:
+  - Tier 1: Verified vendor skills
+  - Tier 2: Custom built
+  - Tier 3: Adapted public skills (never pull directly from skills.sh into production)
+- CSO agent governs MCP registry and skills registry separately
+
+---
+
+## Python MCP Server Template
+
+Every new Python MCP server in this cluster must use this pattern. Deviating from it causes either import errors, wrong bind address, or DNS rebinding rejections from kagent.
+
+```python
+from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
+
+# DNS rebinding protection must be explicitly disabled for in-cluster MCP servers.
+# kagent sends Host: <service-name>.<namespace>:<port> which fails the default allowlist.
+# This is safe — Flannel overlay is not exposed to DNS rebinding attacks.
+mcp = FastMCP("your_mcp_name", transport_security=TransportSecuritySettings(
+    enable_dns_rebinding_protection=False
+))
+
+# ... tool definitions ...
+
+if __name__ == "__main__":
+    import uvicorn, anyio
+    app = mcp.streamable_http_app()
+    config = uvicorn.Config(app, host="0.0.0.0", port=PORT, log_level="info")
+    anyio.run(uvicorn.Server(config).serve)
+```
+
+**Why each part matters:**
+- `transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False)` — kagent's host header (`service.namespace:port`) fails the MCP SDK's default DNS rebinding check. Disable it for all in-cluster servers.
+- `host="0.0.0.0"` — FastMCP's `mcp.run()` doesn't accept `host`/`port` kwargs. Pass them directly to uvicorn.
+- `FASTMCP_HOST` / `FASTMCP_PORT` env vars — these appear in the Settings source but are **not read** by the installed version. Set host/port in code, not env vars.
+- `anyio.run(server.serve)` — `uvicorn.run()` with a pre-instantiated app exits immediately. Use `anyio.run` to keep it alive (matches FastMCP's own internal pattern).
+
+**Deployment command** (in container args):
+```bash
+pip install fastapi uvicorn mcp httpx --quiet && python /app/server.py
+```
+Pin `mcp` version if stability is critical: `mcp==<version>`. The SDK changes import paths between minor versions.
+
+### MCP Client SDK Pattern (Server-to-Server Calls)
+
+When one MCP server needs to call tools on another MCP server (e.g., hardening-agent calling audit-logger or github-mcp), use the MCP client SDK — **not** raw `httpx.post()`. Raw HTTP POST to `/mcp` returns 406/400 because Streamable HTTP requires proper session negotiation.
+
+```python
+from mcp.client.streamable_http import streamablehttp_client
+from mcp import ClientSession
+
+async def call_mcp_tool(server_url: str, tool_name: str, arguments: dict) -> dict:
+    async with streamablehttp_client(f"{server_url}/mcp") as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(tool_name, arguments)
+            if result.content:
+                return result.content[0].text
+    return None
+```
+
+**Why:** Streamable HTTP uses session IDs, protocol negotiation, and specific `Accept` headers. The MCP client SDK handles all of this. Raw `httpx.post` with JSON-RPC payloads will fail with 406 (wrong Accept header) or 400 (missing session).
+
+**Pip dependency:** Add `mcp` to the container's pip install (it includes both client and server).
+
+**After deploying**, verify with:
+```bash
+kubectl logs -n kagent deployment/<name> --tail=10
+# Must show: Uvicorn running on http://0.0.0.0:<port>
+kubectl get remotemcpservers -n kagent
+# Must show: ACCEPTED: True
+```
+
+---
+
+## Communication Layer — Slack as Nervous System
+
+Use Slack as the message bus rather than direct agent-to-agent API calls:
+
+| Channel | Purpose |
+|---|---|
+| `#hitl-approvals` | Single approval interface for all HITL escalations |
+| `#agent-commander` | Commander activity feed |
+| `#agent-workers` | Worker agent output |
+| `#hardening-proposals` | Hardening agent proposes new deterministic rules |
+| `#inter-agent` | Agent-to-agent communication log |
+| `#audit-log` | Independent audit store (do NOT rely on Slack for this) |
+
+### HITL Escalation Message Format
+Every escalation includes:
+- Original task context
+- What triggered the pause
+- Proposed action
+- Consequence severity
+- Inline approve / reject / escalate / ask buttons
+
+### Tiered Escalation
+- No response in X minutes → escalate to secondary reviewer or fail safe
+- Google Calendar MCP for deadline-aware escalations
+
+### Slack Implementation Rules
+- Each agent has its own Slack identity (human-readable comms)
+- Use Events API for listening — never poll channel history
+- Queue outbound messages: max 1 message/second/channel
+- Maintain independent audit log — don't rely on Slack's API
+
+> **Build order note:** Build a minimal Slack HITL skeleton *before or in parallel with* the first autonomous worker agents. You don't want search + outreach running without a reliable approval channel. Even a single working approve/reject button in `#hitl-approvals` is enough to start. Autonomy and oversight should scale together.
+
+---
+
+## Safety Architecture — Three Concentric Layers
+
+```
+┌─────────────────────────────────────────────────┐
+│  OUTER: Deterministic hard stops                │
+│  Schema validation, forbidden API lists,        │
+│  step count limits, cost caps                   │
+│  (No LLM involved — cannot be reasoned around)  │
+│                                                 │
+│  ┌───────────────────────────────────────────┐  │
+│  │  MIDDLE: CSO + COO agents                 │  │
+│  │  Semantic drift detection                 │  │
+│  │  Security review, permission enforcement  │  │
+│  │  (LLM-based, evaluative not generative)   │  │
+│  │                                           │  │
+│  │  ┌─────────────────────────────────────┐  │  │
+│  │  │  INNER: Worker agents               │  │  │
+│  │  │  Minimum necessary MCP access       │  │  │
+│  │  │  Approved skills only               │  │  │
+│  │  │  No awareness of bigger picture     │  │  │
+│  │  └─────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## The Hardening Loop (Core Compounding Mechanism)
+
+```
+Hardening agent monitors decision patterns across all agents
+    ↓
+High frequency, low variance decisions → proposed as deterministic rules
+    ↓
+Rules run in shadow mode alongside LLM decisions
+    ↓
+Human reviews proposals in #hardening-proposals
+    ↓
+Approved rules replace LLM decisions
+    ↓
+LLM surface shrinks, deterministic surface grows
+    ↓
+Cost ↓, Latency ↓, Reliability ↑ (compounds over time)
+```
+
+> **Prioritize early:** Even a dumb v1 of the hardening loop — just posting "I saw this decision made 10 times this week, should I codify it?" to `#hardening-proposals` — starts building the muscle before you have full infrastructure. Get it running early so the compounding starts sooner.
+>
+> **Status (March 25, 2026):** v1 is deployed. The hardening-agent reads audit entries via MCP client SDK from audit-logger, counts (agent, action) frequencies, and when patterns exceed the threshold (default: 10), creates a branch + pushes a proposal YAML + opens a PR via github-mcp, then posts to Slack if configured. Tools: `get_patterns`, `get_active_rules`. Analysis interval: 5 min.
 
 ---
 
@@ -32,12 +232,10 @@ Build an autonomous AI agent army running on free infrastructure, powered by Git
 - **CNI:** Flannel Overlay
 - **Node subnet:** `oke-nodesubnet-quick-cluster1-*-regional` (private, 10.0.10.0/24)
 - **API endpoint subnet:** `oke-k8sApiEndpoint-subnet-quick-cluster1-*-regional` (public, 10.0.0.0/28)
-- **LB subnet:** `oke-svclbsubnet-quick-cluster1-*-regional` (public, 10.0.20.0/24) — not used
 
 ### OCI Auth
 - Config: `~/.oci/config`
 - Key file: `~/.oci/oci_api_key.pem`
-- Fingerprint: stored in `~/.oci/config` under `[DEFAULT]`
 - No passphrase on key — do NOT set `pass_phrase` in config or kubectl breaks
 
 ### kubectl
@@ -61,17 +259,14 @@ kubectl create namespace kagent
 
 ### Secrets (created imperatively — never in files)
 ```bash
-# kagent OpenAI secret (routes to LiteLLM, value doesn't matter)
 kubectl create secret generic kagent-openai \
   --namespace kagent \
   --from-literal=OPENAI_API_KEY=anything
 
-# Dummy API key for ModelConfig
 kubectl create secret generic copilot-api-key \
   --namespace kagent \
   --from-literal=key=anything
 
-# Localtonet auth token
 kubectl create secret generic localtonet-token \
   --namespace kagent \
   --from-literal=token=<your-localtonet-token>
@@ -114,183 +309,40 @@ EOF
 
 ### LiteLLM
 - Image: `ghcr.io/berriai/litellm:main-latest`
-- Config: `github_copilot/gpt-4.1` model
+- Config: `github_copilot/gpt-4.1`
 - Memory: requests 512Mi, limits **1.5Gi** (needs this or OOMKilled)
 - Token stored on node hostPath: `/home/opc/.config/litellm/github_copilot`
-- Mounted via hostPath (not PVC — saves OCI block storage quota)
-- **First run requires device auth:** watch logs for device code → go to https://github.com/login/device
-- Token persists across pod restarts via hostPath
+- First run requires device auth: watch logs → go to https://github.com/login/device
 
 ### CORS Proxy (nginx)
-- Proxies requests from public internet to kubectl-proxy
-- Adds `Access-Control-Allow-Origin: *` headers
 - Listens on port 8081
-- Config mounted via ConfigMap at `/etc/nginx/nginx-cors.conf`
-- Run with: `nginx -g "daemon off;" -c /etc/nginx/nginx-cors.conf`
+- Routes `/apis/` → kubectl-proxy:8888
+- Routes `/api/a2a/` → kagent-controller:8083
+- Run with custom config: `nginx -g "daemon off;" -c /etc/nginx/nginx-cors.conf`
 
 ### kubectl-proxy
-- Exposes Kubernetes API internally on port 8888
+- Exposes Kubernetes API on port 8888
 - Uses `kagent-controller` service account
-- Image: `docker.io/bitnami/kubectl:latest`
-- Allows dashboard to read Agent CRDs directly
 
 ### Localtonet Tunnel
-- Provides persistent public URL: `ct0nsvobr7.localto.net`
+- Persistent URL: `ct0nsvobr7.localto.net`
 - Routes to cors-proxy ClusterIP on port 8081
-- ARM64 binary downloaded via initContainer (Docker image is x86 only)
-- Requires env var: `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`
-- Image: `docker.io/ubuntu:22.04` with binary at `/app/localtonet`
-
-### Cloudflared (replaced by localtonet)
-- Was used for quick tunnel — URL changed on every restart
-- Replaced by localtonet for persistent URL
-- Can be deleted: `kubectl delete deployment cloudflared -n kagent`
-
----
-
-## Agent Army (agent_army.yaml)
-
-All agents use `kagent.dev/v1alpha2` with `type: Declarative` (capital D).
-
-Key schema notes:
-- `spec.type: Declarative` (not lowercase)
-- `spec.declarative.systemMessage` (not `systemPrompt`)
-- `spec.declarative.modelConfig` references ModelConfig name
-- A2A tools use `type: Agent` with `agent.name/namespace/kind/apiGroup`
-
-### Agents Deployed
-| Agent | Role |
-|---|---|
-| `commander-agent` | Orchestrates the chain, has all others as tools |
-| `number-agent-1` | Picks number, passes to agent 2 |
-| `number-agent-2` | Picks number, passes to agent 3 |
-| `number-agent-3` | Picks number, passes to sum-agent |
-| `sum-agent` | Calculates final sum, ends chain |
-
-### Deploy
-```bash
-kubectl apply -f ~/Documents/autobot/agent_army.yaml
-kubectl get agents -n kagent
-```
-
-### Trigger Commander Autonomously
-```bash
-kubectl apply -f - <<EOF
-apiVersion: kagent.dev/v1alpha1
-kind: Task
-metadata:
-  name: number-chain
-  namespace: kagent
-spec:
-  agent:
-    name: commander-agent
-    namespace: kagent
-  prompt: "Start the number chain. Activate all agents autonomously."
-EOF
-```
-
----
-
-## Dashboard (Vercel)
-
-- **URL:** https://autobot-chi-tawny.vercel.app
-- **Repo:** https://github.com/wjewell3/autobot
-- **Auto-deploys** from GitHub on every push to `main`
-- **Polls** Kubernetes API every 3 seconds via Vercel serverless proxy
-- **GitHub Pages** also configured at https://wjewell3.github.io/autobot/ (legacy)
-
-### Architecture
-```
-Browser → Vercel (autobot-chi-tawny.vercel.app)
-            ↓ /api/proxy serverless function
-          Localtonet (ct0nsvobr7.localto.net)
-            ↓ tunnel into private cluster
-          nginx cors-proxy (port 8081)
-            ↓ proxy_pass
-          kubectl-proxy (port 8888)
-            ↓ k8s API
-          Agent CRDs in kagent namespace
-```
-
-### Vercel Proxy (api/proxy.js)
-- ES module format (`export default`) — package.json has `"type": "module"`
-- Must include `localtonet-skip-warning: true` header or gets HTML warning page
-- Routes all `/api/proxy/*` requests to localtonet
-
----
-
-## Key Files
-| File | Location | Purpose |
-|---|---|---|
-| `deploy.yaml` | `~/Documents/autobot/` | LiteLLM + CORS proxy + kubectl-proxy + localtonet k8s manifests |
-| `agent_army.yaml` | `~/Documents/autobot/` | Number chain agent definitions |
-| `autonomous_bot.py` | `~/Documents/autobot/` | Local Python agent (LiteLLM proxy) |
-| `config.yaml` | `~/Documents/autobot/` | LiteLLM config for local use |
-| `api/proxy.js` | `~/Documents/autobot/` | Vercel serverless CORS proxy |
-| `vercel.json` | `~/Documents/autobot/` | Vercel build config |
-| `agent-viz/src/App.jsx` | `~/Documents/autobot/` | React dashboard |
-| `agent-viz/vite.config.js` | `~/Documents/autobot/` | Vite config (base: '/') |
-| `~/.oci/config` | local | OCI CLI auth config |
-| `~/.kube/config` | local | kubectl config |
-
----
-
-## Known Issues / Gotchas
-- LiteLLM needs **1.5Gi memory limit** or it OOMKills on startup
-- Node subnet is **private** — no public IP possible directly on node
-- LiteLLM Copilot token requires **device auth on first run** — watch pod logs
-- Token stored on node hostPath — survives pod restarts, zero storage cost
-- All images need `docker.io/` prefix on Oracle Linux 8 (short name enforcement)
-- Localtonet ARM64 binary needs `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`
-- Localtonet shows warning page to first visitors — proxy must send `localtonet-skip-warning: true` header
-- kagent grafana-mcp pod always errors (bad image) — safe to ignore or delete
-- kagent Agent CRD is `v1alpha2` with `type: Declarative` (capital D)
-- `spec.declarative.systemMessage` not `spec.systemPrompt`
-- Sessions CRD returns 403 — not available in kagent 0.7.23, safely ignored
-- OCI auth: do NOT set `pass_phrase` in `[DEFAULT]` config profile
+- ARM64 binary via initContainer (Docker image is x86 only)
+- Requires: `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`
+- Must send `localtonet-skip-warning: true` header in all proxy requests
 
 ---
 
 ## Khook — Event-Driven Autonomy
 
-Khook replaces cron-based scheduling with true event-driven agent triggers.
-
-### Khook Install (ARM64 — must build from source)
-khook doesn't publish ARM64 images to ghcr.io — build via GitHub Actions:
-
-```yaml
-# .github/workflows/build-khook.yml
-name: Build khook ARM64
-on:
-  workflow_dispatch:
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: kagent-dev/khook
-          ref: main
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/arm64
-          push: true
-          tags: ghcr.io/wjewell3/khook:latest
-```
-
-Then install:
+### Install (ARM64 — must build from source)
 ```bash
+# 1. Add GitHub Actions workflow to build ARM64 image
+# See .github/workflows/build-khook.yml in repo
+# Trigger manually: Actions → Build khook ARM64 → Run workflow
+# Image published to: ghcr.io/wjewell3/khook:latest
+
+# 2. Install via Helm
 TMP_DIR="$(mktemp -d)"
 git clone --depth 1 https://github.com/kagent-dev/khook.git "$TMP_DIR/khook"
 cd "$TMP_DIR/khook"
@@ -305,62 +357,136 @@ cd - && rm -rf "$TMP_DIR"
 ```
 
 ### Supported Event Types
-| Event | Trigger |
-|---|---|
-| `pod-restart` | Pod crashes or restarts |
-| `pod-pending` | Pod stuck in pending |
-| `oom-kill` | Pod killed due to memory |
-| `probe-failed` | Liveness/readiness probe fails |
-| `node-not-ready` | Node goes down |
+`pod-restart` | `pod-pending` | `oom-kill` | `probe-failed` | `node-not-ready`
 
 ### Hooks Deployed
 - **agent-self-heal** — commander auto-fixes crashed/OOM agents
 - **agent-registry-sync** — commander patches itself when cluster state changes
 
-### Hook Template
-```yaml
-apiVersion: kagent.dev/v1alpha2
-kind: Hook
-metadata:
-  name: <hook-name>
-  namespace: kagent
-spec:
-  eventConfigurations:
-  - eventType: pod-restart
-    agentRef:
-      name: commander-agent
-    prompt: |
-      Pod {{.ResourceName}} restarted at {{.EventTime}}.
-      <instructions for agent>
-```
+---
 
-### Useful Commands
-```bash
-kubectl get hooks -n kagent
-kubectl describe hook <hook-name> -n kagent
-kubectl get events --field-selector involvedObject.kind=Hook -n kagent
-kubectl logs -n kagent deployment/khook
-```
+## Agent Army (agent_army.yaml)
+
+All agents use `kagent.dev/v1alpha2` with `type: Declarative` (capital D).
+
+Key schema notes:
+- `spec.type: Declarative` (not lowercase)
+- `spec.declarative.systemMessage` (not `systemPrompt`)
+- A2A tools: `type: Agent` with `agent.name/namespace/kind/apiGroup`
+
+### Current Agents
+| Agent | Role | Status |
+|---|---|---|
+| `commander-agent` | Self-updating orchestrator, has kubectl + A2A tools | ✅ |
+| `number-agent-1` | Picks number 1-10 | ✅ |
+| `number-agent-2` | Picks number (configurable) | ✅ |
+| `sum-agent` | Calculates final sum | ✅ |
+
+### Commander Capabilities
+- Fetches live agent list at start of every conversation
+- Resolves colloquial agent references (no hardcoding needed)
+- Patches itself after creating/deleting agents
+- Reports chain results in exact format: `<agent-name> picked: X` / `final sum: X`
 
 ---
 
-## Commander Agent — Self-Updating Autonomous Orchestrator
+## Dashboard (Vercel)
 
-Commander is configured to:
-- Fetch live agent list at start of every conversation via `k8s_get_resources`
-- Resolve colloquial agent references from live list (no hardcoding)
-- Patch itself after creating/deleting agents via `k8s_patch_resource`
-- Create agents using standard `kagent.dev/v1alpha2` template
-- Always use namespace `kagent`, apiGroup `kagent.dev`
-- Report chain results in exact format: `<agent-name> picked: X` / `final sum: X`
+- **URL:** https://autobot-chi-tawny.vercel.app
+- **Repo:** https://github.com/wjewell3/autobot
+- **Features:** Live agent diagram, agent list, metrics panel, commander chat
+- **Polls:** Kubernetes API every 3 seconds via Vercel serverless proxy
+- **Chat:** Talks to commander-agent via A2A protocol
+
+### Architecture
+```
+Browser → Vercel (autobot-chi-tawny.vercel.app)
+            ↓ /api/proxy → kubectl-proxy → k8s API (agent list)
+            ↓ /api/chat  → localtonet → cors-proxy → kagent-controller A2A
+```
+
+### Key Files
+| File | Purpose |
+|---|---|
+| `agent-viz/src/App.jsx` | React dashboard with chat + diagram |
+| `api/proxy.js` | Vercel proxy → localtonet (adds skip-warning header) |
+| `api/chat.js` | Vercel A2A chat proxy (kind: "text" not type: "text") |
+| `vercel.json` | Build config + rewrites |
+| `deploy.yaml` | LiteLLM + nginx + kubectl-proxy + localtonet manifests |
+| `agent_army.yaml` | Agent definitions |
+| `infra/phase2-audit-log/audit-logger.py` | K8s Agent CR watcher + MCP audit tools |
+| `infra/phase2-audit-log/deploy.yaml` | Audit logger deployment + RBAC + RemoteMCPServer |
+| `infra/phase4-hardening-loop/hardening-agent.py` | Pattern analyzer + github-mcp PR flow |
+| `infra/phase4-hardening-loop/deploy.yaml` | Hardening agent deployment + RemoteMCPServer |
+| `infra/github-mcp-update/server.py` | Updated github-mcp with 7 tools (branch + PR) |
+| `.github/workflows/build-khook.yml` | ARM64 khook builder |
+| `.github/workflows/deploy.yml` | GitHub Pages deploy (legacy) |
 
 ---
 
-## Next Steps
-- [ ] Build prospecting agent (scrape Google Maps / LinkedIn for businesses)
-- [ ] Build outreach agent (Gmail MCP integration)
-- [ ] Build site builder agent (GitHub Copilot generates sites)
+## Known Issues / Gotchas
+- LiteLLM needs **1.5Gi memory limit** or OOMKills
+- Node subnet is private — no public IP on node directly
+- LiteLLM Copilot token requires device auth on first run
+- All images need `docker.io/` prefix on Oracle Linux 8
+- Localtonet ARM64 binary needs `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`
+- Localtonet sends warning page — always include `localtonet-skip-warning: true` header
+- kagent Agent CRD is `v1alpha2` with `type: Declarative` (capital D)
+- Sessions CRD returns 403 — not in kagent 0.7.23, safely ignored
+- Do NOT set `pass_phrase` in `[DEFAULT]` OCI config profile
+- khook has no published ARM64 image — must build via GitHub Actions
+- kagent UI returns 502 on API endpoints — use kubectl-proxy instead
+- **MCP SDK breaks imports between minor versions** — `StreamableHTTPSessionManager` moved; use the FastMCP template above instead of manual Starlette wiring
+- **`FASTMCP_HOST`/`FASTMCP_PORT` env vars are not read** by the installed SDK version despite appearing in source — set host/port directly in uvicorn.Config
+- **`mcp.run()` does not accept `host`/`port` kwargs** — bypass it with `anyio.run(uvicorn.Server(config).serve)`
+- **kagent rejects MCP servers with DNS rebinding protection enabled** — always set `enable_dns_rebinding_protection=False` for in-cluster servers
+- **ConfigMap updates are cached in running pods** — `kubectl rollout restart` is not always sufficient; use `kubectl delete pod -l app=<name>` to force a clean mount
+- **Raw httpx POST to MCP Streamable HTTP endpoints fails** — returns 406 or 400. Use the MCP client SDK (`streamablehttp_client` + `ClientSession`) for server-to-server tool calls. See MCP Client SDK Pattern above.
+- **RemoteMCPServer CRD requires both `protocol` and `url`** — omitting either causes kagent to silently ignore the server. Always include `protocol: STREAMABLE_HTTP` and `url: http://<service>.<namespace>.svc.cluster.local:<port>/mcp`
+- **deploy.yaml must not contain empty ConfigMap stubs** — a `data: {}` ConfigMap in deploy.yaml will overwrite a ConfigMap previously loaded via `kubectl create configmap --from-file`. Put a comment with the load command instead.
+- **kagent RemoteMCPServer re-discovery** — after restarting an MCP pod, kagent may cache the old tool list. Force re-discovery with `kubectl annotate remotemcpserver <name> -n kagent retry=$(date +%s) --overwrite`
+
+---
+
+## Next Steps (In Priority Order)
+
+### Immediate
+- [ ] Build Slack HITL integration — build this *before or in parallel with* first autonomous worker agents
+  - Slack as nervous system and message bus
+  - `#hitl-approvals` channel with inline approve/reject buttons
+  - Each agent gets its own Slack identity
+  - Use Events API (never poll history)
+  - Independent audit log (don't rely on Slack)
+- [ ] Set `SLACK_PROPOSALS_CHANNEL_ID` on hardening-agent and `SLACK_AUDIT_CHANNEL_ID` on audit-logger
+- [ ] Wire search + github MCPs to first worker agent (prospecting agent is the natural first target — search_find_businesses + gmail outreach)
+
+### Agent Org Build-Out
+- [ ] CEO agent — vision holder, scope anchor
+- [ ] COO agent — drift detector, scope watcher
+- [ ] CFO agent — token/cost budget watcher
+- [ ] CSO agent — MCP registry + skills governance (build before scaling worker agents)
+- [ ] PM agent — task sequencing and dependency management
+- [x] Hardening agent — deployed, analyzing audit patterns every 5 min, creates PRs via github-mcp
+- [ ] Commander → thin router refactor (delegate to CEO/COO/PM, stop being the brains)
+
+### Capability Build-Out
+- [ ] Gmail outreach agent (MCP already connected)
+- [ ] Site builder agent (github MCP now live — create repo + push HTML + enable Pages + branch + PR)
+- [ ] Private tiered skills repo (Tier 1/2/3)
+- [ ] Google Calendar MCP for deadline-aware escalations (already connected)
+
+### Safety
+- [x] Phase 2: Audit logger — deployed, watches all Agent CRs, MCP tools available to agents
+- [x] Phase 4: Hardening loop — deployed, reads audit log, proposes rules via GitHub PRs
+- [ ] Phase 1: Admission control webhook (code exists, not deployed)
+- [ ] Phase 3: Resource governor (code exists, not deployed)
+- [ ] Install Calico CNI for NetworkPolicy enforcement (Flannel doesn't enforce)
+- [ ] CSO governs MCP registry and skills registry separately
+
+### Infrastructure
+- [x] github-mcp updated with `github_create_branch` + `github_create_pr` tools (7 total)
+- [ ] Clean up `infra/hardening-bot/` scaffold (superseded by hardening-agent + github-mcp)
+- [ ] Pin image digests for all MCP server containers
+- [ ] Enable kagent memory on commander and all agents
 - [ ] Add business metrics to dashboard (leads found, emails sent, revenue)
-- [ ] Enable kagent memory on all agents for cross-session learning
-- [ ] Add webhook support to Khook for external event triggers
-- [ ] Get a real domain for persistent tunnel URL (optional)
+- [ ] Get a real domain for persistent tunnel (optional but recommended)

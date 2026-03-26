@@ -1,0 +1,98 @@
+---
+# Phase 3: Resource Governor — Token and action budget enforcement
+#
+# Dependencies: Phase 2 (audit-logger) must be deployed first.
+# The governor reads audit entries to count agent actions.
+
+# ── ConfigMaps (loaded BEFORE this file) ──────────────────
+# Do NOT define ConfigMaps here — data: {} overwrites loaded code.
+# Load them first:
+#   kubectl create configmap resource-governor-code \
+#     --from-file=server.py=infra/phase3-resource-governor/resource-governor.py \
+#     -n kagent --dry-run=client -o yaml | kubectl apply -f -
+#   kubectl create configmap governor-budgets \
+#     --from-file=budgets.yaml=infra/phase3-resource-governor/budgets.yaml \
+#     -n kagent --dry-run=client -o yaml | kubectl apply -f -
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resource-governor
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resource-governor
+  template:
+    metadata:
+      labels:
+        app: resource-governor
+    spec:
+      containers:
+        - name: resource-governor
+          image: docker.io/python:3.12-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn httpx mcp anyio pyyaml --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8093
+          env:
+            - name: GOVERNOR_MCP_PORT
+              value: "8093"
+            - name: CHECK_INTERVAL_SECONDS
+              value: "60"
+            - name: SLACK_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hitl-tool-secret
+                  key: SLACK_BOT_TOKEN
+                  optional: true
+            - name: SLACK_ALERT_CHANNEL_ID
+              value: ""  # Set to your alerts channel
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+            - name: budgets
+              mountPath: /etc/governor
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "25m"
+            limits:
+              memory: "192Mi"
+              cpu: "100m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: resource-governor-code
+        - name: budgets
+          configMap:
+            name: governor-budgets
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: resource-governor
+  namespace: kagent
+spec:
+  selector:
+    app: resource-governor
+  ports:
+    - port: 8093
+      targetPort: 8093
+
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: resource-governor
+  namespace: kagent
+spec:
+  description: "Budget enforcement — per-agent and global action limits"
+  protocol: STREAMABLE_HTTP
+  url: http://resource-governor.kagent.svc.cluster.local:8093/mcp

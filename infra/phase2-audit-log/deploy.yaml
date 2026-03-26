@@ -1,0 +1,141 @@
+---
+# Phase 2: Audit Logger — Independent agent activity trail
+#
+# Watches Agent CRs via K8s watch API and logs all changes.
+# Also provides MCP tools for agents to write structured audit entries.
+#
+# Deploy: kubectl apply -f infra/phase2-audit-log/deploy.yaml
+# (after creating ConfigMaps via bootstrap.sh)
+
+# ── RBAC ─────────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: audit-logger
+  namespace: kagent
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: audit-logger-role
+  namespace: kagent
+rules:
+  - apiGroups: ["kagent.dev"]
+    resources: ["agents"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: audit-logger-binding
+  namespace: kagent
+subjects:
+  - kind: ServiceAccount
+    name: audit-logger
+    namespace: kagent
+roleRef:
+  kind: Role
+  name: audit-logger-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ── ConfigMap: Audit logger code ─────────────────────────
+# Populated by: kubectl create configmap audit-logger-code \
+#   --from-file=server.py=infra/phase2-audit-log/audit-logger.py \
+#   --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+
+---
+# ── Deployment ───────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-logger
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: audit-logger
+  template:
+    metadata:
+      labels:
+        app: audit-logger
+    spec:
+      serviceAccountName: audit-logger
+      containers:
+        - name: audit-logger
+          image: docker.io/python:3.12-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn httpx mcp anyio --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8092
+          env:
+            - name: WATCH_NAMESPACE
+              value: "kagent"
+            - name: AUDIT_MCP_PORT
+              value: "8092"
+            - name: AUDIT_DIR
+              value: "/audit"
+            # Optional: Slack audit channel (leave empty to disable)
+            - name: SLACK_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hitl-tool-secret
+                  key: SLACK_BOT_TOKEN
+                  optional: true
+            - name: SLACK_AUDIT_CHANNEL_ID
+              value: ""  # Set to your #audit-log channel ID
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+            - name: audit-data
+              mountPath: /audit
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "25m"
+            limits:
+              memory: "256Mi"
+              cpu: "100m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: audit-logger-code
+        - name: audit-data
+          emptyDir:
+            sizeLimit: 500Mi
+          # For persistent audit across pod restarts, replace with:
+          # persistentVolumeClaim:
+          #   claimName: audit-log-pvc
+
+---
+# ── Service ──────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: audit-logger
+  namespace: kagent
+spec:
+  selector:
+    app: audit-logger
+  ports:
+    - port: 8092
+      targetPort: 8092
+
+---
+# ── Register as RemoteMCPServer ──────────────────────────
+# Lets agents call write_audit and get_recent_audit
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: audit-logger
+  namespace: kagent
+spec:
+  description: "Audit trail - write_audit and get_recent_audit tools"
+  protocol: STREAMABLE_HTTP
+  url: http://audit-logger.kagent.svc.cluster.local:8092/mcp

@@ -1,0 +1,105 @@
+---
+# Phase 4: Hardening Loop — Progressive LLM → deterministic conversion
+#
+# Dependencies: Phase 2 (audit-logger) must be deployed first.
+# The hardening agent reads patterns from the audit log.
+#
+# ConfigMap populated by: kubectl create configmap hardening-agent-code \
+#   --from-file=server.py=infra/phase4-hardening-loop/hardening-agent.py \
+#   --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hardening-rules
+  namespace: kagent
+data: {}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hardening-agent
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hardening-agent
+  template:
+    metadata:
+      labels:
+        app: hardening-agent
+    spec:
+      containers:
+        - name: hardening-agent
+          image: docker.io/python:3.12-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn httpx mcp anyio pyyaml --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8094
+          env:
+            - name: HARDENING_MCP_PORT
+              value: "8094"
+            - name: ANALYSIS_INTERVAL_SECONDS
+              value: "300"
+            - name: PROPOSAL_THRESHOLD
+              value: "10"
+            - name: GITHUB_MCP_URL
+              value: "http://github-mcp.kagent.svc.cluster.local:8087"
+            - name: GITHUB_REPO
+              value: "wjewell3/autobot"
+            - name: SLACK_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hitl-tool-secret
+                  key: SLACK_BOT_TOKEN
+                  optional: true
+            - name: SLACK_PROPOSALS_CHANNEL_ID
+              value: ""  # Set to your #hardening-proposals channel
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+            - name: rules
+              mountPath: /etc/hardening
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "25m"
+            limits:
+              memory: "192Mi"
+              cpu: "100m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: hardening-agent-code
+        - name: rules
+          configMap:
+            name: hardening-rules
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hardening-agent
+  namespace: kagent
+spec:
+  selector:
+    app: hardening-agent
+  ports:
+    - port: 8094
+      targetPort: 8094
+
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: hardening-agent
+  namespace: kagent
+spec:
+  description: "Hardening loop - pattern analysis and rule proposals"
+  protocol: STREAMABLE_HTTP
+  url: http://hardening-agent.kagent.svc.cluster.local:8094/mcp

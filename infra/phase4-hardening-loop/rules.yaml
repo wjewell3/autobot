@@ -1,0 +1,28 @@
+# ── Hardening Rules ──────────────────────────────────────
+# Rules that have been approved by a human reviewer.
+# Active rules replace LLM decisions with deterministic behavior.
+#
+# Status values:
+#   proposed — awaiting review
+#   shadow   — running alongside LLM (comparing outputs, not replacing)
+#   active   — fully replacing the LLM decision
+#   retired  — no longer relevant
+
+# Example rule (uncomment when first rule is approved):
+# rules:
+#   - pattern: "commander-agent:create_agent"
+#     description: "Always use standard agent template with HITL label"
+#     status: active
+#     deterministic_action: "use_template"
+#     template: |
+#       apiVersion: kagent.dev/v1alpha2
+#       kind: Agent
+#       metadata:
+#         name: ${name}
+#         namespace: kagent
+#         labels:
+#           hitl-reviewed: "false"  # Must be manually set to true
+#       spec:
+#         ...
+
+rules: []
