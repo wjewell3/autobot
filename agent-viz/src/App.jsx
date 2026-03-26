@@ -38,6 +38,7 @@ function getAgentColor(name) {
   if (name.includes("cso")) return "#f87171";
   if (name.includes("pm-")) return "#34d399";
   if (name.includes("prospect")) return "#38bdf8";
+  if (name.includes("site-builder")) return "#22d3ee";
   if (name.includes("number")) return "#38bdf8";
   if (name.includes("sum")) return "#34d399";
   const hash = [...name].reduce((a, c) => a + c.charCodeAt(0), 0);
@@ -52,6 +53,7 @@ function getAgentEmoji(name) {
   if (name.includes("cso")) return "⛊";
   if (name.includes("pm-")) return "▦";
   if (name.includes("prospect")) return "⌕";
+  if (name.includes("site-builder")) return "⚑";
   if (name.includes("number")) return "◈";
   if (name.includes("sum")) return "∑";
   return "◆";
@@ -857,7 +859,7 @@ const ROADMAP = [
       { status: "done",    label: "Phase 4: Hardening loop",             note: "5min interval, GitHub PRs" },
       { status: "done",    label: "Phase 1: Admission webhook",          note: "deployed, audit mode" },
       { status: "done",    label: "HITL pipeline end-to-end",            note: "CSO audit→enforce→approve→execute" },
-      { status: "next",    label: "Flip Phase 1 → enforce mode",         note: "edit capability-registry.yaml L1" },
+      { status: "done",    label: "Flip Phase 1 → enforce mode",         note: "rogue agents blocked, clean list" },
       { status: "pending", label: "require_hitl_label_for_mcp: true",    note: "after labeling existing agents" },
       { status: "pending", label: "Calico CNI for NetworkPolicy",        note: "Flannel doesn't enforce" },
     ],
@@ -880,10 +882,10 @@ const ROADMAP = [
     color: "#34d399",
     items: [
       { status: "done",    label: "prospecting-agent",                   note: "search_find_businesses + web" },
-      { status: "next",    label: "site-builder-agent",                  note: "github Pages demo for HOT leads" },
-      { status: "pending", label: "outreach-agent",                      note: "HITL-gated cold emails" },
+      { status: "done",    label: "site-builder-agent",                  note: "deployed, tested — test-plumbing-demo live" },
+      { status: "next",    label: "outreach-agent",                      note: "HITL-gated cold emails" },
       { status: "pending", label: "follow-up-agent",                     note: "lead nurturing" },
-      { status: "pending", label: "PM → prospect → site → outreach",    note: "first full autonomous pipeline" },
+      { status: "next",    label: "PM → prospect → site → outreach",    note: "PM can now delegate to both workers" },
     ],
   },
   {
