@@ -53,32 +53,37 @@ async function verifySlackSignature(req, rawBody) {
 // ---------------------------------------------------------------------------
 
 async function resumeAgent(requestId, outcome, context) {
+  const requestingAgent = context?.requesting_agent || "unknown";
   const resumeMessage =
     `HITL_RESUME\n` +
     `request_id: ${requestId}\n` +
     `outcome: ${outcome}\n` +
+    `requesting_agent: ${requestingAgent}\n` +
     `original_context: ${JSON.stringify(context)}`;
 
-  const resp = await fetch(`${KAGENT_URL}/api/a2a/${KAGENT_RESUME_AGENT}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "localtonet-skip-warning": "true",
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: crypto.randomUUID(),
-      method: "tasks/send",
-      params: {
-        id: crypto.randomUUID(),
-        sessionId: crypto.randomUUID(),
-        message: {
-          role: "user",
-          parts: [{ type: "text", text: resumeMessage }],
-        },
+  const resp = await fetch(
+    `${KAGENT_URL}/api/a2a/kagent/${KAGENT_RESUME_AGENT}/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "localtonet-skip-warning": "true",
+        "X-API-Secret": process.env.AUTOBOT_API_SECRET,
       },
-    }),
-  });
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: crypto.randomUUID(),
+        method: "message/send",
+        params: {
+          message: {
+            role: "user",
+            messageId: crypto.randomUUID(),
+            parts: [{ kind: "text", text: resumeMessage }],
+          },
+        },
+      }),
+    }
+  );
 
   if (!resp.ok) {
     throw new Error(`kagent ${resp.status}: ${await resp.text()}`);

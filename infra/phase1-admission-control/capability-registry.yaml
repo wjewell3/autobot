@@ -102,12 +102,17 @@ allowed_agents:
     allowed_agent_calls: []
 
   cso-agent:
-    description: "Security governance — read-only k8s + audit"
+    description: "Security enforcement — audit + HITL-gated remediation"
     allowed_tools:
       - kagent-tool-server/k8s_get_resources
       - kagent-tool-server/k8s_describe_resource
       - kagent-tool-server/k8s_get_resource_yaml
+      - kagent-tool-server/k8s_delete_resource
+      - kagent-tool-server/k8s_patch_resource
       - audit-logger/get_recent_audit
+      - audit-logger/write_audit
+      - hitl-tool-server/request_approval
+      - hitl-tool-server/post_notification
     allowed_agent_calls: []
 
   pm-agent:
