@@ -77,6 +77,7 @@ allowed_agents:
       - cso-agent
       - pm-agent
       - prospecting-agent
+      - site-builder-agent
 
   # ── C-Suite ────────────────────────────────────────────
 
@@ -115,6 +116,7 @@ allowed_agents:
       - hitl-tool-server/request_approval
     allowed_agent_calls:
       - prospecting-agent
+      - site-builder-agent
 
   # ── Workers ────────────────────────────────────────────
 
@@ -127,18 +129,19 @@ allowed_agents:
       - hitl-tool-server/post_notification
     allowed_agent_calls: []
 
+  site-builder-agent:
+    description: "Creates GitHub Pages sites for businesses"
+    allowed_tools:
+      - github-tool-server/github_create_repo
+      - github-tool-server/github_push_file
+      - github-tool-server/github_enable_pages
+      - github-tool-server/github_get_pages_url
+      - github-tool-server/github_create_branch
+      - audit-logger/write_audit
+      - hitl-tool-server/post_notification
+    allowed_agent_calls: []
+
   # ── Future Workers (uncomment when ready to deploy) ────
-  # site-builder-agent:
-  #   description: "Creates GitHub Pages sites for businesses"
-  #   allowed_tools:
-  #     - github-tool-server/github_create_repo
-  #     - github-tool-server/github_push_file
-  #     - github-tool-server/github_enable_pages
-  #     - github-tool-server/github_get_pages_url
-  #     - github-tool-server/github_create_branch
-  #     - audit-logger/write_audit
-  #     - hitl-tool-server/post_notification
-  #   allowed_agent_calls: []
   #
   # outreach-agent:
   #   description: "Sends outreach emails to prospects"
