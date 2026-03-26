@@ -1,4 +1,4 @@
-const KAGENT_URL = "https://ct0nsvobr7.localto.net";
+const KAGENT_URL = process.env.KAGENT_URL || "http://157.151.243.159";
 const AGENT = "commander-agent";
 const NAMESPACE = "kagent";
 
@@ -40,7 +40,6 @@ export default async function handler(req, res) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "localtonet-skip-warning": "true",
           "X-API-Secret": process.env.AUTOBOT_API_SECRET,
         },
         body: JSON.stringify(body),

@@ -1,4 +1,4 @@
-const KAGENT_URL = "https://ct0nsvobr7.localto.net";
+const KAGENT_URL = process.env.KAGENT_URL || "http://157.151.243.159";
 
 export default async function handler(req, res) {
   const cookies = Object.fromEntries(
@@ -14,7 +14,6 @@ export default async function handler(req, res) {
       method: req.method,
       headers: {
         "Accept": "application/json",
-        "localtonet-skip-warning": "true",
         "X-API-Secret": process.env.AUTOBOT_API_SECRET,
       },
     });

@@ -1,4 +1,4 @@
-const LOCALTONET = "https://ct0nsvobr7.localto.net";
+const KAGENT_URL = process.env.KAGENT_URL || "http://157.151.243.159";
 const SECRET = process.env.AUTOBOT_API_SECRET;
 
 export default async function handler(req, res) {
@@ -9,8 +9,8 @@ export default async function handler(req, res) {
   // Check approval server
   try {
     const statusRes = await fetch(
-      `${LOCALTONET}/approval/status?token=${token}`,
-      { headers: { "X-API-Secret": SECRET, "localtonet-skip-warning": "true" } }
+      `${KAGENT_URL}/approval/status?token=${token}`,
+      { headers: { "X-API-Secret": SECRET } }
     );
     const statusData = await statusRes.json();
     if (statusData.status === "APPROVED" || statusData.status === "REJECTED") {
@@ -23,8 +23,8 @@ export default async function handler(req, res) {
   // Record decision on approval server
   try {
     await fetch(
-      `${LOCALTONET}/approval/respond?token=${token}&action=${action}`,
-      { headers: { "localtonet-skip-warning": "true" } }
+      `${KAGENT_URL}/approval/respond?token=${token}&action=${action}`,
+      { headers: {} }
     );
   } catch (e) {
     console.error("Respond failed:", e.message);
@@ -35,11 +35,10 @@ export default async function handler(req, res) {
   if (approved) {
     // Trigger Phase B via kagent A2A
     try {
-      const sessionRes = await fetch(`${LOCALTONET}/api/sessions`, {
+      const sessionRes = await fetch(`${KAGENT_URL}/api/sessions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "localtonet-skip-warning": "true",
           "X-API-Secret": SECRET,
         },
         body: JSON.stringify({
@@ -60,11 +59,10 @@ The website HTML has already been built. Now complete Phase B:
 5. Use send_email to send an email to jewell.will@gmail.com written AS IF you are the owner of "${business}" who just discovered someone built them a free website. Make it excited and personal. Include the live URL. Subject: "Someone built us a website??"
 Report each step as you complete it.`;
 
-      await fetch(`${LOCALTONET}/api/a2a/kagent/commander-agent/`, {
+      await fetch(`${KAGENT_URL}/api/a2a/kagent/commander-agent/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "localtonet-skip-warning": "true",
           "X-API-Secret": SECRET,
         },
         body: JSON.stringify({

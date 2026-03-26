@@ -1,4 +1,4 @@
-const KAGENT_URL = "https://ct0nsvobr7.localto.net";
+const KAGENT_URL = process.env.KAGENT_URL || "http://157.151.243.159";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
@@ -22,7 +22,6 @@ export default async function handler(req, res) {
     const response = await fetch(target, {
       headers: {
         "Accept": "application/json",
-        "localtonet-skip-warning": "true",
         "X-API-Secret": process.env.AUTOBOT_API_SECRET,
       },
     });

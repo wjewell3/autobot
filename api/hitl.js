@@ -7,7 +7,7 @@
  * Env vars needed in Vercel dashboard:
  *   SLACK_SIGNING_SECRET   — from Slack app settings > Basic Information
  *   SLACK_BOT_TOKEN        — xoxb-... from Slack app settings > OAuth & Permissions
- *   KAGENT_URL             — https://ct0nsvobr7.localto.net
+ *   KAGENT_URL             — http://157.151.243.159 (OCI LB)
  *   KAGENT_USER_ID         — admin@kagent.dev
  *   KAGENT_RESUME_AGENT    — commander-agent (or whichever agent handles resumption)
  */
@@ -67,7 +67,6 @@ async function resumeAgent(requestId, outcome, context) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "localtonet-skip-warning": "true",
         "X-API-Secret": process.env.AUTOBOT_API_SECRET,
       },
       body: JSON.stringify({
