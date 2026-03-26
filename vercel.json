@@ -4,6 +4,8 @@
   "rewrites": [
     { "source": "/api/proxy/(.*)", "destination": "/api/proxy" },
     { "source": "/api/chat", "destination": "/api/chat" },
+    { "source": "/api/audit", "destination": "/api/audit" },
+    { "source": "/api/test", "destination": "/api/test" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

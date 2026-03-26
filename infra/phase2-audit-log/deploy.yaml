@@ -70,15 +70,18 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              pip install fastapi uvicorn httpx mcp anyio --quiet && \
+              pip install fastapi uvicorn httpx mcp anyio starlette --quiet && \
               python /app/server.py
           ports:
             - containerPort: 8092
+            - containerPort: 8093
           env:
             - name: WATCH_NAMESPACE
               value: "kagent"
             - name: AUDIT_MCP_PORT
               value: "8092"
+            - name: AUDIT_REST_PORT
+              value: "8093"
             - name: AUDIT_DIR
               value: "/audit"
             # Optional: Slack audit channel (leave empty to disable)
@@ -124,8 +127,12 @@ spec:
   selector:
     app: audit-logger
   ports:
-    - port: 8092
+    - name: mcp
+      port: 8092
       targetPort: 8092
+    - name: rest
+      port: 8093
+      targetPort: 8093
 
 ---
 # ── Register as RemoteMCPServer ──────────────────────────

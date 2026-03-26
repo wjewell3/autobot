@@ -277,21 +277,108 @@ async def get_recent_audit(count: int = 20) -> str:
         return "No audit entries yet."
 
 
+# ── REST API (for dashboard — no MCP protocol needed) ────
+
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
+from starlette.routing import Route
+
+
+async def rest_get_entries(request):
+    """GET /entries?count=50&offset=0&agent=&type= — return audit entries as JSON."""
+    count = min(int(request.query_params.get("count", "50")), 500)
+    offset = int(request.query_params.get("offset", "0"))
+    agent_filter = request.query_params.get("agent", "")
+    type_filter = request.query_params.get("type", "")
+
+    try:
+        with open(AUDIT_FILE) as f:
+            lines = f.readlines()
+    except FileNotFoundError:
+        return JSONResponse({"entries": [], "total": 0})
+
+    entries = []
+    for line in reversed(lines):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if agent_filter and entry.get("agent_name", "") != agent_filter:
+            continue
+        if type_filter and entry.get("event_type", "") != type_filter:
+            continue
+        entries.append(entry)
+
+    total = len(entries)
+    entries = entries[offset:offset + count]
+    return JSONResponse({"entries": entries, "total": total})
+
+
+async def rest_get_stats(request):
+    """GET /stats — summary stats for the dashboard."""
+    try:
+        with open(AUDIT_FILE) as f:
+            lines = f.readlines()
+    except FileNotFoundError:
+        return JSONResponse({"total_entries": 0, "agents": {}, "event_types": {}})
+
+    agents = {}
+    event_types = {}
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        agent = entry.get("agent_name", "unknown")
+        etype = entry.get("event_type", "unknown")
+        agents[agent] = agents.get(agent, 0) + 1
+        event_types[etype] = event_types.get(etype, 0) + 1
+
+    return JSONResponse({
+        "total_entries": len(lines),
+        "agents": agents,
+        "event_types": event_types,
+    })
+
+
+async def rest_health(request):
+    return JSONResponse({"status": "ok"})
+
+
+rest_app = Starlette(routes=[
+    Route("/entries", rest_get_entries),
+    Route("/stats", rest_get_stats),
+    Route("/health", rest_health),
+])
+
+
 # ── Entry point ──────────────────────────────────────────
 
 async def main():
-    """Run the K8s watcher and MCP server concurrently."""
+    """Run the K8s watcher, MCP server, and REST API concurrently."""
     import uvicorn
 
-    PORT = int(os.getenv("AUDIT_MCP_PORT", "8092"))
-    mcp_app = mcp.streamable_http_app()
-    config = uvicorn.Config(mcp_app, host="0.0.0.0", port=PORT, log_level="info")
-    server = uvicorn.Server(config)
+    MCP_PORT = int(os.getenv("AUDIT_MCP_PORT", "8092"))
+    REST_PORT = int(os.getenv("AUDIT_REST_PORT", "8093"))
 
-    # Run both concurrently
+    mcp_app = mcp.streamable_http_app()
+    mcp_config = uvicorn.Config(mcp_app, host="0.0.0.0", port=MCP_PORT, log_level="info")
+    mcp_server = uvicorn.Server(mcp_config)
+
+    rest_config = uvicorn.Config(rest_app, host="0.0.0.0", port=REST_PORT, log_level="info")
+    rest_server = uvicorn.Server(rest_config)
+
+    # Run all three concurrently
     await asyncio.gather(
         watch_agents(),
-        server.serve(),
+        mcp_server.serve(),
+        rest_server.serve(),
     )
 
 
