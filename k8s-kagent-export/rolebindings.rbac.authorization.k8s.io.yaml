@@ -4,6 +4,44 @@ items:
   kind: RoleBinding
   metadata:
     annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"RoleBinding","metadata":{"annotations":{},"name":"agent-policy-reader-binding","namespace":"kagent"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"Role","name":"agent-policy-reader"},"subjects":[{"kind":"ServiceAccount","name":"agent-policy-server","namespace":"kagent"}]}
+    creationTimestamp: "2026-03-26T00:46:53Z"
+    name: agent-policy-reader-binding
+    namespace: kagent
+    resourceVersion: "3241065"
+    uid: 6dc7a477-4b3e-4822-b595-a1efbc6441ea
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: agent-policy-reader
+  subjects:
+  - kind: ServiceAccount
+    name: agent-policy-server
+    namespace: kagent
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"RoleBinding","metadata":{"annotations":{},"name":"audit-logger-binding","namespace":"kagent"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"Role","name":"audit-logger-role"},"subjects":[{"kind":"ServiceAccount","name":"audit-logger","namespace":"kagent"}]}
+    creationTimestamp: "2026-03-25T22:47:23Z"
+    name: audit-logger-binding
+    namespace: kagent
+    resourceVersion: "3200521"
+    uid: 0495a5ef-6f17-49d3-978f-0c9b171439b0
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: audit-logger-role
+  subjects:
+  - kind: ServiceAccount
+    name: audit-logger
+    namespace: kagent
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    annotations:
       meta.helm.sh/release-name: kagent
       meta.helm.sh/release-namespace: kagent
     creationTimestamp: "2026-03-19T10:07:29Z"

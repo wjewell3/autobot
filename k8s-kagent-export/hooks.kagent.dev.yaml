@@ -10,7 +10,7 @@ items:
     generation: 2
     name: agent-registry-sync
     namespace: kagent
-    resourceVersion: "2781281"
+    resourceVersion: "3271656"
     uid: 6f07f005-423e-4627-8767-0b83b048385a
   spec:
     eventConfigurations:
@@ -30,7 +30,7 @@ items:
         - hitl-tool-server (toolNames: request_approval, post_notification)
         Do not remove any of these MCP servers. Do not ask for approval.
   status:
-    lastUpdated: "2026-03-25T01:43:47Z"
+    lastUpdated: "2026-03-26T02:16:17Z"
 - apiVersion: kagent.dev/v1alpha2
   kind: Hook
   metadata:
@@ -41,7 +41,7 @@ items:
     generation: 1
     name: agent-self-heal
     namespace: kagent
-    resourceVersion: "2781280"
+    resourceVersion: "3271655"
     uid: b73f5c0e-6c42-402f-8d0b-6c11b131e33b
   spec:
     eventConfigurations:
@@ -61,7 +61,7 @@ items:
         If this is one of your agents, increase its memory limits and redeploy.
         Use k8s_patch_resource. Do not ask for approval.
   status:
-    lastUpdated: "2026-03-25T01:43:47Z"
+    lastUpdated: "2026-03-26T02:16:17Z"
 kind: List
 metadata:
   resourceVersion: ""

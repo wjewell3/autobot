@@ -5,12 +5,51 @@ items:
   metadata:
     annotations:
       kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"audit-logger","namespace":"kagent"},"spec":{"description":"Audit trail - write_audit and get_recent_audit tools","protocol":"STREAMABLE_HTTP","url":"http://audit-logger.kagent.svc.cluster.local:8092/mcp"}}
+      retry: "1774479332"
+    creationTimestamp: "2026-03-25T22:47:41Z"
+    generation: 1
+    name: audit-logger
+    namespace: kagent
+    resourceVersion: "3257885"
+    uid: e8f05663-517c-40ba-98ac-92c16d5cad72
+  spec:
+    description: Audit trail - write_audit and get_recent_audit tools
+    protocol: STREAMABLE_HTTP
+    terminateOnClose: true
+    url: http://audit-logger.kagent.svc.cluster.local:8092/mcp
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-26T01:35:54Z"
+      message: Remote MCP server configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    discoveredTools:
+    - description: "\n    Write a structured audit entry. Use this to log important
+        decisions,\n    tool calls, or state changes.\n\n    Args:\n        agent_name:
+        Name of the agent writing the entry\n        action:     What happened (e.g.
+        \"created_repo\", \"sent_email\", \"searched_businesses\")\n        details:
+        \   Human-readable description of what was done\n        severity:   \"info\"
+        | \"warning\" | \"error\" | \"critical\"\n    "
+      name: write_audit
+    - description: "\n    Return the most recent audit entries.\n\n    Args:\n        count:
+        Number of recent entries to return (max 100)\n    "
+      name: get_recent_audit
+    observedGeneration: 1
+- apiVersion: kagent.dev/v1alpha2
+  kind: RemoteMCPServer
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"github-tool-server","namespace":"kagent"},"spec":{"description":"GitHub API - create repos, push files, enable Pages","protocol":"STREAMABLE_HTTP","url":"http://github-mcp.kagent:8087/mcp"}}
+      retry: "1774479413"
     creationTimestamp: "2026-03-21T18:33:14Z"
     generation: 2
     name: github-tool-server
     namespace: kagent
-    resourceVersion: "1679091"
+    resourceVersion: "3203896"
     uid: e5d2f19b-a2d3-4d08-8df2-73e7f1a72726
   spec:
     description: GitHub API - create repos, push files, enable Pages
@@ -38,6 +77,10 @@ items:
     - description: Get GitHub Pages URL and status. May take 1-2 minutes to go live
         after enabling.
       name: github_get_pages_url
+    - description: Create a new branch in a GitHub repo from an existing branch.
+      name: github_create_branch
+    - description: Create a pull request. Returns PR URL and number for review.
+      name: github_create_pr
     observedGeneration: 2
 - apiVersion: kagent.dev/v1alpha2
   kind: RemoteMCPServer
@@ -74,6 +117,39 @@ items:
         Only call if explicitly asked.
       name: gmail_check_approval
     observedGeneration: 2
+- apiVersion: kagent.dev/v1alpha2
+  kind: RemoteMCPServer
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"hardening-agent","namespace":"kagent"},"spec":{"description":"Hardening loop - pattern analysis and rule proposals","protocol":"STREAMABLE_HTTP","url":"http://hardening-agent.kagent.svc.cluster.local:8094/mcp"}}
+      retry: "1774479897"
+    creationTimestamp: "2026-03-25T22:59:19Z"
+    generation: 1
+    name: hardening-agent
+    namespace: kagent
+    resourceVersion: "3206669"
+    uid: c21f785a-8cb5-4152-a224-7fea5c5a999e
+  spec:
+    description: Hardening loop - pattern analysis and rule proposals
+    protocol: STREAMABLE_HTTP
+    terminateOnClose: true
+    url: http://hardening-agent.kagent.svc.cluster.local:8094/mcp
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-25T23:04:58Z"
+      message: Remote MCP server configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    discoveredTools:
+    - description: "\n    Get current decision patterns detected across all agents.\n
+        \   Shows frequency of each (agent, action) pair.\n    "
+      name: get_patterns
+    - description: Get the current set of approved hardening rules.
+      name: get_active_rules
+    observedGeneration: 1
 - apiVersion: kagent.dev/v1alpha2
   kind: RemoteMCPServer
   metadata:
@@ -472,6 +548,40 @@ items:
       name: prometheus_targets_tool
     - description: Execute shell commands
       name: shell
+    observedGeneration: 1
+- apiVersion: kagent.dev/v1alpha2
+  kind: RemoteMCPServer
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"resource-governor","namespace":"kagent"},"spec":{"description":"Budget enforcement — per-agent and global action limits","protocol":"STREAMABLE_HTTP","url":"http://resource-governor.kagent.svc.cluster.local:8093/mcp"}}
+    creationTimestamp: "2026-03-26T00:48:50Z"
+    generation: 1
+    name: resource-governor
+    namespace: kagent
+    resourceVersion: "3242149"
+    uid: 8521181d-7f5c-4041-8e3e-f2f2f2582074
+  spec:
+    description: Budget enforcement — per-agent and global action limits
+    protocol: STREAMABLE_HTTP
+    terminateOnClose: true
+    url: http://resource-governor.kagent.svc.cluster.local:8093/mcp
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-26T00:49:57Z"
+      message: Remote MCP server configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    discoveredTools:
+    - description: "\n    Check remaining budget for an agent. Agents should call
+        this\n    before starting expensive operations.\n\n    Args:\n        agent_name:
+        Name of the agent checking its budget\n    "
+      name: check_budget
+    - description: "\n    Get overall system resource status. Shows all agent budgets\n
+        \   and global metrics.\n    "
+      name: get_system_status
     observedGeneration: 1
 - apiVersion: kagent.dev/v1alpha2
   kind: RemoteMCPServer

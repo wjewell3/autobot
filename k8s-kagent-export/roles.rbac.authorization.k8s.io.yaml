@@ -4,6 +4,45 @@ items:
   kind: Role
   metadata:
     annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"Role","metadata":{"annotations":{},"name":"agent-policy-reader","namespace":"kagent"},"rules":[{"apiGroups":["kagent.dev"],"resources":["agents"],"verbs":["get","list"]}]}
+    creationTimestamp: "2026-03-26T00:46:53Z"
+    name: agent-policy-reader
+    namespace: kagent
+    resourceVersion: "3241062"
+    uid: d43ef789-a595-476b-ad9a-518aa1d2bdd4
+  rules:
+  - apiGroups:
+    - kagent.dev
+    resources:
+    - agents
+    verbs:
+    - get
+    - list
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"Role","metadata":{"annotations":{},"name":"audit-logger-role","namespace":"kagent"},"rules":[{"apiGroups":["kagent.dev"],"resources":["agents"],"verbs":["get","list","watch"]}]}
+    creationTimestamp: "2026-03-25T22:47:23Z"
+    name: audit-logger-role
+    namespace: kagent
+    resourceVersion: "3200520"
+    uid: aab44b9c-eeb6-461a-8049-da7f69f8fa54
+  rules:
+  - apiGroups:
+    - kagent.dev
+    resources:
+    - agents
+    verbs:
+    - get
+    - list
+    - watch
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    annotations:
       meta.helm.sh/release-name: kagent
       meta.helm.sh/release-namespace: kagent
     creationTimestamp: "2026-03-19T10:07:29Z"

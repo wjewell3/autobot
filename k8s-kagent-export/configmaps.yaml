@@ -3,6 +3,256 @@ items:
 - apiVersion: v1
   data:
     server.py: |
+      """
+      policy-server.py — Kubernetes ValidatingAdmissionWebhook for Agent CRs.
+
+      Deterministic enforcement layer. No LLM involved — cannot be reasoned around.
+      Reads allowed agent-tool mappings from /etc/policy/capability-registry.yaml.
+
+      Rules enforced:
+        1. Agent must be listed in capability registry (or registry allows unlisted)
+        2. Agent can only have tools explicitly granted in registry
+        3. Globally forbidden tools are blocked regardless of registry
+        4. Max agent count enforced (queries API server for current count)
+        5. Agents with MCP tools must have hitl-reviewed label
+
+      Runs on TLS (required by K8s admission webhooks).
+      """
+
+      import json
+      import logging
+      import os
+      import ssl
+
+      import httpx
+      import yaml
+      from fastapi import FastAPI, Request
+      from fastapi.responses import JSONResponse
+
+      logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+      log = logging.getLogger("policy-server")
+
+      REGISTRY_PATH = "/etc/policy/capability-registry.yaml"
+      NAMESPACE = os.getenv("WATCH_NAMESPACE", "kagent")
+      K8S_API = "https://kubernetes.default.svc"
+      SA_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+      SA_CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+
+      app = FastAPI()
+
+
+      def load_registry() -> dict:
+          with open(REGISTRY_PATH) as f:
+              return yaml.safe_load(f)
+
+
+      def get_k8s_headers() -> dict:
+          with open(SA_TOKEN_PATH) as f:
+              token = f.read().strip()
+          return {"Authorization": f"Bearer {token}"}
+
+
+      async def get_agent_count() -> int:
+          """Query the K8s API for current agent count in namespace."""
+          try:
+              async with httpx.AsyncClient(verify=SA_CA_PATH) as client:
+                  resp = await client.get(
+                      f"{K8S_API}/apis/kagent.dev/v1alpha2/namespaces/{NAMESPACE}/agents",
+                      headers=get_k8s_headers(),
+                      timeout=5,
+                  )
+                  resp.raise_for_status()
+                  items = resp.json().get("items", [])
+                  return len(items)
+          except Exception as e:
+              log.error(f"Failed to get agent count: {e}")
+              return -1  # fail open on count check if API unreachable
+
+
+      def validate_agent(agent: dict, registry: dict, operation: str) -> tuple[bool, str]:
+          """
+          Validate an Agent CR against the capability registry.
+          Returns (allowed: bool, reason: str).
+          """
+          agent_name = agent.get("metadata", {}).get("name", "unknown")
+          labels = agent.get("metadata", {}).get("labels", {})
+          spec = agent.get("spec", {})
+          declarative = spec.get("declarative", {})
+          tools = declarative.get("tools", [])
+
+          max_agents = registry.get("max_agents", 20)
+          allowed_agents = registry.get("allowed_agents", {})
+          forbidden_tools = registry.get("forbidden_tools", [])
+          require_hitl_label = registry.get("require_hitl_label_for_mcp", True)
+          allow_unlisted = registry.get("allow_unlisted_agents", False)
+
+          # ── Rule 1: Agent must be in registry ──
+          if not allow_unlisted and agent_name not in allowed_agents:
+              return False, (
+                  f"Agent '{agent_name}' is not in the capability registry. "
+                  f"Add it to the registry ConfigMap first. "
+                  f"Registered agents: {list(allowed_agents.keys())}"
+              )
+
+          # ── Rule 2: Check tool allowlist ──
+          agent_config = allowed_agents.get(agent_name, {})
+          allowed_tool_refs = set(agent_config.get("allowed_tools", []))
+          allowed_agent_refs = set(agent_config.get("allowed_agent_calls", []))
+
+          for tool in tools:
+              tool_type = tool.get("type", "")
+
+              if tool_type == "McpServer":
+                  mcp = tool.get("mcpServer", {})
+                  server_name = mcp.get("name", "")
+                  tool_names = mcp.get("toolNames", [])
+                  for tn in tool_names:
+                      ref = f"{server_name}/{tn}"
+                      if not allow_unlisted and ref not in allowed_tool_refs:
+                          return False, (
+                              f"Tool '{ref}' is not allowed for agent '{agent_name}'. "
+                              f"Allowed: {sorted(allowed_tool_refs)}"
+                          )
+
+              elif tool_type == "Agent":
+                  agent_ref = tool.get("agent", {}).get("name", "")
+                  if not allow_unlisted and agent_ref not in allowed_agent_refs:
+                      return False, (
+                          f"Agent call to '{agent_ref}' is not allowed for '{agent_name}'. "
+                          f"Allowed: {sorted(allowed_agent_refs)}"
+                      )
+
+          # ── Rule 3: Globally forbidden tools ──
+          for tool in tools:
+              if tool.get("type") == "McpServer":
+                  mcp = tool.get("mcpServer", {})
+                  for tn in mcp.get("toolNames", []):
+                      if tn in forbidden_tools:
+                          return False, (
+                              f"Tool '{tn}' is globally forbidden. "
+                              f"This tool is blocked by deterministic policy and cannot be "
+                              f"assigned to any agent. Contact the operator to update the "
+                              f"capability registry."
+                          )
+
+          # ── Rule 4: HITL label required for MCP tools ──
+          has_mcp = any(t.get("type") == "McpServer" for t in tools)
+          if require_hitl_label and has_mcp:
+              if labels.get("hitl-reviewed") != "true":
+                  return False, (
+                      f"Agent '{agent_name}' has MCP tools but is missing the "
+                      f"'hitl-reviewed: true' label. Only a human operator can add "
+                      f"this label via kubectl."
+                  )
+
+          return True, "OK"
+
+
+      @app.post("/validate")
+      async def validate(request: Request):
+          body = await request.json()
+          req = body.get("request", {})
+          uid = req.get("uid", "")
+          operation = req.get("operation", "")
+          agent = req.get("object", {})
+          agent_name = agent.get("metadata", {}).get("name", "unknown")
+
+          log.info(f"Admission request: {operation} agent/{agent_name} (uid={uid})")
+
+          # Only validate CREATE and UPDATE
+          if operation not in ("CREATE", "UPDATE"):
+              return admission_response(uid, True, "Operation not subject to policy")
+
+          registry = load_registry()
+
+          # ── Max agent count (CREATE only) ──
+          if operation == "CREATE":
+              max_agents = registry.get("max_agents", 20)
+              count = await get_agent_count()
+              enforcement_mode = registry.get("enforcement_mode", "enforce")
+              if count >= 0 and count >= max_agents:
+                  msg = (
+                      f"Agent count limit reached ({count}/{max_agents}). "
+                      f"Delete unused agents before creating new ones."
+                  )
+                  if enforcement_mode == "audit":
+                      log.warning(f"AUDIT-WOULD-DENY {agent_name}: {msg}")
+                  else:
+                      log.warning(f"DENIED {agent_name}: {msg}")
+                      return admission_response(uid, False, msg)
+
+          allowed, reason = validate_agent(agent, registry, operation)
+          enforcement_mode = registry.get("enforcement_mode", "enforce")
+
+          if allowed:
+              log.info(f"ALLOWED {agent_name}: {reason}")
+          else:
+              if enforcement_mode == "audit":
+                  log.warning(f"AUDIT-WOULD-DENY {agent_name}: {reason}")
+                  allowed = True
+                  reason = f"[AUDIT MODE] Would deny: {reason}"
+              else:
+                  log.warning(f"DENIED {agent_name}: {reason}")
+
+          return admission_response(uid, allowed, reason)
+
+
+      @app.get("/healthz")
+      async def healthz():
+          return {"status": "ok"}
+
+
+      def admission_response(uid: str, allowed: bool, message: str) -> JSONResponse:
+          resp = {
+              "apiVersion": "admission.k8s.io/v1",
+              "kind": "AdmissionReview",
+              "response": {
+                  "uid": uid,
+                  "allowed": allowed,
+              },
+          }
+          if not allowed:
+              resp["response"]["status"] = {"code": 403, "message": message}
+          return JSONResponse(resp)
+
+
+      if __name__ == "__main__":
+          import uvicorn
+
+          PORT = int(os.getenv("POLICY_SERVER_PORT", "8443"))
+          CERT_FILE = "/certs/tls.crt"
+          KEY_FILE = "/certs/tls.key"
+
+          # Check if TLS certs exist (they should, created by setup-certs.sh)
+          if os.path.exists(CERT_FILE) and os.path.exists(KEY_FILE):
+              log.info(f"Starting policy server on :{PORT} with TLS")
+              uvicorn.run(
+                  app,
+                  host="0.0.0.0",
+                  port=PORT,
+                  ssl_certfile=CERT_FILE,
+                  ssl_keyfile=KEY_FILE,
+                  log_level="info",
+              )
+          else:
+              log.error(
+                  f"TLS certs not found at {CERT_FILE} / {KEY_FILE}. "
+                  f"Run setup-certs.sh first."
+              )
+              exit(1)
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"server.py":"\"\"\"\npolicy-server.py — Kubernetes ValidatingAdmissionWebhook for Agent CRs.\n\nDeterministic enforcement layer. No LLM involved — cannot be reasoned around.\nReads allowed agent-tool mappings from /etc/policy/capability-registry.yaml.\n\nRules enforced:\n  1. Agent must be listed in capability registry (or registry allows unlisted)\n  2. Agent can only have tools explicitly granted in registry\n  3. Globally forbidden tools are blocked regardless of registry\n  4. Max agent count enforced (queries API server for current count)\n  5. Agents with MCP tools must have hitl-reviewed label\n\nRuns on TLS (required by K8s admission webhooks).\n\"\"\"\n\nimport json\nimport logging\nimport os\nimport ssl\n\nimport httpx\nimport yaml\nfrom fastapi import FastAPI, Request\nfrom fastapi.responses import JSONResponse\n\nlogging.basicConfig(level=logging.INFO, format=\"%(asctime)s %(levelname)s %(message)s\")\nlog = logging.getLogger(\"policy-server\")\n\nREGISTRY_PATH = \"/etc/policy/capability-registry.yaml\"\nNAMESPACE = os.getenv(\"WATCH_NAMESPACE\", \"kagent\")\nK8S_API = \"https://kubernetes.default.svc\"\nSA_TOKEN_PATH = \"/var/run/secrets/kubernetes.io/serviceaccount/token\"\nSA_CA_PATH = \"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt\"\n\napp = FastAPI()\n\n\ndef load_registry() -\u003e dict:\n    with open(REGISTRY_PATH) as f:\n        return yaml.safe_load(f)\n\n\ndef get_k8s_headers() -\u003e dict:\n    with open(SA_TOKEN_PATH) as f:\n        token = f.read().strip()\n    return {\"Authorization\": f\"Bearer {token}\"}\n\n\nasync def get_agent_count() -\u003e int:\n    \"\"\"Query the K8s API for current agent count in namespace.\"\"\"\n    try:\n        async with httpx.AsyncClient(verify=SA_CA_PATH) as client:\n            resp = await client.get(\n                f\"{K8S_API}/apis/kagent.dev/v1alpha2/namespaces/{NAMESPACE}/agents\",\n                headers=get_k8s_headers(),\n                timeout=5,\n            )\n            resp.raise_for_status()\n            items = resp.json().get(\"items\", [])\n            return len(items)\n    except Exception as e:\n        log.error(f\"Failed to get agent count: {e}\")\n        return -1  # fail open on count check if API unreachable\n\n\ndef validate_agent(agent: dict, registry: dict, operation: str) -\u003e tuple[bool, str]:\n    \"\"\"\n    Validate an Agent CR against the capability registry.\n    Returns (allowed: bool, reason: str).\n    \"\"\"\n    agent_name = agent.get(\"metadata\", {}).get(\"name\", \"unknown\")\n    labels = agent.get(\"metadata\", {}).get(\"labels\", {})\n    spec = agent.get(\"spec\", {})\n    declarative = spec.get(\"declarative\", {})\n    tools = declarative.get(\"tools\", [])\n\n    max_agents = registry.get(\"max_agents\", 20)\n    allowed_agents = registry.get(\"allowed_agents\", {})\n    forbidden_tools = registry.get(\"forbidden_tools\", [])\n    require_hitl_label = registry.get(\"require_hitl_label_for_mcp\", True)\n    allow_unlisted = registry.get(\"allow_unlisted_agents\", False)\n\n    # ── Rule 1: Agent must be in registry ──\n    if not allow_unlisted and agent_name not in allowed_agents:\n        return False, (\n            f\"Agent '{agent_name}' is not in the capability registry. \"\n            f\"Add it to the registry ConfigMap first. \"\n            f\"Registered agents: {list(allowed_agents.keys())}\"\n        )\n\n    # ── Rule 2: Check tool allowlist ──\n    agent_config = allowed_agents.get(agent_name, {})\n    allowed_tool_refs = set(agent_config.get(\"allowed_tools\", []))\n    allowed_agent_refs = set(agent_config.get(\"allowed_agent_calls\", []))\n\n    for tool in tools:\n        tool_type = tool.get(\"type\", \"\")\n\n        if tool_type == \"McpServer\":\n            mcp = tool.get(\"mcpServer\", {})\n            server_name = mcp.get(\"name\", \"\")\n            tool_names = mcp.get(\"toolNames\", [])\n            for tn in tool_names:\n                ref = f\"{server_name}/{tn}\"\n                if not allow_unlisted and ref not in allowed_tool_refs:\n                    return False, (\n                        f\"Tool '{ref}' is not allowed for agent '{agent_name}'. \"\n                        f\"Allowed: {sorted(allowed_tool_refs)}\"\n                    )\n\n        elif tool_type == \"Agent\":\n            agent_ref = tool.get(\"agent\", {}).get(\"name\", \"\")\n            if not allow_unlisted and agent_ref not in allowed_agent_refs:\n                return False, (\n                    f\"Agent call to '{agent_ref}' is not allowed for '{agent_name}'. \"\n                    f\"Allowed: {sorted(allowed_agent_refs)}\"\n                )\n\n    # ── Rule 3: Globally forbidden tools ──\n    for tool in tools:\n        if tool.get(\"type\") == \"McpServer\":\n            mcp = tool.get(\"mcpServer\", {})\n            for tn in mcp.get(\"toolNames\", []):\n                if tn in forbidden_tools:\n                    return False, (\n                        f\"Tool '{tn}' is globally forbidden. \"\n                        f\"This tool is blocked by deterministic policy and cannot be \"\n                        f\"assigned to any agent. Contact the operator to update the \"\n                        f\"capability registry.\"\n                    )\n\n    # ── Rule 4: HITL label required for MCP tools ──\n    has_mcp = any(t.get(\"type\") == \"McpServer\" for t in tools)\n    if require_hitl_label and has_mcp:\n        if labels.get(\"hitl-reviewed\") != \"true\":\n            return False, (\n                f\"Agent '{agent_name}' has MCP tools but is missing the \"\n                f\"'hitl-reviewed: true' label. Only a human operator can add \"\n                f\"this label via kubectl.\"\n            )\n\n    return True, \"OK\"\n\n\n@app.post(\"/validate\")\nasync def validate(request: Request):\n    body = await request.json()\n    req = body.get(\"request\", {})\n    uid = req.get(\"uid\", \"\")\n    operation = req.get(\"operation\", \"\")\n    agent = req.get(\"object\", {})\n    agent_name = agent.get(\"metadata\", {}).get(\"name\", \"unknown\")\n\n    log.info(f\"Admission request: {operation} agent/{agent_name} (uid={uid})\")\n\n    # Only validate CREATE and UPDATE\n    if operation not in (\"CREATE\", \"UPDATE\"):\n        return admission_response(uid, True, \"Operation not subject to policy\")\n\n    registry = load_registry()\n\n    # ── Max agent count (CREATE only) ──\n    if operation == \"CREATE\":\n        max_agents = registry.get(\"max_agents\", 20)\n        count = await get_agent_count()\n        enforcement_mode = registry.get(\"enforcement_mode\", \"enforce\")\n        if count \u003e= 0 and count \u003e= max_agents:\n            msg = (\n                f\"Agent count limit reached ({count}/{max_agents}). \"\n                f\"Delete unused agents before creating new ones.\"\n            )\n            if enforcement_mode == \"audit\":\n                log.warning(f\"AUDIT-WOULD-DENY {agent_name}: {msg}\")\n            else:\n                log.warning(f\"DENIED {agent_name}: {msg}\")\n                return admission_response(uid, False, msg)\n\n    allowed, reason = validate_agent(agent, registry, operation)\n    enforcement_mode = registry.get(\"enforcement_mode\", \"enforce\")\n\n    if allowed:\n        log.info(f\"ALLOWED {agent_name}: {reason}\")\n    else:\n        if enforcement_mode == \"audit\":\n            log.warning(f\"AUDIT-WOULD-DENY {agent_name}: {reason}\")\n            allowed = True\n            reason = f\"[AUDIT MODE] Would deny: {reason}\"\n        else:\n            log.warning(f\"DENIED {agent_name}: {reason}\")\n\n    return admission_response(uid, allowed, reason)\n\n\n@app.get(\"/healthz\")\nasync def healthz():\n    return {\"status\": \"ok\"}\n\n\ndef admission_response(uid: str, allowed: bool, message: str) -\u003e JSONResponse:\n    resp = {\n        \"apiVersion\": \"admission.k8s.io/v1\",\n        \"kind\": \"AdmissionReview\",\n        \"response\": {\n            \"uid\": uid,\n            \"allowed\": allowed,\n        },\n    }\n    if not allowed:\n        resp[\"response\"][\"status\"] = {\"code\": 403, \"message\": message}\n    return JSONResponse(resp)\n\n\nif __name__ == \"__main__\":\n    import uvicorn\n\n    PORT = int(os.getenv(\"POLICY_SERVER_PORT\", \"8443\"))\n    CERT_FILE = \"/certs/tls.crt\"\n    KEY_FILE = \"/certs/tls.key\"\n\n    # Check if TLS certs exist (they should, created by setup-certs.sh)\n    if os.path.exists(CERT_FILE) and os.path.exists(KEY_FILE):\n        log.info(f\"Starting policy server on :{PORT} with TLS\")\n        uvicorn.run(\n            app,\n            host=\"0.0.0.0\",\n            port=PORT,\n            ssl_certfile=CERT_FILE,\n            ssl_keyfile=KEY_FILE,\n            log_level=\"info\",\n        )\n    else:\n        log.error(\n            f\"TLS certs not found at {CERT_FILE} / {KEY_FILE}. \"\n            f\"Run setup-certs.sh first.\"\n        )\n        exit(1)\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"agent-policy-server-code","namespace":"kagent"}}
+    creationTimestamp: "2026-03-26T00:46:42Z"
+    name: agent-policy-server-code
+    namespace: kagent
+    resourceVersion: "3240998"
+    uid: aa17dd3a-3d4a-4041-a49a-fcb377d41cca
+- apiVersion: v1
+  data:
+    server.py: |
       from fastapi import FastAPI
       from fastapi.responses import HTMLResponse
       import json, uvicorn, uuid, os
@@ -54,7 +304,7 @@ items:
           return {"token": token, "approve_url": approve_url, "reject_url": reject_url, "email_html": email_html}
 
       @app.get("/approval/respond")
-      async def respond(token: REDACTED
+      async def respond(token: str, action: str):
           if token not in approvals:
               return {"status": "NOT_FOUND"}
           decision = "APPROVED" if action.lower() in ["yes", "approve", "y"] else "REJECTED"
@@ -64,7 +314,7 @@ items:
           return {"status": decision}
 
       @app.get("/approval/status")
-      async def status(token: REDACTED
+      async def status(token: str):
           if token not in approvals:
               return {"status": "NOT_FOUND"}
           return approvals[token]
@@ -79,12 +329,557 @@ items:
   metadata:
     annotations:
       kubectl.kubernetes.io/last-applied-configuration: |
-        {"apiVersion":"v1","data":{"server.py":"from fastapi import FastAPI\nfrom fastapi.responses import HTMLResponse\nimport json, uvicorn, uuid, os\nfrom datetime import datetime\n\napp = FastAPI()\napprovals = {}\n\nVERCEL_URL = os.environ.get(\"VERCEL_URL\", \"https://autobot-chi-tawny.vercel.app\")\n\n@app.post(\"/approval/create\")\nasync def create_approval(request: dict):\n    token = str(uuid.uuid4())\n    business = request.get(\"business\", \"\")\n    repo = request.get(\"repo\", \"\")\n    approvals[token] = {\n        \"status\": \"PENDING\",\n        \"subject\": request.get(\"subject\", \"\"),\n        \"details\": request.get(\"details\", \"\"),\n        \"business\": business,\n        \"repo\": repo,\n        \"created_at\": datetime.utcnow().isoformat()\n    }\n    approve_url = f\"{VERCEL_URL}/api/approve?token={token}\u0026action=yes\u0026business={business}\u0026repo={repo}\"\n    reject_url = f\"{VERCEL_URL}/api/approve?token={token}\u0026action=no\u0026business={business}\u0026repo={repo}\"\n    email_html = f\"\"\"\n\u003cdiv style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;\"\u003e\n  \u003cdiv style=\"background: #0f172a; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;\"\u003e\n    \u003ch1 style=\"color: #a78bfa; margin: 0; font-size: 24px; letter-spacing: 3px;\"\u003eAUTOBOT\u003c/h1\u003e\n    \u003cp style=\"color: #475569; margin: 4px 0 0; font-size: 12px;\"\u003eCOMMAND CENTER\u003c/p\u003e\n  \u003c/div\u003e\n  \u003cdiv style=\"border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 24px;\"\u003e\n    \u003ch2 style=\"color: #1e293b; margin-top: 0;\"\u003e{request.get(\"subject\", \"\")}\u003c/h2\u003e\n    \u003cdiv style=\"background: #f8fafc; border-left: 4px solid #a78bfa; padding: 16px; border-radius: 4px; margin: 20px 0;\"\u003e\n      \u003cpre style=\"white-space: pre-wrap; font-size: 13px; color: #334155; margin: 0; font-family: Arial, sans-serif;\"\u003e{request.get(\"details\", \"\")}\u003c/pre\u003e\n    \u003c/div\u003e\n    \u003cdiv style=\"margin: 32px 0; text-align: center;\"\u003e\n      \u003ca href=\"{approve_url}\" style=\"background: #22c55e; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold; margin-right: 12px; display: inline-block;\"\u003e\n        ✅ APPROVE \u0026amp; DEPLOY\n      \u003c/a\u003e\n      \u003ca href=\"{reject_url}\" style=\"background: #ef4444; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold; display: inline-block;\"\u003e\n        ❌ REJECT\n      \u003c/a\u003e\n    \u003c/div\u003e\n    \u003cp style=\"color: #94a3b8; font-size: 12px; text-align: center;\"\u003eSent by Autobot — clicking APPROVE will automatically deploy the site\u003c/p\u003e\n  \u003c/div\u003e\n\u003c/div\u003e\"\"\"\n    print(f\"[create] token={token} business={business}\")\n    return {\"token\": token, \"approve_url\": approve_url, \"reject_url\": reject_url, \"email_html\": email_html}\n\n@app.get(\"/approval/respond\")\nasync def respond(token: REDACTED
+        {"apiVersion":"v1","data":{"server.py":"from fastapi import FastAPI\nfrom fastapi.responses import HTMLResponse\nimport json, uvicorn, uuid, os\nfrom datetime import datetime\n\napp = FastAPI()\napprovals = {}\n\nVERCEL_URL = os.environ.get(\"VERCEL_URL\", \"https://autobot-chi-tawny.vercel.app\")\n\n@app.post(\"/approval/create\")\nasync def create_approval(request: dict):\n    token = str(uuid.uuid4())\n    business = request.get(\"business\", \"\")\n    repo = request.get(\"repo\", \"\")\n    approvals[token] = {\n        \"status\": \"PENDING\",\n        \"subject\": request.get(\"subject\", \"\"),\n        \"details\": request.get(\"details\", \"\"),\n        \"business\": business,\n        \"repo\": repo,\n        \"created_at\": datetime.utcnow().isoformat()\n    }\n    approve_url = f\"{VERCEL_URL}/api/approve?token={token}\u0026action=yes\u0026business={business}\u0026repo={repo}\"\n    reject_url = f\"{VERCEL_URL}/api/approve?token={token}\u0026action=no\u0026business={business}\u0026repo={repo}\"\n    email_html = f\"\"\"\n\u003cdiv style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;\"\u003e\n  \u003cdiv style=\"background: #0f172a; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;\"\u003e\n    \u003ch1 style=\"color: #a78bfa; margin: 0; font-size: 24px; letter-spacing: 3px;\"\u003eAUTOBOT\u003c/h1\u003e\n    \u003cp style=\"color: #475569; margin: 4px 0 0; font-size: 12px;\"\u003eCOMMAND CENTER\u003c/p\u003e\n  \u003c/div\u003e\n  \u003cdiv style=\"border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 24px;\"\u003e\n    \u003ch2 style=\"color: #1e293b; margin-top: 0;\"\u003e{request.get(\"subject\", \"\")}\u003c/h2\u003e\n    \u003cdiv style=\"background: #f8fafc; border-left: 4px solid #a78bfa; padding: 16px; border-radius: 4px; margin: 20px 0;\"\u003e\n      \u003cpre style=\"white-space: pre-wrap; font-size: 13px; color: #334155; margin: 0; font-family: Arial, sans-serif;\"\u003e{request.get(\"details\", \"\")}\u003c/pre\u003e\n    \u003c/div\u003e\n    \u003cdiv style=\"margin: 32px 0; text-align: center;\"\u003e\n      \u003ca href=\"{approve_url}\" style=\"background: #22c55e; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold; margin-right: 12px; display: inline-block;\"\u003e\n        ✅ APPROVE \u0026amp; DEPLOY\n      \u003c/a\u003e\n      \u003ca href=\"{reject_url}\" style=\"background: #ef4444; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold; display: inline-block;\"\u003e\n        ❌ REJECT\n      \u003c/a\u003e\n    \u003c/div\u003e\n    \u003cp style=\"color: #94a3b8; font-size: 12px; text-align: center;\"\u003eSent by Autobot — clicking APPROVE will automatically deploy the site\u003c/p\u003e\n  \u003c/div\u003e\n\u003c/div\u003e\"\"\"\n    print(f\"[create] token={token} business={business}\")\n    return {\"token\": token, \"approve_url\": approve_url, \"reject_url\": reject_url, \"email_html\": email_html}\n\n@app.get(\"/approval/respond\")\nasync def respond(token: str, action: str):\n    if token not in approvals:\n        return {\"status\": \"NOT_FOUND\"}\n    decision = \"APPROVED\" if action.lower() in [\"yes\", \"approve\", \"y\"] else \"REJECTED\"\n    approvals[token][\"status\"] = decision\n    approvals[token][\"decided_at\"] = datetime.utcnow().isoformat()\n    print(f\"[respond] token={token} decision={decision}\")\n    return {\"status\": decision}\n\n@app.get(\"/approval/status\")\nasync def status(token: str):\n    if token not in approvals:\n        return {\"status\": \"NOT_FOUND\"}\n    return approvals[token]\n\n@app.get(\"/approval/list\")\nasync def list_approvals():\n    return {\"approvals\": approvals}\n\nif __name__ == \"__main__\":\n    uvicorn.run(app, host=\"0.0.0.0\", port=8089)\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"approval-server","namespace":"kagent"}}
     creationTimestamp: "2026-03-22T01:26:45Z"
     name: approval-server
     namespace: kagent
     resourceVersion: "1334790"
     uid: 50502f6a-89a6-4012-af1e-42b1af165daf
+- apiVersion: v1
+  data:
+    server.py: "\"\"\"\naudit-logger.py — Independent audit trail for all agent activity.\n\nWatches
+      Agent CRs and logs every create/update/delete with full spec.\nAlso exposes
+      MCP tools so agents can write structured audit entries.\n\nWrites to:\n  - stdout
+      (kubectl logs)\n  - /audit/audit.jsonl (persistent volume, one JSON object per
+      line)\n  - Slack #audit-log channel (if configured)\n\nThis is the \"eyes\"
+      layer — gives you full visibility before\nincreasing agent autonomy.\n\"\"\"\n\nimport
+      asyncio\nimport json\nimport logging\nimport os\nimport sys\nfrom datetime import
+      datetime, timezone\n\nimport httpx\n\nlogging.basicConfig(\n    level=logging.INFO,\n
+      \   format=\"%(asctime)s %(levelname)s %(message)s\",\n    stream=sys.stdout,\n)\nlog
+      = logging.getLogger(\"audit-logger\")\n\nNAMESPACE = os.getenv(\"WATCH_NAMESPACE\",
+      \"kagent\")\nK8S_API = \"https://kubernetes.default.svc\"\nSA_TOKEN_PATH = \"/var/run/secrets/kubernetes.io/serviceaccount/token\"\nSA_CA_PATH
+      = \"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt\"\nAUDIT_DIR = os.getenv(\"AUDIT_DIR\",
+      \"/audit\")\nAUDIT_FILE = os.path.join(AUDIT_DIR, \"audit.jsonl\")\nSLACK_BOT_TOKEN
+      = os.getenv(\"SLACK_BOT_TOKEN\", \"\")\nSLACK_AUDIT_CHANNEL = os.getenv(\"SLACK_AUDIT_CHANNEL_ID\",
+      \"\")\n\n# Also expose as MCP server for agents to write structured audit entries\nfrom
+      mcp.server.fastmcp import FastMCP\nfrom mcp.server.transport_security import
+      TransportSecuritySettings\n\nmcp = FastMCP(\n    \"audit-logger\",\n    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),\n)\n\n\ndef
+      get_k8s_headers() -> dict:\n    with open(SA_TOKEN_PATH) as f:\n        token
+      = f.read().strip()\n    return {\"Authorization\": f\"Bearer {token}\"}\n\n\ndef
+      write_audit_entry(entry: dict):\n    \"\"\"Append a JSON audit entry to the
+      log file and stdout.\"\"\"\n    entry[\"timestamp\"] = datetime.now(timezone.utc).isoformat()\n
+      \   line = json.dumps(entry, default=str)\n\n    # Write to file\n    try:\n
+      \       os.makedirs(AUDIT_DIR, exist_ok=True)\n        with open(AUDIT_FILE,
+      \"a\") as f:\n            f.write(line + \"\\n\")\n    except Exception as e:\n
+      \       log.error(f\"Failed to write audit file: {e}\")\n\n    # Write to stdout
+      (shows in kubectl logs)\n    log.info(f\"AUDIT: {line}\")\n\n\nasync def post_to_slack(entry:
+      dict):\n    \"\"\"Post audit entry to Slack #audit-log channel.\"\"\"\n    if
+      not SLACK_BOT_TOKEN or not SLACK_AUDIT_CHANNEL:\n        return\n\n    event_type
+      = entry.get(\"event_type\", \"unknown\")\n    agent_name = entry.get(\"agent_name\",
+      \"unknown\")\n    emoji = {\"CREATED\": \"\U0001F7E2\", \"MODIFIED\": \"\U0001F7E1\",
+      \"DELETED\": \"\U0001F534\"}.get(event_type, \"⚪\")\n\n    text = f\"{emoji}
+      *{event_type}* `{agent_name}`\"\n    if entry.get(\"changes\"):\n        text
+      += f\"\\nChanges: {entry['changes']}\"\n\n    try:\n        async with httpx.AsyncClient()
+      as client:\n            await client.post(\n                \"https://slack.com/api/chat.postMessage\",\n
+      \               headers={\n                    \"Authorization\": f\"Bearer
+      {SLACK_BOT_TOKEN}\",\n                    \"Content-Type\": \"application/json\",\n
+      \               },\n                json={\n                    \"channel\":
+      SLACK_AUDIT_CHANNEL,\n                    \"blocks\": [\n                        {\n
+      \                           \"type\": \"section\",\n                            \"text\":
+      {\"type\": \"mrkdwn\", \"text\": text},\n                        },\n                        {\n
+      \                           \"type\": \"context\",\n                            \"elements\":
+      [\n                                {\n                                    \"type\":
+      \"mrkdwn\",\n                                    \"text\": f\"Audit ID: `{entry.get('id',
+      'n/a')}` | {entry.get('timestamp', '')}\",\n                                }\n
+      \                           ],\n                        },\n                    ],\n
+      \               },\n                timeout=10,\n            )\n    except Exception
+      as e:\n        log.error(f\"Failed to post audit to Slack: {e}\")\n\n\ndef diff_agents(old_spec:
+      dict, new_spec: dict) -> list[str]:\n    \"\"\"Return list of human-readable
+      changes between two agent specs.\"\"\"\n    changes = []\n    old_tools = {\n
+      \       json.dumps(t, sort_keys=True)\n        for t in old_spec.get(\"declarative\",
+      {}).get(\"tools\", [])\n    }\n    new_tools = {\n        json.dumps(t, sort_keys=True)\n
+      \       for t in new_spec.get(\"declarative\", {}).get(\"tools\", [])\n    }\n\n
+      \   added_tools = new_tools - old_tools\n    removed_tools = old_tools - new_tools\n
+      \   if added_tools:\n        changes.append(f\"tools added: {len(added_tools)}\")\n
+      \   if removed_tools:\n        changes.append(f\"tools removed: {len(removed_tools)}\")\n\n
+      \   old_msg = old_spec.get(\"declarative\", {}).get(\"systemMessage\", \"\")\n
+      \   new_msg = new_spec.get(\"declarative\", {}).get(\"systemMessage\", \"\")\n
+      \   if old_msg != new_msg:\n        changes.append(\"systemMessage changed\")\n\n
+      \   old_desc = old_spec.get(\"description\", \"\")\n    new_desc = new_spec.get(\"description\",
+      \"\")\n    if old_desc != new_desc:\n        changes.append(f\"description:
+      '{old_desc}' → '{new_desc}'\")\n\n    return changes\n\n\nasync def watch_agents():\n
+      \   \"\"\"Watch Agent CRs via K8s watch API and log all changes.\"\"\"\n    log.info(f\"Starting
+      agent watcher for namespace '{NAMESPACE}'\")\n    url = (\n        f\"{K8S_API}/apis/kagent.dev/v1alpha2/namespaces/{NAMESPACE}/agents\"\n
+      \       f\"?watch=true\"\n    )\n\n    # Track last-seen specs to compute diffs
+      on MODIFIED\n    last_seen: dict[str, dict] = {}\n\n    while True:\n        try:\n
+      \           async with httpx.AsyncClient(verify=SA_CA_PATH) as client:\n                async
+      with client.stream(\n                    \"GET\", url, headers=get_k8s_headers(),
+      timeout=None\n                ) as resp:\n                    async for line
+      in resp.aiter_lines():\n                        if not line.strip():\n                            continue\n
+      \                       try:\n                            event = json.loads(line)\n
+      \                       except json.JSONDecodeError:\n                            continue\n\n
+      \                       event_type = event.get(\"type\", \"UNKNOWN\")\n                        obj
+      = event.get(\"object\", {})\n                        agent_name = obj.get(\"metadata\",
+      {}).get(\"name\", \"unknown\")\n                        spec = obj.get(\"spec\",
+      {})\n                        generation = obj.get(\"metadata\", {}).get(\"generation\",
+      0)\n\n                        entry = {\n                            \"id\":
+      f\"{agent_name}-gen{generation}-{event_type.lower()}\",\n                            \"event_type\":
+      event_type,\n                            \"agent_name\": agent_name,\n                            \"generation\":
+      generation,\n                            \"labels\": obj.get(\"metadata\", {}).get(\"labels\",
+      {}),\n                        }\n\n                        if event_type ==
+      \"ADDED\":\n                            entry[\"tools\"] = [\n                                summarize_tool(t)\n
+      \                               for t in spec.get(\"declarative\", {}).get(\"tools\",
+      [])\n                            ]\n                            last_seen[agent_name]
+      = spec\n\n                        elif event_type == \"MODIFIED\":\n                            old_spec
+      = last_seen.get(agent_name, {})\n                            changes = diff_agents(old_spec,
+      spec)\n                            entry[\"changes\"] = changes\n                            entry[\"tools\"]
+      = [\n                                summarize_tool(t)\n                                for
+      t in spec.get(\"declarative\", {}).get(\"tools\", [])\n                            ]\n
+      \                           last_seen[agent_name] = spec\n\n                        elif
+      event_type == \"DELETED\":\n                            last_seen.pop(agent_name,
+      None)\n\n                        write_audit_entry(entry)\n                        await
+      post_to_slack(entry)\n\n        except Exception as e:\n            log.error(f\"Watch
+      connection failed: {e}, reconnecting in 5s...\")\n            await asyncio.sleep(5)\n\n\ndef
+      summarize_tool(tool: dict) -> str:\n    \"\"\"Return a compact string representation
+      of a tool.\"\"\"\n    if tool.get(\"type\") == \"McpServer\":\n        mcp_info
+      = tool.get(\"mcpServer\", {})\n        name = mcp_info.get(\"name\", \"?\")\n
+      \       tools = mcp_info.get(\"toolNames\", [])\n        return f\"mcp:{name}/{','.join(tools)}\"\n
+      \   elif tool.get(\"type\") == \"Agent\":\n        return f\"a2a:{tool.get('agent',
+      {}).get('name', '?')}\"\n    return f\"unknown:{tool.get('type', '?')}\"\n\n\n#
+      ── MCP Tools (so agents can write audit entries) ────────\n\n@mcp.tool()\nasync
+      def write_audit(\n    agent_name: str,\n    action: str,\n    details: str,\n
+      \   severity: str = \"info\",\n) -> str:\n    \"\"\"\n    Write a structured
+      audit entry. Use this to log important decisions,\n    tool calls, or state
+      changes.\n\n    Args:\n        agent_name: Name of the agent writing the entry\n
+      \       action:     What happened (e.g. \"created_repo\", \"sent_email\", \"searched_businesses\")\n
+      \       details:    Human-readable description of what was done\n        severity:
+      \  \"info\" | \"warning\" | \"error\" | \"critical\"\n    \"\"\"\n    entry
+      = {\n        \"id\": f\"agent-{agent_name}-{action}-{datetime.now(timezone.utc).strftime('%H%M%S')}\",\n
+      \       \"event_type\": \"AGENT_ACTION\",\n        \"agent_name\": agent_name,\n
+      \       \"action\": action,\n        \"details\": details,\n        \"severity\":
+      severity,\n    }\n    write_audit_entry(entry)\n    await post_to_slack(entry)\n
+      \   return f\"Audit entry logged: {entry['id']}\"\n\n\n@mcp.tool()\nasync def
+      get_recent_audit(count: int = 20) -> str:\n    \"\"\"\n    Return the most recent
+      audit entries.\n\n    Args:\n        count: Number of recent entries to return
+      (max 100)\n    \"\"\"\n    count = min(count, 100)\n    try:\n        with open(AUDIT_FILE)
+      as f:\n            lines = f.readlines()\n        recent = lines[-count:] if
+      len(lines) > count else lines\n        return \"\\n\".join(line.strip() for
+      line in recent)\n    except FileNotFoundError:\n        return \"No audit entries
+      yet.\"\n\n\n# ── REST API (for dashboard — no MCP protocol needed) ────\n\nfrom
+      starlette.applications import Starlette\nfrom starlette.responses import JSONResponse\nfrom
+      starlette.routing import Route\n\n\nasync def rest_get_entries(request):\n    \"\"\"GET
+      /entries?count=50&offset=0&agent=&type= — return audit entries as JSON.\"\"\"\n
+      \   count = min(int(request.query_params.get(\"count\", \"50\")), 500)\n    offset
+      = int(request.query_params.get(\"offset\", \"0\"))\n    agent_filter = request.query_params.get(\"agent\",
+      \"\")\n    type_filter = request.query_params.get(\"type\", \"\")\n\n    try:\n
+      \       with open(AUDIT_FILE) as f:\n            lines = f.readlines()\n    except
+      FileNotFoundError:\n        return JSONResponse({\"entries\": [], \"total\":
+      0})\n\n    entries = []\n    for line in reversed(lines):\n        line = line.strip()\n
+      \       if not line:\n            continue\n        try:\n            entry
+      = json.loads(line)\n        except json.JSONDecodeError:\n            continue\n
+      \       if agent_filter and entry.get(\"agent_name\", \"\") != agent_filter:\n
+      \           continue\n        if type_filter and entry.get(\"event_type\", \"\")
+      != type_filter:\n            continue\n        entries.append(entry)\n\n    total
+      = len(entries)\n    entries = entries[offset:offset + count]\n    return JSONResponse({\"entries\":
+      entries, \"total\": total})\n\n\nasync def rest_get_stats(request):\n    \"\"\"GET
+      /stats — summary stats for the dashboard.\"\"\"\n    try:\n        with open(AUDIT_FILE)
+      as f:\n            lines = f.readlines()\n    except FileNotFoundError:\n        return
+      JSONResponse({\"total_entries\": 0, \"agents\": {}, \"event_types\": {}})\n\n
+      \   agents = {}\n    event_types = {}\n    for line in lines:\n        line
+      = line.strip()\n        if not line:\n            continue\n        try:\n            entry
+      = json.loads(line)\n        except json.JSONDecodeError:\n            continue\n
+      \       agent = entry.get(\"agent_name\", \"unknown\")\n        etype = entry.get(\"event_type\",
+      \"unknown\")\n        agents[agent] = agents.get(agent, 0) + 1\n        event_types[etype]
+      = event_types.get(etype, 0) + 1\n\n    return JSONResponse({\n        \"total_entries\":
+      len(lines),\n        \"agents\": agents,\n        \"event_types\": event_types,\n
+      \   })\n\n\nasync def rest_health(request):\n    return JSONResponse({\"status\":
+      \"ok\"})\n\n\nrest_app = Starlette(routes=[\n    Route(\"/entries\", rest_get_entries),\n
+      \   Route(\"/stats\", rest_get_stats),\n    Route(\"/health\", rest_health),\n])\n\n\n#
+      ── Entry point ──────────────────────────────────────────\n\nasync def main():\n
+      \   \"\"\"Run the K8s watcher, MCP server, and REST API concurrently.\"\"\"\n
+      \   import uvicorn\n\n    MCP_PORT = int(os.getenv(\"AUDIT_MCP_PORT\", \"8092\"))\n
+      \   REST_PORT = int(os.getenv(\"AUDIT_REST_PORT\", \"8093\"))\n\n    mcp_app
+      = mcp.streamable_http_app()\n    mcp_config = uvicorn.Config(mcp_app, host=\"0.0.0.0\",
+      port=MCP_PORT, log_level=\"info\")\n    mcp_server = uvicorn.Server(mcp_config)\n\n
+      \   rest_config = uvicorn.Config(rest_app, host=\"0.0.0.0\", port=REST_PORT,
+      log_level=\"info\")\n    rest_server = uvicorn.Server(rest_config)\n\n    #
+      Run all three concurrently\n    await asyncio.gather(\n        watch_agents(),\n
+      \       mcp_server.serve(),\n        rest_server.serve(),\n    )\n\n\nif __name__
+      == \"__main__\":\n    import anyio\n\n    anyio.run(main)\n"
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: "{\"apiVersion\":\"v1\",\"data\":{\"server.py\":\"\\\"\\\"\\\"\\naudit-logger.py
+        — Independent audit trail for all agent activity.\\n\\nWatches Agent CRs and
+        logs every create/update/delete with full spec.\\nAlso exposes MCP tools so
+        agents can write structured audit entries.\\n\\nWrites to:\\n  - stdout (kubectl
+        logs)\\n  - /audit/audit.jsonl (persistent volume, one JSON object per line)\\n
+        \ - Slack #audit-log channel (if configured)\\n\\nThis is the \\\"eyes\\\"
+        layer — gives you full visibility before\\nincreasing agent autonomy.\\n\\\"\\\"\\\"\\n\\nimport
+        asyncio\\nimport json\\nimport logging\\nimport os\\nimport sys\\nfrom datetime
+        import datetime, timezone\\n\\nimport httpx\\n\\nlogging.basicConfig(\\n    level=logging.INFO,\\n
+        \   format=\\\"%(asctime)s %(levelname)s %(message)s\\\",\\n    stream=sys.stdout,\\n)\\nlog
+        = logging.getLogger(\\\"audit-logger\\\")\\n\\nNAMESPACE = os.getenv(\\\"WATCH_NAMESPACE\\\",
+        \\\"kagent\\\")\\nK8S_API = \\\"https://kubernetes.default.svc\\\"\\nSA_TOKEN_PATH
+        = \\\"/var/run/secrets/kubernetes.io/serviceaccount/token\\\"\\nSA_CA_PATH
+        = \\\"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt\\\"\\nAUDIT_DIR
+        = os.getenv(\\\"AUDIT_DIR\\\", \\\"/audit\\\")\\nAUDIT_FILE = os.path.join(AUDIT_DIR,
+        \\\"audit.jsonl\\\")\\nSLACK_BOT_TOKEN = os.getenv(\\\"SLACK_BOT_TOKEN\\\",
+        \\\"\\\")\\nSLACK_AUDIT_CHANNEL = os.getenv(\\\"SLACK_AUDIT_CHANNEL_ID\\\",
+        \\\"\\\")\\n\\n# Also expose as MCP server for agents to write structured
+        audit entries\\nfrom mcp.server.fastmcp import FastMCP\\nfrom mcp.server.transport_security
+        import TransportSecuritySettings\\n\\nmcp = FastMCP(\\n    \\\"audit-logger\\\",\\n
+        \   transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),\\n)\\n\\n\\ndef
+        get_k8s_headers() -\\u003e dict:\\n    with open(SA_TOKEN_PATH) as f:\\n        token
+        = f.read().strip()\\n    return {\\\"Authorization\\\": f\\\"Bearer {token}\\\"}\\n\\n\\ndef
+        write_audit_entry(entry: dict):\\n    \\\"\\\"\\\"Append a JSON audit entry
+        to the log file and stdout.\\\"\\\"\\\"\\n    entry[\\\"timestamp\\\"] = datetime.now(timezone.utc).isoformat()\\n
+        \   line = json.dumps(entry, default=str)\\n\\n    # Write to file\\n    try:\\n
+        \       os.makedirs(AUDIT_DIR, exist_ok=True)\\n        with open(AUDIT_FILE,
+        \\\"a\\\") as f:\\n            f.write(line + \\\"\\\\n\\\")\\n    except
+        Exception as e:\\n        log.error(f\\\"Failed to write audit file: {e}\\\")\\n\\n
+        \   # Write to stdout (shows in kubectl logs)\\n    log.info(f\\\"AUDIT: {line}\\\")\\n\\n\\nasync
+        def post_to_slack(entry: dict):\\n    \\\"\\\"\\\"Post audit entry to Slack
+        #audit-log channel.\\\"\\\"\\\"\\n    if not SLACK_BOT_TOKEN or not SLACK_AUDIT_CHANNEL:\\n
+        \       return\\n\\n    event_type = entry.get(\\\"event_type\\\", \\\"unknown\\\")\\n
+        \   agent_name = entry.get(\\\"agent_name\\\", \\\"unknown\\\")\\n    emoji
+        = {\\\"CREATED\\\": \\\"\U0001F7E2\\\", \\\"MODIFIED\\\": \\\"\U0001F7E1\\\",
+        \\\"DELETED\\\": \\\"\U0001F534\\\"}.get(event_type, \\\"⚪\\\")\\n\\n    text
+        = f\\\"{emoji} *{event_type}* `{agent_name}`\\\"\\n    if entry.get(\\\"changes\\\"):\\n
+        \       text += f\\\"\\\\nChanges: {entry['changes']}\\\"\\n\\n    try:\\n
+        \       async with httpx.AsyncClient() as client:\\n            await client.post(\\n
+        \               \\\"https://slack.com/api/chat.postMessage\\\",\\n                headers={\\n
+        \                   \\\"Authorization\\\": f\\\"Bearer {SLACK_BOT_TOKEN}\\\",\\n
+        \                   \\\"Content-Type\\\": \\\"application/json\\\",\\n                },\\n
+        \               json={\\n                    \\\"channel\\\": SLACK_AUDIT_CHANNEL,\\n
+        \                   \\\"blocks\\\": [\\n                        {\\n                            \\\"type\\\":
+        \\\"section\\\",\\n                            \\\"text\\\": {\\\"type\\\":
+        \\\"mrkdwn\\\", \\\"text\\\": text},\\n                        },\\n                        {\\n
+        \                           \\\"type\\\": \\\"context\\\",\\n                            \\\"elements\\\":
+        [\\n                                {\\n                                    \\\"type\\\":
+        \\\"mrkdwn\\\",\\n                                    \\\"text\\\": f\\\"Audit
+        ID: `{entry.get('id', 'n/a')}` | {entry.get('timestamp', '')}\\\",\\n                                }\\n
+        \                           ],\\n                        },\\n                    ],\\n
+        \               },\\n                timeout=10,\\n            )\\n    except
+        Exception as e:\\n        log.error(f\\\"Failed to post audit to Slack: {e}\\\")\\n\\n\\ndef
+        diff_agents(old_spec: dict, new_spec: dict) -\\u003e list[str]:\\n    \\\"\\\"\\\"Return
+        list of human-readable changes between two agent specs.\\\"\\\"\\\"\\n    changes
+        = []\\n    old_tools = {\\n        json.dumps(t, sort_keys=True)\\n        for
+        t in old_spec.get(\\\"declarative\\\", {}).get(\\\"tools\\\", [])\\n    }\\n
+        \   new_tools = {\\n        json.dumps(t, sort_keys=True)\\n        for t
+        in new_spec.get(\\\"declarative\\\", {}).get(\\\"tools\\\", [])\\n    }\\n\\n
+        \   added_tools = new_tools - old_tools\\n    removed_tools = old_tools -
+        new_tools\\n    if added_tools:\\n        changes.append(f\\\"tools added:
+        {len(added_tools)}\\\")\\n    if removed_tools:\\n        changes.append(f\\\"tools
+        removed: {len(removed_tools)}\\\")\\n\\n    old_msg = old_spec.get(\\\"declarative\\\",
+        {}).get(\\\"systemMessage\\\", \\\"\\\")\\n    new_msg = new_spec.get(\\\"declarative\\\",
+        {}).get(\\\"systemMessage\\\", \\\"\\\")\\n    if old_msg != new_msg:\\n        changes.append(\\\"systemMessage
+        changed\\\")\\n\\n    old_desc = old_spec.get(\\\"description\\\", \\\"\\\")\\n
+        \   new_desc = new_spec.get(\\\"description\\\", \\\"\\\")\\n    if old_desc
+        != new_desc:\\n        changes.append(f\\\"description: '{old_desc}' → '{new_desc}'\\\")\\n\\n
+        \   return changes\\n\\n\\nasync def watch_agents():\\n    \\\"\\\"\\\"Watch
+        Agent CRs via K8s watch API and log all changes.\\\"\\\"\\\"\\n    log.info(f\\\"Starting
+        agent watcher for namespace '{NAMESPACE}'\\\")\\n    url = (\\n        f\\\"{K8S_API}/apis/kagent.dev/v1alpha2/namespaces/{NAMESPACE}/agents\\\"\\n
+        \       f\\\"?watch=true\\\"\\n    )\\n\\n    # Track last-seen specs to compute
+        diffs on MODIFIED\\n    last_seen: dict[str, dict] = {}\\n\\n    while True:\\n
+        \       try:\\n            async with httpx.AsyncClient(verify=SA_CA_PATH)
+        as client:\\n                async with client.stream(\\n                    \\\"GET\\\",
+        url, headers=get_k8s_headers(), timeout=None\\n                ) as resp:\\n
+        \                   async for line in resp.aiter_lines():\\n                        if
+        not line.strip():\\n                            continue\\n                        try:\\n
+        \                           event = json.loads(line)\\n                        except
+        json.JSONDecodeError:\\n                            continue\\n\\n                        event_type
+        = event.get(\\\"type\\\", \\\"UNKNOWN\\\")\\n                        obj =
+        event.get(\\\"object\\\", {})\\n                        agent_name = obj.get(\\\"metadata\\\",
+        {}).get(\\\"name\\\", \\\"unknown\\\")\\n                        spec = obj.get(\\\"spec\\\",
+        {})\\n                        generation = obj.get(\\\"metadata\\\", {}).get(\\\"generation\\\",
+        0)\\n\\n                        entry = {\\n                            \\\"id\\\":
+        f\\\"{agent_name}-gen{generation}-{event_type.lower()}\\\",\\n                            \\\"event_type\\\":
+        event_type,\\n                            \\\"agent_name\\\": agent_name,\\n
+        \                           \\\"generation\\\": generation,\\n                            \\\"labels\\\":
+        obj.get(\\\"metadata\\\", {}).get(\\\"labels\\\", {}),\\n                        }\\n\\n
+        \                       if event_type == \\\"ADDED\\\":\\n                            entry[\\\"tools\\\"]
+        = [\\n                                summarize_tool(t)\\n                                for
+        t in spec.get(\\\"declarative\\\", {}).get(\\\"tools\\\", [])\\n                            ]\\n
+        \                           last_seen[agent_name] = spec\\n\\n                        elif
+        event_type == \\\"MODIFIED\\\":\\n                            old_spec = last_seen.get(agent_name,
+        {})\\n                            changes = diff_agents(old_spec, spec)\\n
+        \                           entry[\\\"changes\\\"] = changes\\n                            entry[\\\"tools\\\"]
+        = [\\n                                summarize_tool(t)\\n                                for
+        t in spec.get(\\\"declarative\\\", {}).get(\\\"tools\\\", [])\\n                            ]\\n
+        \                           last_seen[agent_name] = spec\\n\\n                        elif
+        event_type == \\\"DELETED\\\":\\n                            last_seen.pop(agent_name,
+        None)\\n\\n                        write_audit_entry(entry)\\n                        await
+        post_to_slack(entry)\\n\\n        except Exception as e:\\n            log.error(f\\\"Watch
+        connection failed: {e}, reconnecting in 5s...\\\")\\n            await asyncio.sleep(5)\\n\\n\\ndef
+        summarize_tool(tool: dict) -\\u003e str:\\n    \\\"\\\"\\\"Return a compact
+        string representation of a tool.\\\"\\\"\\\"\\n    if tool.get(\\\"type\\\")
+        == \\\"McpServer\\\":\\n        mcp_info = tool.get(\\\"mcpServer\\\", {})\\n
+        \       name = mcp_info.get(\\\"name\\\", \\\"?\\\")\\n        tools = mcp_info.get(\\\"toolNames\\\",
+        [])\\n        return f\\\"mcp:{name}/{','.join(tools)}\\\"\\n    elif tool.get(\\\"type\\\")
+        == \\\"Agent\\\":\\n        return f\\\"a2a:{tool.get('agent', {}).get('name',
+        '?')}\\\"\\n    return f\\\"unknown:{tool.get('type', '?')}\\\"\\n\\n\\n#
+        ── MCP Tools (so agents can write audit entries) ────────\\n\\n@mcp.tool()\\nasync
+        def write_audit(\\n    agent_name: str,\\n    action: str,\\n    details:
+        str,\\n    severity: str = \\\"info\\\",\\n) -\\u003e str:\\n    \\\"\\\"\\\"\\n
+        \   Write a structured audit entry. Use this to log important decisions,\\n
+        \   tool calls, or state changes.\\n\\n    Args:\\n        agent_name: Name
+        of the agent writing the entry\\n        action:     What happened (e.g. \\\"created_repo\\\",
+        \\\"sent_email\\\", \\\"searched_businesses\\\")\\n        details:    Human-readable
+        description of what was done\\n        severity:   \\\"info\\\" | \\\"warning\\\"
+        | \\\"error\\\" | \\\"critical\\\"\\n    \\\"\\\"\\\"\\n    entry = {\\n        \\\"id\\\":
+        f\\\"agent-{agent_name}-{action}-{datetime.now(timezone.utc).strftime('%H%M%S')}\\\",\\n
+        \       \\\"event_type\\\": \\\"AGENT_ACTION\\\",\\n        \\\"agent_name\\\":
+        agent_name,\\n        \\\"action\\\": action,\\n        \\\"details\\\": details,\\n
+        \       \\\"severity\\\": severity,\\n    }\\n    write_audit_entry(entry)\\n
+        \   await post_to_slack(entry)\\n    return f\\\"Audit entry logged: {entry['id']}\\\"\\n\\n\\n@mcp.tool()\\nasync
+        def get_recent_audit(count: int = 20) -\\u003e str:\\n    \\\"\\\"\\\"\\n
+        \   Return the most recent audit entries.\\n\\n    Args:\\n        count:
+        Number of recent entries to return (max 100)\\n    \\\"\\\"\\\"\\n    count
+        = min(count, 100)\\n    try:\\n        with open(AUDIT_FILE) as f:\\n            lines
+        = f.readlines()\\n        recent = lines[-count:] if len(lines) \\u003e count
+        else lines\\n        return \\\"\\\\n\\\".join(line.strip() for line in recent)\\n
+        \   except FileNotFoundError:\\n        return \\\"No audit entries yet.\\\"\\n\\n\\n#
+        ── REST API (for dashboard — no MCP protocol needed) ────\\n\\nfrom starlette.applications
+        import Starlette\\nfrom starlette.responses import JSONResponse\\nfrom starlette.routing
+        import Route\\n\\n\\nasync def rest_get_entries(request):\\n    \\\"\\\"\\\"GET
+        /entries?count=50\\u0026offset=0\\u0026agent=\\u0026type= — return audit entries
+        as JSON.\\\"\\\"\\\"\\n    count = min(int(request.query_params.get(\\\"count\\\",
+        \\\"50\\\")), 500)\\n    offset = int(request.query_params.get(\\\"offset\\\",
+        \\\"0\\\"))\\n    agent_filter = request.query_params.get(\\\"agent\\\", \\\"\\\")\\n
+        \   type_filter = request.query_params.get(\\\"type\\\", \\\"\\\")\\n\\n    try:\\n
+        \       with open(AUDIT_FILE) as f:\\n            lines = f.readlines()\\n
+        \   except FileNotFoundError:\\n        return JSONResponse({\\\"entries\\\":
+        [], \\\"total\\\": 0})\\n\\n    entries = []\\n    for line in reversed(lines):\\n
+        \       line = line.strip()\\n        if not line:\\n            continue\\n
+        \       try:\\n            entry = json.loads(line)\\n        except json.JSONDecodeError:\\n
+        \           continue\\n        if agent_filter and entry.get(\\\"agent_name\\\",
+        \\\"\\\") != agent_filter:\\n            continue\\n        if type_filter
+        and entry.get(\\\"event_type\\\", \\\"\\\") != type_filter:\\n            continue\\n
+        \       entries.append(entry)\\n\\n    total = len(entries)\\n    entries
+        = entries[offset:offset + count]\\n    return JSONResponse({\\\"entries\\\":
+        entries, \\\"total\\\": total})\\n\\n\\nasync def rest_get_stats(request):\\n
+        \   \\\"\\\"\\\"GET /stats — summary stats for the dashboard.\\\"\\\"\\\"\\n
+        \   try:\\n        with open(AUDIT_FILE) as f:\\n            lines = f.readlines()\\n
+        \   except FileNotFoundError:\\n        return JSONResponse({\\\"total_entries\\\":
+        0, \\\"agents\\\": {}, \\\"event_types\\\": {}})\\n\\n    agents = {}\\n    event_types
+        = {}\\n    for line in lines:\\n        line = line.strip()\\n        if not
+        line:\\n            continue\\n        try:\\n            entry = json.loads(line)\\n
+        \       except json.JSONDecodeError:\\n            continue\\n        agent
+        = entry.get(\\\"agent_name\\\", \\\"unknown\\\")\\n        etype = entry.get(\\\"event_type\\\",
+        \\\"unknown\\\")\\n        agents[agent] = agents.get(agent, 0) + 1\\n        event_types[etype]
+        = event_types.get(etype, 0) + 1\\n\\n    return JSONResponse({\\n        \\\"total_entries\\\":
+        len(lines),\\n        \\\"agents\\\": agents,\\n        \\\"event_types\\\":
+        event_types,\\n    })\\n\\n\\nasync def rest_health(request):\\n    return
+        JSONResponse({\\\"status\\\": \\\"ok\\\"})\\n\\n\\nrest_app = Starlette(routes=[\\n
+        \   Route(\\\"/entries\\\", rest_get_entries),\\n    Route(\\\"/stats\\\",
+        rest_get_stats),\\n    Route(\\\"/health\\\", rest_health),\\n])\\n\\n\\n#
+        ── Entry point ──────────────────────────────────────────\\n\\nasync def main():\\n
+        \   \\\"\\\"\\\"Run the K8s watcher, MCP server, and REST API concurrently.\\\"\\\"\\\"\\n
+        \   import uvicorn\\n\\n    MCP_PORT = int(os.getenv(\\\"AUDIT_MCP_PORT\\\",
+        \\\"8092\\\"))\\n    REST_PORT = int(os.getenv(\\\"AUDIT_REST_PORT\\\", \\\"8093\\\"))\\n\\n
+        \   mcp_app = mcp.streamable_http_app()\\n    mcp_config = uvicorn.Config(mcp_app,
+        host=\\\"0.0.0.0\\\", port=MCP_PORT, log_level=\\\"info\\\")\\n    mcp_server
+        = uvicorn.Server(mcp_config)\\n\\n    rest_config = uvicorn.Config(rest_app,
+        host=\\\"0.0.0.0\\\", port=REST_PORT, log_level=\\\"info\\\")\\n    rest_server
+        = uvicorn.Server(rest_config)\\n\\n    # Run all three concurrently\\n    await
+        asyncio.gather(\\n        watch_agents(),\\n        mcp_server.serve(),\\n
+        \       rest_server.serve(),\\n    )\\n\\n\\nif __name__ == \\\"__main__\\\":\\n
+        \   import anyio\\n\\n    anyio.run(main)\\n\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{},\"creationTimestamp\":null,\"name\":\"audit-logger-code\",\"namespace\":\"kagent\"}}\n"
+    creationTimestamp: "2026-03-25T22:47:15Z"
+    name: audit-logger-code
+    namespace: kagent
+    resourceVersion: "3257145"
+    uid: 08befc4f-d5b7-4c0e-9609-40431e2ac429
+- apiVersion: v1
+  data:
+    capability-registry.yaml: |
+      # ── Capability Registry ──────────────────────────────────
+      # This file defines EXACTLY which agents can exist and what
+      # tools each one is allowed to use. The admission webhook
+      # reads this on every Agent CREATE/UPDATE.
+      #
+      # To update: edit this file, then:
+      #   kubectl create configmap capability-registry \
+      #     --from-file=capability-registry.yaml=infra/phase1-admission-control/capability-registry.yaml \
+      #     -n kagent --dry-run=client -o yaml | kubectl apply -f -
+      #   kubectl delete pod -l app=agent-policy-server -n kagent
+      #
+      # IMPORTANT: This is the ONLY place where agent permissions
+      # are defined. Prompt-level instructions are a SECOND layer,
+      # not the primary control.
+      #
+      # NOTE: khook auto-syncs commander-agent with A2A tools for
+      # every agent in the namespace. The commander entry below must
+      # list all agents in allowed_agent_calls to avoid blocking
+      # khook's sync. MCP tools are the real control surface.
+      # ─────────────────────────────────────────────────────────
+
+      # Enforcement mode: "enforce" = block violations, "audit" = log only
+      # Start in audit mode to observe what would be blocked, then switch.
+      enforcement_mode: audit
+
+      # Hard cap on total agents in namespace. Prevents runaway creation.
+      max_agents: 25
+
+      # If false, any agent not listed below is REJECTED on create/update.
+      allow_unlisted_agents: false
+
+      # If true, agents with MCP tools must have label "hitl-reviewed: true".
+      # Disabled initially — enable after labeling existing agents.
+      require_hitl_label_for_mcp: false
+
+      # These tools are BLOCKED for ALL agents, no exceptions.
+      forbidden_tools:
+        - gmail_send_email
+
+      # ── Per-Agent Permissions ────────────────────────────────
+      allowed_agents:
+
+        # ── Commander (thin router) ─────────────────────────────
+        # khook auto-adds A2A for all agents + MCP from all servers.
+        # We allow the full khook set EXCEPT gmail_send_email (forbidden).
+        commander-agent:
+          description: "Thin router — dispatches to C-suite agents"
+          allowed_tools:
+            - kagent-tool-server/k8s_get_resources
+            - kagent-tool-server/k8s_describe_resource
+            - kagent-tool-server/k8s_apply_manifest
+            - kagent-tool-server/k8s_delete_resource
+            - kagent-tool-server/k8s_create_resource
+            - kagent-tool-server/k8s_get_resource_yaml
+            - kagent-tool-server/k8s_patch_resource
+            - search-tool-server/search_web
+            - search-tool-server/search_news
+            - search-tool-server/search_find_businesses
+            - github-tool-server/github_list_repos
+            - github-tool-server/github_create_repo
+            - github-tool-server/github_push_file
+            - github-tool-server/github_enable_pages
+            - github-tool-server/github_get_pages_url
+            - github-tool-server/github_create_branch
+            - github-tool-server/github_create_pr
+            - gmail-tool-server/gmail_request_approval
+            - gmail-tool-server/gmail_check_approval
+            - hitl-tool-server/request_approval
+            - hitl-tool-server/post_notification
+            - audit-logger/write_audit
+            - audit-logger/get_recent_audit
+            - resource-governor/check_budget
+            - resource-governor/get_system_status
+          allowed_agent_calls:
+            - ceo-agent
+            - coo-agent
+            - cso-agent
+            - pm-agent
+            - prospecting-agent
+            - number-agent-1
+            - number-agent-2
+            - number-agent-3
+            - sum-agent
+            - researcher-agent
+            - critic-agent
+            - writer-agent
+            - publisher-agent
+            - send-email-test
+
+        # ── C-Suite ────────────────────────────────────────────
+
+        ceo-agent:
+          description: "Vision and strategy — no tools, pure reasoning"
+          allowed_tools: []
+          allowed_agent_calls: []
+
+        coo-agent:
+          description: "Operations oversight — audit read + Slack"
+          allowed_tools:
+            - audit-logger/get_recent_audit
+            - hitl-tool-server/post_notification
+          allowed_agent_calls: []
+
+        cso-agent:
+          description: "Security enforcement — audit + HITL-gated remediation"
+          allowed_tools:
+            - kagent-tool-server/k8s_get_resources
+            - kagent-tool-server/k8s_describe_resource
+            - kagent-tool-server/k8s_get_resource_yaml
+            - kagent-tool-server/k8s_delete_resource
+            - kagent-tool-server/k8s_patch_resource
+            - audit-logger/get_recent_audit
+            - audit-logger/write_audit
+            - hitl-tool-server/request_approval
+            - hitl-tool-server/post_notification
+          allowed_agent_calls: []
+
+        pm-agent:
+          description: "Project manager — delegates to workers, tracks backlog"
+          allowed_tools:
+            - audit-logger/write_audit
+            - audit-logger/get_recent_audit
+            - hitl-tool-server/post_notification
+            - hitl-tool-server/request_approval
+          allowed_agent_calls:
+            - prospecting-agent
+
+        # ── Workers ────────────────────────────────────────────
+
+        prospecting-agent:
+          description: "Finds local businesses that need websites"
+          allowed_tools:
+            - search-tool-server/search_find_businesses
+            - search-tool-server/search_web
+            - audit-logger/write_audit
+            - hitl-tool-server/post_notification
+          allowed_agent_calls: []
+
+        # ── Demo/Legacy agents ─────────────────────────────────
+
+        number-agent-1:
+          description: "Demo — picks a number"
+          allowed_tools: []
+          allowed_agent_calls: []
+
+        number-agent-2:
+          description: "Demo — picks a number"
+          allowed_tools: []
+          allowed_agent_calls: []
+
+        number-agent-3:
+          description: "Demo — picks a number"
+          allowed_tools: []
+          allowed_agent_calls: []
+
+        sum-agent:
+          description: "Demo — calculates sum"
+          allowed_tools: []
+          allowed_agent_calls: []
+
+        researcher-agent:
+          description: "Web search for facts"
+          allowed_tools:
+            - search-tool-server/web_search
+            - search-tool-server/news_search
+          allowed_agent_calls: []
+
+        critic-agent:
+          description: "Picks interesting facts"
+          allowed_tools: []
+          allowed_agent_calls: []
+
+        writer-agent:
+          description: "Writes content"
+          allowed_tools: []
+          allowed_agent_calls: []
+
+        publisher-agent:
+          description: "Publishes content"
+          allowed_tools: []
+          allowed_agent_calls: []
+
+        send-email-test:
+          description: "Test email sender"
+          allowed_tools: []
+          allowed_agent_calls: []
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"capability-registry.yaml":"# ── Capability Registry ──────────────────────────────────\n# This file defines EXACTLY which agents can exist and what\n# tools each one is allowed to use. The admission webhook\n# reads this on every Agent CREATE/UPDATE.\n#\n# To update: edit this file, then:\n#   kubectl create configmap capability-registry \\\n#     --from-file=capability-registry.yaml=infra/phase1-admission-control/capability-registry.yaml \\\n#     -n kagent --dry-run=client -o yaml | kubectl apply -f -\n#   kubectl delete pod -l app=agent-policy-server -n kagent\n#\n# IMPORTANT: This is the ONLY place where agent permissions\n# are defined. Prompt-level instructions are a SECOND layer,\n# not the primary control.\n#\n# NOTE: khook auto-syncs commander-agent with A2A tools for\n# every agent in the namespace. The commander entry below must\n# list all agents in allowed_agent_calls to avoid blocking\n# khook's sync. MCP tools are the real control surface.\n# ─────────────────────────────────────────────────────────\n\n# Enforcement mode: \"enforce\" = block violations, \"audit\" = log only\n# Start in audit mode to observe what would be blocked, then switch.\nenforcement_mode: audit\n\n# Hard cap on total agents in namespace. Prevents runaway creation.\nmax_agents: 25\n\n# If false, any agent not listed below is REJECTED on create/update.\nallow_unlisted_agents: false\n\n# If true, agents with MCP tools must have label \"hitl-reviewed: true\".\n# Disabled initially — enable after labeling existing agents.\nrequire_hitl_label_for_mcp: false\n\n# These tools are BLOCKED for ALL agents, no exceptions.\nforbidden_tools:\n  - gmail_send_email\n\n# ── Per-Agent Permissions ────────────────────────────────\nallowed_agents:\n\n  # ── Commander (thin router) ─────────────────────────────\n  # khook auto-adds A2A for all agents + MCP from all servers.\n  # We allow the full khook set EXCEPT gmail_send_email (forbidden).\n  commander-agent:\n    description: \"Thin router — dispatches to C-suite agents\"\n    allowed_tools:\n      - kagent-tool-server/k8s_get_resources\n      - kagent-tool-server/k8s_describe_resource\n      - kagent-tool-server/k8s_apply_manifest\n      - kagent-tool-server/k8s_delete_resource\n      - kagent-tool-server/k8s_create_resource\n      - kagent-tool-server/k8s_get_resource_yaml\n      - kagent-tool-server/k8s_patch_resource\n      - search-tool-server/search_web\n      - search-tool-server/search_news\n      - search-tool-server/search_find_businesses\n      - github-tool-server/github_list_repos\n      - github-tool-server/github_create_repo\n      - github-tool-server/github_push_file\n      - github-tool-server/github_enable_pages\n      - github-tool-server/github_get_pages_url\n      - github-tool-server/github_create_branch\n      - github-tool-server/github_create_pr\n      - gmail-tool-server/gmail_request_approval\n      - gmail-tool-server/gmail_check_approval\n      - hitl-tool-server/request_approval\n      - hitl-tool-server/post_notification\n      - audit-logger/write_audit\n      - audit-logger/get_recent_audit\n      - resource-governor/check_budget\n      - resource-governor/get_system_status\n    allowed_agent_calls:\n      - ceo-agent\n      - coo-agent\n      - cso-agent\n      - pm-agent\n      - prospecting-agent\n      - number-agent-1\n      - number-agent-2\n      - number-agent-3\n      - sum-agent\n      - researcher-agent\n      - critic-agent\n      - writer-agent\n      - publisher-agent\n      - send-email-test\n\n  # ── C-Suite ────────────────────────────────────────────\n\n  ceo-agent:\n    description: \"Vision and strategy — no tools, pure reasoning\"\n    allowed_tools: []\n    allowed_agent_calls: []\n\n  coo-agent:\n    description: \"Operations oversight — audit read + Slack\"\n    allowed_tools:\n      - audit-logger/get_recent_audit\n      - hitl-tool-server/post_notification\n    allowed_agent_calls: []\n\n  cso-agent:\n    description: \"Security enforcement — audit + HITL-gated remediation\"\n    allowed_tools:\n      - kagent-tool-server/k8s_get_resources\n      - kagent-tool-server/k8s_describe_resource\n      - kagent-tool-server/k8s_get_resource_yaml\n      - kagent-tool-server/k8s_delete_resource\n      - kagent-tool-server/k8s_patch_resource\n      - audit-logger/get_recent_audit\n      - audit-logger/write_audit\n      - hitl-tool-server/request_approval\n      - hitl-tool-server/post_notification\n    allowed_agent_calls: []\n\n  pm-agent:\n    description: \"Project manager — delegates to workers, tracks backlog\"\n    allowed_tools:\n      - audit-logger/write_audit\n      - audit-logger/get_recent_audit\n      - hitl-tool-server/post_notification\n      - hitl-tool-server/request_approval\n    allowed_agent_calls:\n      - prospecting-agent\n\n  # ── Workers ────────────────────────────────────────────\n\n  prospecting-agent:\n    description: \"Finds local businesses that need websites\"\n    allowed_tools:\n      - search-tool-server/search_find_businesses\n      - search-tool-server/search_web\n      - audit-logger/write_audit\n      - hitl-tool-server/post_notification\n    allowed_agent_calls: []\n\n  # ── Demo/Legacy agents ─────────────────────────────────\n\n  number-agent-1:\n    description: \"Demo — picks a number\"\n    allowed_tools: []\n    allowed_agent_calls: []\n\n  number-agent-2:\n    description: \"Demo — picks a number\"\n    allowed_tools: []\n    allowed_agent_calls: []\n\n  number-agent-3:\n    description: \"Demo — picks a number\"\n    allowed_tools: []\n    allowed_agent_calls: []\n\n  sum-agent:\n    description: \"Demo — calculates sum\"\n    allowed_tools: []\n    allowed_agent_calls: []\n\n  researcher-agent:\n    description: \"Web search for facts\"\n    allowed_tools:\n      - search-tool-server/web_search\n      - search-tool-server/news_search\n    allowed_agent_calls: []\n\n  critic-agent:\n    description: \"Picks interesting facts\"\n    allowed_tools: []\n    allowed_agent_calls: []\n\n  writer-agent:\n    description: \"Writes content\"\n    allowed_tools: []\n    allowed_agent_calls: []\n\n  publisher-agent:\n    description: \"Publishes content\"\n    allowed_tools: []\n    allowed_agent_calls: []\n\n  send-email-test:\n    description: \"Test email sender\"\n    allowed_tools: []\n    allowed_agent_calls: []\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"capability-registry","namespace":"kagent"}}
+    creationTimestamp: "2026-03-26T00:46:44Z"
+    name: capability-registry
+    namespace: kagent
+    resourceVersion: "3266708"
+    uid: 5df948f4-464e-41ba-b903-946d3163c755
 - apiVersion: v1
   data:
     server.py: |
@@ -109,12 +904,25 @@ items:
           path: str = Field(description="File path e.g. index.html")
           content: str = Field(description="Full file content")
           message: str = Field(description="Commit message")
+          branch: Optional[str] = Field(default="main", description="Branch to push to (default: main)")
 
       class RepoInput(BaseModel):
           repo: str = Field(description="owner/repo format")
 
       class EmptyInput(BaseModel):
           pass
+
+      class CreateBranchInput(BaseModel):
+          repo: str = Field(description="owner/repo format")
+          branch: str = Field(description="New branch name e.g. hardening/pin-images-1234")
+          from_branch: Optional[str] = Field(default="main", description="Source branch to branch from (default: main)")
+
+      class CreatePRInput(BaseModel):
+          repo: str = Field(description="owner/repo format")
+          title: str = Field(description="PR title")
+          body: str = Field(description="PR description (markdown)")
+          head: str = Field(description="Branch containing changes")
+          base: Optional[str] = Field(default="main", description="Target branch (default: main)")
 
       @mcp.tool(name="github_list_repos", annotations={"readOnlyHint": True})
       async def github_list_repos(params: EmptyInput) -> str:
@@ -147,14 +955,14 @@ items:
           try:
               content_b64 = base64.b64encode(params.content.encode()).decode()
               async with httpx.AsyncClient(timeout=15) as client:
-                  check = await client.get(f"{BASE}/repos/{params.repo}/contents/{params.path}", headers=HEADERS)
-                  payload = {"message": params.message, "content": content_b64}
+                  check = await client.get(f"{BASE}/repos/{params.repo}/contents/{params.path}?ref={params.branch}", headers=HEADERS)
+                  payload = {"message": params.message, "content": content_b64, "branch": params.branch}
                   if check.status_code == 200:
                       payload["sha"] = check.json()["sha"]
                   r = await client.put(f"{BASE}/repos/{params.repo}/contents/{params.path}", headers=HEADERS, json=payload)
                   r.raise_for_status()
                   data = r.json()
-              print(f"[github_push_file] repo={params.repo} path={params.path}")
+              print(f"[github_push_file] repo={params.repo} path={params.path} branch={params.branch}")
               return json.dumps({"path": params.path, "commit": data.get("commit",{}).get("sha","")}, indent=2)
           except Exception as e:
               return json.dumps({"error": str(e)})
@@ -182,6 +990,50 @@ items:
           except Exception as e:
               return json.dumps({"error": str(e)})
 
+      @mcp.tool(name="github_create_branch", annotations={"destructiveHint": False})
+      async def github_create_branch(params: CreateBranchInput) -> str:
+          """Create a new branch in a GitHub repo from an existing branch."""
+          try:
+              async with httpx.AsyncClient(timeout=15) as client:
+                  # Get the SHA of the source branch
+                  r = await client.get(f"{BASE}/repos/{params.repo}/git/ref/heads/{params.from_branch}", headers=HEADERS)
+                  r.raise_for_status()
+                  sha = r.json()["object"]["sha"]
+                  # Create the new branch
+                  r2 = await client.post(f"{BASE}/repos/{params.repo}/git/refs", headers=HEADERS, json={
+                      "ref": f"refs/heads/{params.branch}",
+                      "sha": sha
+                  })
+                  r2.raise_for_status()
+                  data = r2.json()
+              print(f"[github_create_branch] repo={params.repo} branch={params.branch} from={params.from_branch}")
+              return json.dumps({"ref": data["ref"], "sha": data["object"]["sha"]}, indent=2)
+          except Exception as e:
+              return json.dumps({"error": str(e)})
+
+      @mcp.tool(name="github_create_pr", annotations={"destructiveHint": False})
+      async def github_create_pr(params: CreatePRInput) -> str:
+          """Create a pull request. Returns PR URL and number for review."""
+          try:
+              async with httpx.AsyncClient(timeout=15) as client:
+                  r = await client.post(f"{BASE}/repos/{params.repo}/pulls", headers=HEADERS, json={
+                      "title": params.title,
+                      "body": params.body,
+                      "head": params.head,
+                      "base": params.base
+                  })
+                  r.raise_for_status()
+                  data = r.json()
+              print(f"[github_create_pr] repo={params.repo} pr=#{data['number']}")
+              return json.dumps({
+                  "number": data["number"],
+                  "url": data["html_url"],
+                  "state": data["state"],
+                  "title": data["title"]
+              }, indent=2)
+          except Exception as e:
+              return json.dumps({"error": str(e)})
+
       if __name__ == "__main__":
           import uvicorn
           app = mcp.streamable_http_app()
@@ -193,11 +1045,11 @@ items:
   metadata:
     annotations:
       kubectl.kubernetes.io/last-applied-configuration: |
-        {"apiVersion":"v1","data":{"server.py":"from mcp.server.fastmcp import FastMCP\nfrom mcp.server.transport_security import TransportSecuritySettings\nfrom pydantic import BaseModel, Field\nfrom typing import Optional\nimport json, os, base64, httpx\n\nmcp = FastMCP(\"github_mcp\", transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))\nGITHUB_TOKEN = os.environ.get(\"GITHUB_TOKEN\", \"\")\nHEADERS = {\"Authorization\": f\"Bearer {GITHUB_TOKEN}\", \"Accept\": \"application/vnd.github+json\", \"X-GitHub-Api-Version\": \"2022-11-28\"}\nBASE = \"https://api.github.com\"\n\nclass CreateRepoInput(BaseModel):\n    name: str = Field(description=\"Repo name, use hyphens not spaces\")\n    description: Optional[str] = Field(default=\"\")\n    private: Optional[bool] = Field(default=False)\n\nclass PushFileInput(BaseModel):\n    repo: str = Field(description=\"owner/repo format e.g. wjewell3/my-site\")\n    path: str = Field(description=\"File path e.g. index.html\")\n    content: str = Field(description=\"Full file content\")\n    message: str = Field(description=\"Commit message\")\n\nclass RepoInput(BaseModel):\n    repo: str = Field(description=\"owner/repo format\")\n\nclass EmptyInput(BaseModel):\n    pass\n\n@mcp.tool(name=\"github_list_repos\", annotations={\"readOnlyHint\": True})\nasync def github_list_repos(params: EmptyInput) -\u003e str:\n    \"\"\"List GitHub repos for authenticated user.\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.get(f\"{BASE}/user/repos?per_page=30\u0026sort=updated\", headers=HEADERS)\n            r.raise_for_status()\n            repos = [{\"name\": x[\"name\"], \"url\": x[\"html_url\"], \"has_pages\": x.get(\"has_pages\")} for x in r.json()]\n        return json.dumps(repos, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_create_repo\", annotations={\"destructiveHint\": False})\nasync def github_create_repo(params: CreateRepoInput) -\u003e str:\n    \"\"\"Create a new GitHub repo. Returns full_name (owner/repo) needed for other tools.\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.post(f\"{BASE}/user/repos\", headers=HEADERS, json={\"name\": params.name, \"description\": params.description, \"private\": params.private, \"auto_init\": True})\n            r.raise_for_status()\n            data = r.json()\n        print(f\"[github_create_repo] created={data['full_name']}\")\n        return json.dumps({\"name\": data[\"name\"], \"full_name\": data[\"full_name\"], \"url\": data[\"html_url\"]}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_push_file\", annotations={\"destructiveHint\": True, \"idempotentHint\": True})\nasync def github_push_file(params: PushFileInput) -\u003e str:\n    \"\"\"Create or update a file in a GitHub repo. Handles SHA automatically.\"\"\"\n    try:\n        content_b64 = base64.b64encode(params.content.encode()).decode()\n        async with httpx.AsyncClient(timeout=15) as client:\n            check = await client.get(f\"{BASE}/repos/{params.repo}/contents/{params.path}\", headers=HEADERS)\n            payload = {\"message\": params.message, \"content\": content_b64}\n            if check.status_code == 200:\n                payload[\"sha\"] = check.json()[\"sha\"]\n            r = await client.put(f\"{BASE}/repos/{params.repo}/contents/{params.path}\", headers=HEADERS, json=payload)\n            r.raise_for_status()\n            data = r.json()\n        print(f\"[github_push_file] repo={params.repo} path={params.path}\")\n        return json.dumps({\"path\": params.path, \"commit\": data.get(\"commit\",{}).get(\"sha\",\"\")}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_enable_pages\", annotations={\"idempotentHint\": True})\nasync def github_enable_pages(params: RepoInput) -\u003e str:\n    \"\"\"Enable GitHub Pages on main branch. Site goes live at https://owner.github.io/repo\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.post(f\"{BASE}/repos/{params.repo}/pages\", headers=HEADERS, json={\"source\": {\"branch\": \"main\", \"path\": \"/\"}})\n            data = r.json()\n        print(f\"[github_enable_pages] repo={params.repo}\")\n        return json.dumps({\"url\": data.get(\"html_url\",\"\"), \"status\": data.get(\"status\",\"\")}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_get_pages_url\", annotations={\"readOnlyHint\": True})\nasync def github_get_pages_url(params: RepoInput) -\u003e str:\n    \"\"\"Get GitHub Pages URL and status. May take 1-2 minutes to go live after enabling.\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.get(f\"{BASE}/repos/{params.repo}/pages\", headers=HEADERS)\n            data = r.json()\n        return json.dumps({\"url\": data.get(\"html_url\",\"\"), \"status\": data.get(\"status\",\"\"), \"live\": data.get(\"status\")==\"built\"}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\nif __name__ == \"__main__\":\n    import uvicorn\n    app = mcp.streamable_http_app()\n    config = uvicorn.Config(app, host=\"0.0.0.0\", port=8087, log_level=\"info\")\n    server = uvicorn.Server(config)\n    import anyio\n    anyio.run(server.serve)\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"github-mcp-server","namespace":"kagent"}}
+        {"apiVersion":"v1","data":{"server.py":"from mcp.server.fastmcp import FastMCP\nfrom mcp.server.transport_security import TransportSecuritySettings\nfrom pydantic import BaseModel, Field\nfrom typing import Optional\nimport json, os, base64, httpx\n\nmcp = FastMCP(\"github_mcp\", transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))\nGITHUB_TOKEN = os.environ.get(\"GITHUB_TOKEN\", \"\")\nHEADERS = {\"Authorization\": f\"Bearer {GITHUB_TOKEN}\", \"Accept\": \"application/vnd.github+json\", \"X-GitHub-Api-Version\": \"2022-11-28\"}\nBASE = \"https://api.github.com\"\n\nclass CreateRepoInput(BaseModel):\n    name: str = Field(description=\"Repo name, use hyphens not spaces\")\n    description: Optional[str] = Field(default=\"\")\n    private: Optional[bool] = Field(default=False)\n\nclass PushFileInput(BaseModel):\n    repo: str = Field(description=\"owner/repo format e.g. wjewell3/my-site\")\n    path: str = Field(description=\"File path e.g. index.html\")\n    content: str = Field(description=\"Full file content\")\n    message: str = Field(description=\"Commit message\")\n    branch: Optional[str] = Field(default=\"main\", description=\"Branch to push to (default: main)\")\n\nclass RepoInput(BaseModel):\n    repo: str = Field(description=\"owner/repo format\")\n\nclass EmptyInput(BaseModel):\n    pass\n\nclass CreateBranchInput(BaseModel):\n    repo: str = Field(description=\"owner/repo format\")\n    branch: str = Field(description=\"New branch name e.g. hardening/pin-images-1234\")\n    from_branch: Optional[str] = Field(default=\"main\", description=\"Source branch to branch from (default: main)\")\n\nclass CreatePRInput(BaseModel):\n    repo: str = Field(description=\"owner/repo format\")\n    title: str = Field(description=\"PR title\")\n    body: str = Field(description=\"PR description (markdown)\")\n    head: str = Field(description=\"Branch containing changes\")\n    base: Optional[str] = Field(default=\"main\", description=\"Target branch (default: main)\")\n\n@mcp.tool(name=\"github_list_repos\", annotations={\"readOnlyHint\": True})\nasync def github_list_repos(params: EmptyInput) -\u003e str:\n    \"\"\"List GitHub repos for authenticated user.\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.get(f\"{BASE}/user/repos?per_page=30\u0026sort=updated\", headers=HEADERS)\n            r.raise_for_status()\n            repos = [{\"name\": x[\"name\"], \"url\": x[\"html_url\"], \"has_pages\": x.get(\"has_pages\")} for x in r.json()]\n        return json.dumps(repos, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_create_repo\", annotations={\"destructiveHint\": False})\nasync def github_create_repo(params: CreateRepoInput) -\u003e str:\n    \"\"\"Create a new GitHub repo. Returns full_name (owner/repo) needed for other tools.\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.post(f\"{BASE}/user/repos\", headers=HEADERS, json={\"name\": params.name, \"description\": params.description, \"private\": params.private, \"auto_init\": True})\n            r.raise_for_status()\n            data = r.json()\n        print(f\"[github_create_repo] created={data['full_name']}\")\n        return json.dumps({\"name\": data[\"name\"], \"full_name\": data[\"full_name\"], \"url\": data[\"html_url\"]}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_push_file\", annotations={\"destructiveHint\": True, \"idempotentHint\": True})\nasync def github_push_file(params: PushFileInput) -\u003e str:\n    \"\"\"Create or update a file in a GitHub repo. Handles SHA automatically.\"\"\"\n    try:\n        content_b64 = base64.b64encode(params.content.encode()).decode()\n        async with httpx.AsyncClient(timeout=15) as client:\n            check = await client.get(f\"{BASE}/repos/{params.repo}/contents/{params.path}?ref={params.branch}\", headers=HEADERS)\n            payload = {\"message\": params.message, \"content\": content_b64, \"branch\": params.branch}\n            if check.status_code == 200:\n                payload[\"sha\"] = check.json()[\"sha\"]\n            r = await client.put(f\"{BASE}/repos/{params.repo}/contents/{params.path}\", headers=HEADERS, json=payload)\n            r.raise_for_status()\n            data = r.json()\n        print(f\"[github_push_file] repo={params.repo} path={params.path} branch={params.branch}\")\n        return json.dumps({\"path\": params.path, \"commit\": data.get(\"commit\",{}).get(\"sha\",\"\")}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_enable_pages\", annotations={\"idempotentHint\": True})\nasync def github_enable_pages(params: RepoInput) -\u003e str:\n    \"\"\"Enable GitHub Pages on main branch. Site goes live at https://owner.github.io/repo\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.post(f\"{BASE}/repos/{params.repo}/pages\", headers=HEADERS, json={\"source\": {\"branch\": \"main\", \"path\": \"/\"}})\n            data = r.json()\n        print(f\"[github_enable_pages] repo={params.repo}\")\n        return json.dumps({\"url\": data.get(\"html_url\",\"\"), \"status\": data.get(\"status\",\"\")}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_get_pages_url\", annotations={\"readOnlyHint\": True})\nasync def github_get_pages_url(params: RepoInput) -\u003e str:\n    \"\"\"Get GitHub Pages URL and status. May take 1-2 minutes to go live after enabling.\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.get(f\"{BASE}/repos/{params.repo}/pages\", headers=HEADERS)\n            data = r.json()\n        return json.dumps({\"url\": data.get(\"html_url\",\"\"), \"status\": data.get(\"status\",\"\"), \"live\": data.get(\"status\")==\"built\"}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_create_branch\", annotations={\"destructiveHint\": False})\nasync def github_create_branch(params: CreateBranchInput) -\u003e str:\n    \"\"\"Create a new branch in a GitHub repo from an existing branch.\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            # Get the SHA of the source branch\n            r = await client.get(f\"{BASE}/repos/{params.repo}/git/ref/heads/{params.from_branch}\", headers=HEADERS)\n            r.raise_for_status()\n            sha = r.json()[\"object\"][\"sha\"]\n            # Create the new branch\n            r2 = await client.post(f\"{BASE}/repos/{params.repo}/git/refs\", headers=HEADERS, json={\n                \"ref\": f\"refs/heads/{params.branch}\",\n                \"sha\": sha\n            })\n            r2.raise_for_status()\n            data = r2.json()\n        print(f\"[github_create_branch] repo={params.repo} branch={params.branch} from={params.from_branch}\")\n        return json.dumps({\"ref\": data[\"ref\"], \"sha\": data[\"object\"][\"sha\"]}, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\n@mcp.tool(name=\"github_create_pr\", annotations={\"destructiveHint\": False})\nasync def github_create_pr(params: CreatePRInput) -\u003e str:\n    \"\"\"Create a pull request. Returns PR URL and number for review.\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=15) as client:\n            r = await client.post(f\"{BASE}/repos/{params.repo}/pulls\", headers=HEADERS, json={\n                \"title\": params.title,\n                \"body\": params.body,\n                \"head\": params.head,\n                \"base\": params.base\n            })\n            r.raise_for_status()\n            data = r.json()\n        print(f\"[github_create_pr] repo={params.repo} pr=#{data['number']}\")\n        return json.dumps({\n            \"number\": data[\"number\"],\n            \"url\": data[\"html_url\"],\n            \"state\": data[\"state\"],\n            \"title\": data[\"title\"]\n        }, indent=2)\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\nif __name__ == \"__main__\":\n    import uvicorn\n    app = mcp.streamable_http_app()\n    config = uvicorn.Config(app, host=\"0.0.0.0\", port=8087, log_level=\"info\")\n    server = uvicorn.Server(config)\n    import anyio\n    anyio.run(server.serve)\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"github-mcp-server","namespace":"kagent"}}
     creationTimestamp: "2026-03-21T18:33:05Z"
     name: github-mcp-server
     namespace: kagent
-    resourceVersion: "1678819"
+    resourceVersion: "3203606"
     uid: 1df73935-9171-4254-b593-a927e889f2ca
 - apiVersion: v1
   data:
@@ -277,6 +1129,421 @@ items:
     namespace: kagent
     resourceVersion: "1355653"
     uid: c35acfa1-0281-4744-8e91-48b0bb35b5f4
+- apiVersion: v1
+  data:
+    budgets.yaml: |
+      # ── Resource Governor Budget Configuration ───────────────
+      # Deterministic budget limits. Cannot be overridden by agents.
+      #
+      # Update: edit this file, then:
+      #   kubectl create configmap governor-budgets \
+      #     --from-file=budgets.yaml=infra/phase3-resource-governor/budgets.yaml \
+      #     -n kagent --dry-run=client -o yaml | kubectl apply -f -
+      #   kubectl delete pod -l app=resource-governor -n kagent
+
+      # ── Global limits ────────────────────────────────────────
+      global:
+        max_total_actions_per_hour: 500
+        max_total_actions_hard_cap: 1000
+
+      # ── Per-agent limits ─────────────────────────────────────
+      agents:
+        _default:
+          max_actions_per_hour: 50
+
+        # C-suite — moderate limits, mostly reasoning
+        commander-agent:
+          max_actions_per_hour: 200
+        ceo-agent:
+          max_actions_per_hour: 50
+        coo-agent:
+          max_actions_per_hour: 100
+        cso-agent:
+          max_actions_per_hour: 100
+        pm-agent:
+          max_actions_per_hour: 150
+
+        # Workers — higher limits as they do real work
+        prospecting-agent:
+          max_actions_per_hour: 100
+
+        # Demo/legacy — low limits
+        researcher-agent:
+          max_actions_per_hour: 50
+        number-agent-1:
+          max_actions_per_hour: 20
+        number-agent-2:
+          max_actions_per_hour: 20
+        number-agent-3:
+          max_actions_per_hour: 20
+        sum-agent:
+          max_actions_per_hour: 20
+        critic-agent:
+          max_actions_per_hour: 30
+        writer-agent:
+          max_actions_per_hour: 30
+        publisher-agent:
+          max_actions_per_hour: 30
+        send-email-test:
+          max_actions_per_hour: 10
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"budgets.yaml":"# ── Resource Governor Budget Configuration ───────────────\n# Deterministic budget limits. Cannot be overridden by agents.\n#\n# Update: edit this file, then:\n#   kubectl create configmap governor-budgets \\\n#     --from-file=budgets.yaml=infra/phase3-resource-governor/budgets.yaml \\\n#     -n kagent --dry-run=client -o yaml | kubectl apply -f -\n#   kubectl delete pod -l app=resource-governor -n kagent\n\n# ── Global limits ────────────────────────────────────────\nglobal:\n  max_total_actions_per_hour: 500\n  max_total_actions_hard_cap: 1000\n\n# ── Per-agent limits ─────────────────────────────────────\nagents:\n  _default:\n    max_actions_per_hour: 50\n\n  # C-suite — moderate limits, mostly reasoning\n  commander-agent:\n    max_actions_per_hour: 200\n  ceo-agent:\n    max_actions_per_hour: 50\n  coo-agent:\n    max_actions_per_hour: 100\n  cso-agent:\n    max_actions_per_hour: 100\n  pm-agent:\n    max_actions_per_hour: 150\n\n  # Workers — higher limits as they do real work\n  prospecting-agent:\n    max_actions_per_hour: 100\n\n  # Demo/legacy — low limits\n  researcher-agent:\n    max_actions_per_hour: 50\n  number-agent-1:\n    max_actions_per_hour: 20\n  number-agent-2:\n    max_actions_per_hour: 20\n  number-agent-3:\n    max_actions_per_hour: 20\n  sum-agent:\n    max_actions_per_hour: 20\n  critic-agent:\n    max_actions_per_hour: 30\n  writer-agent:\n    max_actions_per_hour: 30\n  publisher-agent:\n    max_actions_per_hour: 30\n  send-email-test:\n    max_actions_per_hour: 10\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"governor-budgets","namespace":"kagent"}}
+    creationTimestamp: "2026-03-26T00:48:32Z"
+    name: governor-budgets
+    namespace: kagent
+    resourceVersion: "3241650"
+    uid: 705e7201-70fd-47ec-9bf5-dfbc7469dc82
+- apiVersion: v1
+  data:
+    server.py: "\"\"\"\nhardening-agent.py — Watches agent decision patterns and proposes\ndeterministic
+      rules to replace repetitive LLM decisions.\n\nThis is the compounding mechanism.
+      Over time, the LLM surface shrinks\nand the deterministic surface grows.\n\nHow
+      it works:\n  1. Reads audit log entries periodically\n  2. Groups similar agent
+      actions by (agent, action_type) pairs\n  3. When a pattern exceeds threshold
+      (e.g., same decision 10+ times),\n     proposes a deterministic rule\n  4. Posts
+      proposals to #hardening-proposals Slack channel\n  5. Human approves/rejects
+      in Slack\n  6. Approved rules get added to a rules ConfigMap\n\nv1 is intentionally
+      dumb — it just counts frequencies and proposes.\nNo ML, no embeddings, no complexity.
+      Start the compounding early.\n\"\"\"\n\nimport asyncio\nimport json\nimport
+      logging\nimport os\nimport sys\nimport time\nfrom collections import Counter,
+      defaultdict\nfrom datetime import datetime, timezone\n\nimport httpx\nimport
+      yaml\nfrom mcp.client.streamable_http import streamablehttp_client\nfrom mcp
+      import ClientSession\nfrom mcp.server.fastmcp import FastMCP\nfrom mcp.server.transport_security
+      import TransportSecuritySettings\n\nlogging.basicConfig(\n    level=logging.INFO,\n
+      \   format=\"%(asctime)s %(levelname)s %(message)s\",\n    stream=sys.stdout,\n)\nlog
+      = logging.getLogger(\"hardening-agent\")\n\nAUDIT_URL = os.getenv(\n    \"AUDIT_LOGGER_URL\",
+      \"http://audit-logger.kagent.svc.cluster.local:8092\"\n)\nGITHUB_MCP_URL = os.getenv(\n
+      \   \"GITHUB_MCP_URL\", \"http://github-mcp.kagent.svc.cluster.local:8087\"\n)\nGITHUB_REPO
+      = os.getenv(\"GITHUB_REPO\", \"wjewell3/autobot\")\nSLACK_BOT_TOKEN = os.getenv(\"SLACK_BOT_TOKEN\",
+      \"\")\nSLACK_PROPOSALS_CHANNEL = os.getenv(\"SLACK_PROPOSALS_CHANNEL_ID\", \"\")\nRULES_PATH
+      = \"/etc/hardening/rules.yaml\"\nANALYSIS_INTERVAL = int(os.getenv(\"ANALYSIS_INTERVAL_SECONDS\",
+      \"300\"))  # 5 min\nPROPOSAL_THRESHOLD = int(os.getenv(\"PROPOSAL_THRESHOLD\",
+      \"10\"))\n\nmcp = FastMCP(\n    \"hardening-agent\",\n    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),\n)\n\n#
+      Track which patterns we've already proposed (avoid spam)\nproposed_patterns:
+      set[str] = set()\n\n\nasync def call_mcp_tool(server_url: str, tool_name: str,
+      arguments: dict) -> dict:\n    \"\"\"Call a tool on an MCP server using the
+      proper MCP client SDK.\"\"\"\n    try:\n        async with streamablehttp_client(f\"{server_url}/mcp\")
+      as (read, write, _):\n            async with ClientSession(read, write) as session:\n
+      \               await session.initialize()\n                result = await session.call_tool(tool_name,
+      arguments)\n                if result.content:\n                    text = result.content[0].text\n
+      \                   try:\n                        return json.loads(text)\n
+      \                   except json.JSONDecodeError:\n                        return
+      {\"text\": text}\n        return {\"error\": \"No content returned\"}\n    except
+      Exception as e:\n        log.error(f\"MCP call failed ({server_url} / {tool_name}):
+      {e}\")\n        return {\"error\": str(e)}\n\n\nasync def create_pr_via_github_mcp(proposal_yaml:
+      str, pattern_key: str) -> dict:\n    \"\"\"Create a branch, push a proposal
+      file, and open a PR via github-mcp.\"\"\"\n    ts = int(time.time())\n    branch_name
+      = f\"hardening/proposal-{ts}\"\n\n    # 1. Create branch\n    branch_result
+      = await call_mcp_tool(GITHUB_MCP_URL, \"github_create_branch\", {\n        \"repo\":
+      GITHUB_REPO,\n        \"branch\": branch_name,\n        \"from_branch\": \"main\",\n
+      \   })\n    if \"error\" in branch_result:\n        log.error(f\"Failed to create
+      branch: {branch_result['error']}\")\n        return branch_result\n\n    # 2.
+      Push proposal file to the new branch\n    file_path = f\"infra/hardening-proposals/{pattern_key.replace(':',
+      '-')}-{ts}.yaml\"\n    push_result = await call_mcp_tool(GITHUB_MCP_URL, \"github_push_file\",
+      {\n        \"repo\": GITHUB_REPO,\n        \"path\": file_path,\n        \"content\":
+      proposal_yaml,\n        \"message\": f\"hardening: propose rule for {pattern_key}\",\n
+      \       \"branch\": branch_name,\n    })\n    if \"error\" in push_result:\n
+      \       log.error(f\"Failed to push file: {push_result['error']}\")\n        return
+      push_result\n\n    # 3. Open PR\n    pr_result = await call_mcp_tool(GITHUB_MCP_URL,
+      \"github_create_pr\", {\n        \"repo\": GITHUB_REPO,\n        \"title\":
+      f\"Hardening: propose rule for {pattern_key}\",\n        \"body\": (\n            f\"##
+      Hardening Proposal\\n\\n\"\n            f\"**Pattern:** `{pattern_key}`\\n\\n\"\n
+      \           f\"This pattern was detected frequently in the audit log. \"\n            f\"Review
+      and merge to add as a deterministic rule.\\n\\n\"\n            f\"**Rollback:**
+      revert this PR or `kubectl rollout undo` affected deployments.\\n\\n\"\n            f\"```yaml\\n{proposal_yaml}\\n```\"\n
+      \       ),\n        \"head\": branch_name,\n        \"base\": \"main\",\n    })\n
+      \   if \"error\" in pr_result:\n        log.error(f\"Failed to create PR: {pr_result['error']}\")\n
+      \   else:\n        log.info(f\"PR created: {pr_result.get('url', 'unknown')}\")\n\n
+      \   return pr_result\n\n\ndef load_rules() -> dict:\n    try:\n        with
+      open(RULES_PATH) as f:\n            return yaml.safe_load(f) or {}\n    except
+      FileNotFoundError:\n        return {}\n\n\nasync def get_audit_entries(count:
+      int = 500) -> list[dict]:\n    \"\"\"Fetch recent audit entries.\"\"\"\n    try:\n
+      \       result = await call_mcp_tool(AUDIT_URL, \"get_recent_audit\", {\"count\":
+      count})\n        text = result.get(\"text\", \"\")\n        if not text:\n            return
+      []\n        entries = []\n        for line in text.strip().split(\"\\n\"):\n
+      \           if line.strip():\n                try:\n                    entries.append(json.loads(line))\n
+      \               except json.JSONDecodeError:\n                    pass\n        return
+      entries\n    except Exception as e:\n        log.debug(f\"Audit fetch failed:
+      {e}\")\n    return []\n\n\nasync def post_proposal(pattern_key: str, count:
+      int, examples: list[str],\n                         proposed_rule: str):\n    \"\"\"Post
+      a hardening proposal to Slack and create a GitHub PR.\"\"\"\n    # Create PR
+      via github-mcp\n    pr_result = await create_pr_via_github_mcp(proposed_rule,
+      pattern_key)\n    pr_url = pr_result.get(\"url\", \"\")\n    pr_number = pr_result.get(\"number\",
+      \"?\")\n\n    if not SLACK_BOT_TOKEN or not SLACK_PROPOSALS_CHANNEL:\n        log.info(f\"PROPOSAL
+      (no Slack): {pattern_key} ({count} occurrences) PR: {pr_url}\")\n        log.info(f\"
+      \ Rule: {proposed_rule}\")\n        return\n\n    examples_text = \"\\n\".join(f\"
+      \ • {e}\" for e in examples[:5])\n    pr_text = f\"\\n\\n*PR:* <{pr_url}|#{pr_number}>
+      — merge to approve, close to reject.\" if pr_url else \"\"\n    try:\n        async
+      with httpx.AsyncClient() as client:\n            await client.post(\n                \"https://slack.com/api/chat.postMessage\",\n
+      \               headers={\n                    \"Authorization\": f\"Bearer
+      {SLACK_BOT_TOKEN}\",\n                    \"Content-Type\": \"application/json\",\n
+      \               },\n                json={\n                    \"channel\":
+      SLACK_PROPOSALS_CHANNEL,\n                    \"blocks\": [\n                        {\n
+      \                           \"type\": \"section\",\n                            \"text\":
+      {\n                                \"type\": \"mrkdwn\",\n                                \"text\":
+      (\n                                    f\"\U0001F527 *Hardening Proposal*\\n\"\n
+      \                                   f\"*Pattern:* `{pattern_key}`\\n\"\n                                    f\"*Occurrences:*
+      {count}\\n\\n\"\n                                    f\"*Recent examples:*\\n{examples_text}\\n\\n\"\n
+      \                                   f\"*Proposed rule:*\\n```{proposed_rule}```\"\n
+      \                                   f\"{pr_text}\"\n                                ),\n
+      \                           },\n                        },\n                        {\n
+      \                           \"type\": \"context\",\n                            \"elements\":
+      [\n                                {\n                                    \"type\":
+      \"mrkdwn\",\n                                    \"text\": (\n                                        \"Merge
+      the PR to approve this rule. \"\n                                        \"Close
+      it to reject.\"\n                                    ),\n                                }\n
+      \                           ],\n                        },\n                    ],\n
+      \               },\n                timeout=10,\n            )\n    except Exception
+      as e:\n        log.error(f\"Failed to post proposal: {e}\")\n\n\ndef analyze_patterns(entries:
+      list[dict]) -> list[dict]:\n    \"\"\"\n    Find repetitive patterns in audit
+      entries.\n    Returns list of candidate proposals.\n    \"\"\"\n    # Group
+      by (agent_name, action) pairs\n    pattern_counter: Counter = Counter()\n    pattern_examples:
+      dict[str, list[str]] = defaultdict(list)\n\n    for entry in entries:\n        if
+      entry.get(\"event_type\") != \"AGENT_ACTION\":\n            continue\n\n        agent
+      = entry.get(\"agent_name\", \"unknown\")\n        action = entry.get(\"action\",
+      \"unknown\")\n        details = entry.get(\"details\", \"\")\n        key =
+      f\"{agent}:{action}\"\n\n        pattern_counter[key] += 1\n        if len(pattern_examples[key])
+      < 5:\n            pattern_examples[key].append(details[:200])\n\n    # Find
+      patterns above threshold that we haven't proposed yet\n    proposals = []\n
+      \   for key, count in pattern_counter.most_common():\n        if count >= PROPOSAL_THRESHOLD
+      and key not in proposed_patterns:\n            agent, action = key.split(\":\",
+      1)\n            proposals.append({\n                \"pattern_key\": key,\n
+      \               \"agent\": agent,\n                \"action\": action,\n                \"count\":
+      count,\n                \"examples\": pattern_examples[key],\n                \"proposed_rule\":
+      (\n                    f\"# Auto-generated rule for {key}\\n\"\n                    f\"-
+      pattern: \\\"{key}\\\"\\n\"\n                    f\"  agent: {agent}\\n\"\n
+      \                   f\"  action: {action}\\n\"\n                    f\"  occurrences:
+      {count}\\n\"\n                    f\"  rule: \\\"deterministic\\\"  # Replace
+      LLM decision\\n\"\n                    f\"  status: proposed  # Change to 'active'
+      after approval\"\n                ),\n            })\n\n    return proposals\n\n\nasync
+      def analysis_loop():\n    \"\"\"Main loop — analyze patterns and propose rules.\"\"\"\n
+      \   log.info(\n        f\"Starting hardening analysis (interval={ANALYSIS_INTERVAL}s,
+      \"\n        f\"threshold={PROPOSAL_THRESHOLD})\"\n    )\n\n    while True:\n
+      \       try:\n            entries = await get_audit_entries(500)\n            if
+      entries:\n                proposals = analyze_patterns(entries)\n                for
+      p in proposals:\n                    log.info(\n                        f\"Proposing
+      hardening rule: {p['pattern_key']} \"\n                        f\"({p['count']}
+      occurrences)\"\n                    )\n                    await post_proposal(\n
+      \                       p[\"pattern_key\"],\n                        p[\"count\"],\n
+      \                       p[\"examples\"],\n                        p[\"proposed_rule\"],\n
+      \                   )\n                    proposed_patterns.add(p[\"pattern_key\"])\n\n
+      \               if not proposals:\n                    log.info(\n                        f\"No
+      new patterns above threshold ({PROPOSAL_THRESHOLD}). \"\n                        f\"Analyzed
+      {len(entries)} entries.\"\n                    )\n        except Exception as
+      e:\n            log.error(f\"Analysis error: {e}\")\n\n        await asyncio.sleep(ANALYSIS_INTERVAL)\n\n\n#
+      ── MCP Tools ────────────────────────────────────────────\n\n@mcp.tool()\nasync
+      def get_patterns() -> str:\n    \"\"\"\n    Get current decision patterns detected
+      across all agents.\n    Shows frequency of each (agent, action) pair.\n    \"\"\"\n
+      \   entries = await get_audit_entries(500)\n    counter: Counter = Counter()\n
+      \   for entry in entries:\n        if entry.get(\"event_type\") == \"AGENT_ACTION\":\n
+      \           agent = entry.get(\"agent_name\", \"unknown\")\n            action
+      = entry.get(\"action\", \"unknown\")\n            counter[f\"{agent}:{action}\"]
+      += 1\n\n    result = {\n        \"total_entries_analyzed\": len(entries),\n
+      \       \"patterns\": [\n            {\"pattern\": k, \"count\": v} for k, v
+      in counter.most_common(20)\n        ],\n        \"proposal_threshold\": PROPOSAL_THRESHOLD,\n
+      \       \"already_proposed\": list(proposed_patterns),\n    }\n    return json.dumps(result,
+      indent=2)\n\n\n@mcp.tool()\nasync def get_active_rules() -> str:\n    \"\"\"Get
+      the current set of approved hardening rules.\"\"\"\n    rules = load_rules()\n
+      \   return yaml.dump(rules, default_flow_style=False) if rules else \"No active
+      rules yet.\"\n\n\n# ── Entry point ──────────────────────────────────────────\n\nasync
+      def main():\n    import uvicorn\n\n    PORT = int(os.getenv(\"HARDENING_MCP_PORT\",
+      \"8094\"))\n    mcp_app = mcp.streamable_http_app()\n    config = uvicorn.Config(mcp_app,
+      host=\"0.0.0.0\", port=PORT, log_level=\"info\")\n    server = uvicorn.Server(config)\n\n
+      \   await asyncio.gather(\n        analysis_loop(),\n        server.serve(),\n
+      \   )\n\n\nif __name__ == \"__main__\":\n    import anyio\n\n    anyio.run(main)\n"
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: "{\"apiVersion\":\"v1\",\"data\":{\"server.py\":\"\\\"\\\"\\\"\\nhardening-agent.py
+        — Watches agent decision patterns and proposes\\ndeterministic rules to replace
+        repetitive LLM decisions.\\n\\nThis is the compounding mechanism. Over time,
+        the LLM surface shrinks\\nand the deterministic surface grows.\\n\\nHow it
+        works:\\n  1. Reads audit log entries periodically\\n  2. Groups similar agent
+        actions by (agent, action_type) pairs\\n  3. When a pattern exceeds threshold
+        (e.g., same decision 10+ times),\\n     proposes a deterministic rule\\n  4.
+        Posts proposals to #hardening-proposals Slack channel\\n  5. Human approves/rejects
+        in Slack\\n  6. Approved rules get added to a rules ConfigMap\\n\\nv1 is intentionally
+        dumb — it just counts frequencies and proposes.\\nNo ML, no embeddings, no
+        complexity. Start the compounding early.\\n\\\"\\\"\\\"\\n\\nimport asyncio\\nimport
+        json\\nimport logging\\nimport os\\nimport sys\\nimport time\\nfrom collections
+        import Counter, defaultdict\\nfrom datetime import datetime, timezone\\n\\nimport
+        httpx\\nimport yaml\\nfrom mcp.client.streamable_http import streamablehttp_client\\nfrom
+        mcp import ClientSession\\nfrom mcp.server.fastmcp import FastMCP\\nfrom mcp.server.transport_security
+        import TransportSecuritySettings\\n\\nlogging.basicConfig(\\n    level=logging.INFO,\\n
+        \   format=\\\"%(asctime)s %(levelname)s %(message)s\\\",\\n    stream=sys.stdout,\\n)\\nlog
+        = logging.getLogger(\\\"hardening-agent\\\")\\n\\nAUDIT_URL = os.getenv(\\n
+        \   \\\"AUDIT_LOGGER_URL\\\", \\\"http://audit-logger.kagent.svc.cluster.local:8092\\\"\\n)\\nGITHUB_MCP_URL
+        = os.getenv(\\n    \\\"GITHUB_MCP_URL\\\", \\\"http://github-mcp.kagent.svc.cluster.local:8087\\\"\\n)\\nGITHUB_REPO
+        = os.getenv(\\\"GITHUB_REPO\\\", \\\"wjewell3/autobot\\\")\\nSLACK_BOT_TOKEN
+        = os.getenv(\\\"SLACK_BOT_TOKEN\\\", \\\"\\\")\\nSLACK_PROPOSALS_CHANNEL =
+        os.getenv(\\\"SLACK_PROPOSALS_CHANNEL_ID\\\", \\\"\\\")\\nRULES_PATH = \\\"/etc/hardening/rules.yaml\\\"\\nANALYSIS_INTERVAL
+        = int(os.getenv(\\\"ANALYSIS_INTERVAL_SECONDS\\\", \\\"300\\\"))  # 5 min\\nPROPOSAL_THRESHOLD
+        = int(os.getenv(\\\"PROPOSAL_THRESHOLD\\\", \\\"10\\\"))\\n\\nmcp = FastMCP(\\n
+        \   \\\"hardening-agent\\\",\\n    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),\\n)\\n\\n#
+        Track which patterns we've already proposed (avoid spam)\\nproposed_patterns:
+        set[str] = set()\\n\\n\\nasync def call_mcp_tool(server_url: str, tool_name:
+        str, arguments: dict) -\\u003e dict:\\n    \\\"\\\"\\\"Call a tool on an MCP
+        server using the proper MCP client SDK.\\\"\\\"\\\"\\n    try:\\n        async
+        with streamablehttp_client(f\\\"{server_url}/mcp\\\") as (read, write, _):\\n
+        \           async with ClientSession(read, write) as session:\\n                await
+        session.initialize()\\n                result = await session.call_tool(tool_name,
+        arguments)\\n                if result.content:\\n                    text
+        = result.content[0].text\\n                    try:\\n                        return
+        json.loads(text)\\n                    except json.JSONDecodeError:\\n                        return
+        {\\\"text\\\": text}\\n        return {\\\"error\\\": \\\"No content returned\\\"}\\n
+        \   except Exception as e:\\n        log.error(f\\\"MCP call failed ({server_url}
+        / {tool_name}): {e}\\\")\\n        return {\\\"error\\\": str(e)}\\n\\n\\nasync
+        def create_pr_via_github_mcp(proposal_yaml: str, pattern_key: str) -\\u003e
+        dict:\\n    \\\"\\\"\\\"Create a branch, push a proposal file, and open a
+        PR via github-mcp.\\\"\\\"\\\"\\n    ts = int(time.time())\\n    branch_name
+        = f\\\"hardening/proposal-{ts}\\\"\\n\\n    # 1. Create branch\\n    branch_result
+        = await call_mcp_tool(GITHUB_MCP_URL, \\\"github_create_branch\\\", {\\n        \\\"repo\\\":
+        GITHUB_REPO,\\n        \\\"branch\\\": branch_name,\\n        \\\"from_branch\\\":
+        \\\"main\\\",\\n    })\\n    if \\\"error\\\" in branch_result:\\n        log.error(f\\\"Failed
+        to create branch: {branch_result['error']}\\\")\\n        return branch_result\\n\\n
+        \   # 2. Push proposal file to the new branch\\n    file_path = f\\\"infra/hardening-proposals/{pattern_key.replace(':',
+        '-')}-{ts}.yaml\\\"\\n    push_result = await call_mcp_tool(GITHUB_MCP_URL,
+        \\\"github_push_file\\\", {\\n        \\\"repo\\\": GITHUB_REPO,\\n        \\\"path\\\":
+        file_path,\\n        \\\"content\\\": proposal_yaml,\\n        \\\"message\\\":
+        f\\\"hardening: propose rule for {pattern_key}\\\",\\n        \\\"branch\\\":
+        branch_name,\\n    })\\n    if \\\"error\\\" in push_result:\\n        log.error(f\\\"Failed
+        to push file: {push_result['error']}\\\")\\n        return push_result\\n\\n
+        \   # 3. Open PR\\n    pr_result = await call_mcp_tool(GITHUB_MCP_URL, \\\"github_create_pr\\\",
+        {\\n        \\\"repo\\\": GITHUB_REPO,\\n        \\\"title\\\": f\\\"Hardening:
+        propose rule for {pattern_key}\\\",\\n        \\\"body\\\": (\\n            f\\\"##
+        Hardening Proposal\\\\n\\\\n\\\"\\n            f\\\"**Pattern:** `{pattern_key}`\\\\n\\\\n\\\"\\n
+        \           f\\\"This pattern was detected frequently in the audit log. \\\"\\n
+        \           f\\\"Review and merge to add as a deterministic rule.\\\\n\\\\n\\\"\\n
+        \           f\\\"**Rollback:** revert this PR or `kubectl rollout undo` affected
+        deployments.\\\\n\\\\n\\\"\\n            f\\\"```yaml\\\\n{proposal_yaml}\\\\n```\\\"\\n
+        \       ),\\n        \\\"head\\\": branch_name,\\n        \\\"base\\\": \\\"main\\\",\\n
+        \   })\\n    if \\\"error\\\" in pr_result:\\n        log.error(f\\\"Failed
+        to create PR: {pr_result['error']}\\\")\\n    else:\\n        log.info(f\\\"PR
+        created: {pr_result.get('url', 'unknown')}\\\")\\n\\n    return pr_result\\n\\n\\ndef
+        load_rules() -\\u003e dict:\\n    try:\\n        with open(RULES_PATH) as
+        f:\\n            return yaml.safe_load(f) or {}\\n    except FileNotFoundError:\\n
+        \       return {}\\n\\n\\nasync def get_audit_entries(count: int = 500) -\\u003e
+        list[dict]:\\n    \\\"\\\"\\\"Fetch recent audit entries.\\\"\\\"\\\"\\n    try:\\n
+        \       result = await call_mcp_tool(AUDIT_URL, \\\"get_recent_audit\\\",
+        {\\\"count\\\": count})\\n        text = result.get(\\\"text\\\", \\\"\\\")\\n
+        \       if not text:\\n            return []\\n        entries = []\\n        for
+        line in text.strip().split(\\\"\\\\n\\\"):\\n            if line.strip():\\n
+        \               try:\\n                    entries.append(json.loads(line))\\n
+        \               except json.JSONDecodeError:\\n                    pass\\n
+        \       return entries\\n    except Exception as e:\\n        log.debug(f\\\"Audit
+        fetch failed: {e}\\\")\\n    return []\\n\\n\\nasync def post_proposal(pattern_key:
+        str, count: int, examples: list[str],\\n                         proposed_rule:
+        str):\\n    \\\"\\\"\\\"Post a hardening proposal to Slack and create a GitHub
+        PR.\\\"\\\"\\\"\\n    # Create PR via github-mcp\\n    pr_result = await create_pr_via_github_mcp(proposed_rule,
+        pattern_key)\\n    pr_url = pr_result.get(\\\"url\\\", \\\"\\\")\\n    pr_number
+        = pr_result.get(\\\"number\\\", \\\"?\\\")\\n\\n    if not SLACK_BOT_TOKEN
+        or not SLACK_PROPOSALS_CHANNEL:\\n        log.info(f\\\"PROPOSAL (no Slack):
+        {pattern_key} ({count} occurrences) PR: {pr_url}\\\")\\n        log.info(f\\\"
+        \ Rule: {proposed_rule}\\\")\\n        return\\n\\n    examples_text = \\\"\\\\n\\\".join(f\\\"
+        \ • {e}\\\" for e in examples[:5])\\n    pr_text = f\\\"\\\\n\\\\n*PR:* \\u003c{pr_url}|#{pr_number}\\u003e
+        — merge to approve, close to reject.\\\" if pr_url else \\\"\\\"\\n    try:\\n
+        \       async with httpx.AsyncClient() as client:\\n            await client.post(\\n
+        \               \\\"https://slack.com/api/chat.postMessage\\\",\\n                headers={\\n
+        \                   \\\"Authorization\\\": f\\\"Bearer {SLACK_BOT_TOKEN}\\\",\\n
+        \                   \\\"Content-Type\\\": \\\"application/json\\\",\\n                },\\n
+        \               json={\\n                    \\\"channel\\\": SLACK_PROPOSALS_CHANNEL,\\n
+        \                   \\\"blocks\\\": [\\n                        {\\n                            \\\"type\\\":
+        \\\"section\\\",\\n                            \\\"text\\\": {\\n                                \\\"type\\\":
+        \\\"mrkdwn\\\",\\n                                \\\"text\\\": (\\n                                    f\\\"\U0001F527
+        *Hardening Proposal*\\\\n\\\"\\n                                    f\\\"*Pattern:*
+        `{pattern_key}`\\\\n\\\"\\n                                    f\\\"*Occurrences:*
+        {count}\\\\n\\\\n\\\"\\n                                    f\\\"*Recent examples:*\\\\n{examples_text}\\\\n\\\\n\\\"\\n
+        \                                   f\\\"*Proposed rule:*\\\\n```{proposed_rule}```\\\"\\n
+        \                                   f\\\"{pr_text}\\\"\\n                                ),\\n
+        \                           },\\n                        },\\n                        {\\n
+        \                           \\\"type\\\": \\\"context\\\",\\n                            \\\"elements\\\":
+        [\\n                                {\\n                                    \\\"type\\\":
+        \\\"mrkdwn\\\",\\n                                    \\\"text\\\": (\\n                                        \\\"Merge
+        the PR to approve this rule. \\\"\\n                                        \\\"Close
+        it to reject.\\\"\\n                                    ),\\n                                }\\n
+        \                           ],\\n                        },\\n                    ],\\n
+        \               },\\n                timeout=10,\\n            )\\n    except
+        Exception as e:\\n        log.error(f\\\"Failed to post proposal: {e}\\\")\\n\\n\\ndef
+        analyze_patterns(entries: list[dict]) -\\u003e list[dict]:\\n    \\\"\\\"\\\"\\n
+        \   Find repetitive patterns in audit entries.\\n    Returns list of candidate
+        proposals.\\n    \\\"\\\"\\\"\\n    # Group by (agent_name, action) pairs\\n
+        \   pattern_counter: Counter = Counter()\\n    pattern_examples: dict[str,
+        list[str]] = defaultdict(list)\\n\\n    for entry in entries:\\n        if
+        entry.get(\\\"event_type\\\") != \\\"AGENT_ACTION\\\":\\n            continue\\n\\n
+        \       agent = entry.get(\\\"agent_name\\\", \\\"unknown\\\")\\n        action
+        = entry.get(\\\"action\\\", \\\"unknown\\\")\\n        details = entry.get(\\\"details\\\",
+        \\\"\\\")\\n        key = f\\\"{agent}:{action}\\\"\\n\\n        pattern_counter[key]
+        += 1\\n        if len(pattern_examples[key]) \\u003c 5:\\n            pattern_examples[key].append(details[:200])\\n\\n
+        \   # Find patterns above threshold that we haven't proposed yet\\n    proposals
+        = []\\n    for key, count in pattern_counter.most_common():\\n        if count
+        \\u003e= PROPOSAL_THRESHOLD and key not in proposed_patterns:\\n            agent,
+        action = key.split(\\\":\\\", 1)\\n            proposals.append({\\n                \\\"pattern_key\\\":
+        key,\\n                \\\"agent\\\": agent,\\n                \\\"action\\\":
+        action,\\n                \\\"count\\\": count,\\n                \\\"examples\\\":
+        pattern_examples[key],\\n                \\\"proposed_rule\\\": (\\n                    f\\\"#
+        Auto-generated rule for {key}\\\\n\\\"\\n                    f\\\"- pattern:
+        \\\\\\\"{key}\\\\\\\"\\\\n\\\"\\n                    f\\\"  agent: {agent}\\\\n\\\"\\n
+        \                   f\\\"  action: {action}\\\\n\\\"\\n                    f\\\"
+        \ occurrences: {count}\\\\n\\\"\\n                    f\\\"  rule: \\\\\\\"deterministic\\\\\\\"
+        \ # Replace LLM decision\\\\n\\\"\\n                    f\\\"  status: proposed
+        \ # Change to 'active' after approval\\\"\\n                ),\\n            })\\n\\n
+        \   return proposals\\n\\n\\nasync def analysis_loop():\\n    \\\"\\\"\\\"Main
+        loop — analyze patterns and propose rules.\\\"\\\"\\\"\\n    log.info(\\n
+        \       f\\\"Starting hardening analysis (interval={ANALYSIS_INTERVAL}s, \\\"\\n
+        \       f\\\"threshold={PROPOSAL_THRESHOLD})\\\"\\n    )\\n\\n    while True:\\n
+        \       try:\\n            entries = await get_audit_entries(500)\\n            if
+        entries:\\n                proposals = analyze_patterns(entries)\\n                for
+        p in proposals:\\n                    log.info(\\n                        f\\\"Proposing
+        hardening rule: {p['pattern_key']} \\\"\\n                        f\\\"({p['count']}
+        occurrences)\\\"\\n                    )\\n                    await post_proposal(\\n
+        \                       p[\\\"pattern_key\\\"],\\n                        p[\\\"count\\\"],\\n
+        \                       p[\\\"examples\\\"],\\n                        p[\\\"proposed_rule\\\"],\\n
+        \                   )\\n                    proposed_patterns.add(p[\\\"pattern_key\\\"])\\n\\n
+        \               if not proposals:\\n                    log.info(\\n                        f\\\"No
+        new patterns above threshold ({PROPOSAL_THRESHOLD}). \\\"\\n                        f\\\"Analyzed
+        {len(entries)} entries.\\\"\\n                    )\\n        except Exception
+        as e:\\n            log.error(f\\\"Analysis error: {e}\\\")\\n\\n        await
+        asyncio.sleep(ANALYSIS_INTERVAL)\\n\\n\\n# ── MCP Tools ────────────────────────────────────────────\\n\\n@mcp.tool()\\nasync
+        def get_patterns() -\\u003e str:\\n    \\\"\\\"\\\"\\n    Get current decision
+        patterns detected across all agents.\\n    Shows frequency of each (agent,
+        action) pair.\\n    \\\"\\\"\\\"\\n    entries = await get_audit_entries(500)\\n
+        \   counter: Counter = Counter()\\n    for entry in entries:\\n        if
+        entry.get(\\\"event_type\\\") == \\\"AGENT_ACTION\\\":\\n            agent
+        = entry.get(\\\"agent_name\\\", \\\"unknown\\\")\\n            action = entry.get(\\\"action\\\",
+        \\\"unknown\\\")\\n            counter[f\\\"{agent}:{action}\\\"] += 1\\n\\n
+        \   result = {\\n        \\\"total_entries_analyzed\\\": len(entries),\\n
+        \       \\\"patterns\\\": [\\n            {\\\"pattern\\\": k, \\\"count\\\":
+        v} for k, v in counter.most_common(20)\\n        ],\\n        \\\"proposal_threshold\\\":
+        PROPOSAL_THRESHOLD,\\n        \\\"already_proposed\\\": list(proposed_patterns),\\n
+        \   }\\n    return json.dumps(result, indent=2)\\n\\n\\n@mcp.tool()\\nasync
+        def get_active_rules() -\\u003e str:\\n    \\\"\\\"\\\"Get the current set
+        of approved hardening rules.\\\"\\\"\\\"\\n    rules = load_rules()\\n    return
+        yaml.dump(rules, default_flow_style=False) if rules else \\\"No active rules
+        yet.\\\"\\n\\n\\n# ── Entry point ──────────────────────────────────────────\\n\\nasync
+        def main():\\n    import uvicorn\\n\\n    PORT = int(os.getenv(\\\"HARDENING_MCP_PORT\\\",
+        \\\"8094\\\"))\\n    mcp_app = mcp.streamable_http_app()\\n    config = uvicorn.Config(mcp_app,
+        host=\\\"0.0.0.0\\\", port=PORT, log_level=\\\"info\\\")\\n    server = uvicorn.Server(config)\\n\\n
+        \   await asyncio.gather(\\n        analysis_loop(),\\n        server.serve(),\\n
+        \   )\\n\\n\\nif __name__ == \\\"__main__\\\":\\n    import anyio\\n\\n    anyio.run(main)\\n\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{},\"creationTimestamp\":null,\"name\":\"hardening-agent-code\",\"namespace\":\"kagent\"}}\n"
+    creationTimestamp: "2026-03-25T22:59:10Z"
+    name: hardening-agent-code
+    namespace: kagent
+    resourceVersion: "3206169"
+    uid: ccb87d52-a7e9-4516-a2c8-b58f40e6e971
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{},"kind":"ConfigMap","metadata":{"annotations":{},"name":"hardening-rules","namespace":"kagent"}}
+    creationTimestamp: "2026-03-25T22:59:19Z"
+    name: hardening-rules
+    namespace: kagent
+    resourceVersion: "3204705"
+    uid: 94a33cc8-7a89-4244-949b-634eb019b0b8
 - apiVersion: v1
   data:
     server.py: "\"\"\"\nslack_poster.py — MCP tools for posting HITL approval requests
@@ -952,6 +2219,17 @@ items:
             proxy_pass http://approval-server.kagent.svc.cluster.local:8089;
             add_header 'Access-Control-Allow-Origin' '*' always;
           }
+
+          # Audit REST API (dashboard)
+          location /audit-api/ {
+            if ($auth_ok = 0) { return 401 "Unauthorized"; }
+            proxy_pass http://audit-logger.kagent.svc.cluster.local:8093/;
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' '*' always;
+            if ($request_method = OPTIONS) { return 204; }
+          }
+
           location /apis/ {
             if ($auth_ok = 0) { return 401 "Unauthorized"; }
             proxy_pass http://kubectl-proxy.kagent.svc.cluster.local:8888;
@@ -990,12 +2268,387 @@ items:
   metadata:
     annotations:
       kubectl.kubernetes.io/last-applied-configuration: |
-        {"apiVersion":"v1","data":{"nginx.conf":"events {}\nhttp {\n  map_hash_bucket_size 128;\n  map $http_x_api_secret $auth_ok {\n    default 0;\n    \"9dafbf65be0dd88f3ec38e784d251598262fe6ccc28900f6ba49c5553c8f77e4\" 1;\n  }\n  server {\n    listen 8081;\n\n    # Public - no auth needed (email button clicks)\n    location /approval/respond {\n      proxy_pass http://approval-server.kagent.svc.cluster.local:8089;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n    }\n\n    # Auth required for everything else\n    location /approval/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://approval-server.kagent.svc.cluster.local:8089;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n    }\n    location /apis/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kubectl-proxy.kagent.svc.cluster.local:8888;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n    location /api/v1/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kubectl-proxy.kagent.svc.cluster.local:8888;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n    location /api/a2a/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kagent-controller.kagent.svc.cluster.local:8083;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n    location /api/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kagent-controller.kagent.svc.cluster.local:8083;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n  }\n}\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"nginx-cors","namespace":"kagent"}}
+        {"apiVersion":"v1","data":{"nginx.conf":"events {}\nhttp {\n  map_hash_bucket_size 128;\n  map $http_x_api_secret $auth_ok {\n    default 0;\n    \"9dafbf65be0dd88f3ec38e784d251598262fe6ccc28900f6ba49c5553c8f77e4\" 1;\n  }\n  server {\n    listen 8081;\n\n    # Public - no auth needed (email button clicks)\n    location /approval/respond {\n      proxy_pass http://approval-server.kagent.svc.cluster.local:8089;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n    }\n\n    # Auth required for everything else\n    location /approval/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://approval-server.kagent.svc.cluster.local:8089;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n    }\n\n    # Audit REST API (dashboard)\n    location /audit-api/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://audit-logger.kagent.svc.cluster.local:8093/;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n\n    location /apis/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kubectl-proxy.kagent.svc.cluster.local:8888;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n    location /api/v1/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kubectl-proxy.kagent.svc.cluster.local:8888;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n    location /api/a2a/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kagent-controller.kagent.svc.cluster.local:8083;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n    location /api/ {\n      if ($auth_ok = 0) { return 401 \"Unauthorized\"; }\n      proxy_pass http://kagent-controller.kagent.svc.cluster.local:8083;\n      add_header 'Access-Control-Allow-Origin' '*' always;\n      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;\n      add_header 'Access-Control-Allow-Headers' '*' always;\n      if ($request_method = OPTIONS) { return 204; }\n    }\n  }\n}\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"nginx-cors","namespace":"kagent"}}
     creationTimestamp: "2026-03-19T18:18:48Z"
     name: nginx-cors
     namespace: kagent
-    resourceVersion: "1332290"
+    resourceVersion: "3257201"
     uid: 56203380-5c3f-4d80-8b34-6fba3bc3f1ed
+- apiVersion: v1
+  data:
+    server.py: "\"\"\"\nresource-governor.py — Token/cost/step budget enforcement.\n\nRuns
+      as a sidecar-style service that:\n  1. Monitors LiteLLM /api/usage endpoint
+      for token consumption\n  2. Tracks per-agent step counts via audit log entries\n
+      \ 3. Exposes MCP tools for agents to check their remaining budget\n  4. Posts
+      warnings to Slack when budgets are approaching limits\n  5. Can kill agent sessions
+      that exceed hard limits\n\nBudget config lives in /etc/governor/budgets.yaml
+      — deterministic\nlimits that cannot be prompt-injected away.\n\"\"\"\n\nimport
+      asyncio\nimport json\nimport logging\nimport os\nimport sys\nfrom datetime import
+      datetime, timezone\nfrom collections import defaultdict\n\nimport httpx\nimport
+      yaml\nfrom mcp.server.fastmcp import FastMCP\nfrom mcp.server.transport_security
+      import TransportSecuritySettings\n\nlogging.basicConfig(\n    level=logging.INFO,\n
+      \   format=\"%(asctime)s %(levelname)s %(message)s\",\n    stream=sys.stdout,\n)\nlog
+      = logging.getLogger(\"resource-governor\")\n\nBUDGET_PATH = \"/etc/governor/budgets.yaml\"\nLITELLM_URL
+      = os.getenv(\n    \"LITELLM_URL\", \"http://litellm-service.kagent.svc.cluster.local:4000\"\n)\nAUDIT_URL
+      = os.getenv(\n    \"AUDIT_LOGGER_URL\", \"http://audit-logger.kagent.svc.cluster.local:8092\"\n)\nSLACK_BOT_TOKEN
+      = os.getenv(\"SLACK_BOT_TOKEN\", \"\")\nSLACK_ALERT_CHANNEL = os.getenv(\"SLACK_ALERT_CHANNEL_ID\",
+      \"\")\nCHECK_INTERVAL = int(os.getenv(\"CHECK_INTERVAL_SECONDS\", \"60\"))\n\nmcp
+      = FastMCP(\n    \"resource-governor\",\n    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),\n)\n\n#
+      ── In-memory counters ───────────────────────────────────\n# Tracks per-agent
+      tool call counts within the current monitoring window\ntool_call_counts: dict[str,
+      int] = defaultdict(int)\nwarnings_sent: set[str] = set()\n\n\ndef load_budgets()
+      -> dict:\n    with open(BUDGET_PATH) as f:\n        return yaml.safe_load(f)\n\n\nasync
+      def slack_alert(text: str):\n    \"\"\"Post a budget alert to Slack.\"\"\"\n
+      \   if not SLACK_BOT_TOKEN or not SLACK_ALERT_CHANNEL:\n        log.info(f\"ALERT
+      (no Slack): {text}\")\n        return\n    try:\n        async with httpx.AsyncClient()
+      as client:\n            await client.post(\n                \"https://slack.com/api/chat.postMessage\",\n
+      \               headers={\n                    \"Authorization\": f\"Bearer
+      {SLACK_BOT_TOKEN}\",\n                    \"Content-Type\": \"application/json\",\n
+      \               },\n                json={\n                    \"channel\":
+      SLACK_ALERT_CHANNEL,\n                    \"text\": f\"\U0001F4B0 *Resource
+      Governor Alert*\\n{text}\",\n                },\n                timeout=10,\n
+      \           )\n    except Exception as e:\n        log.error(f\"Failed to post
+      Slack alert: {e}\")\n\n\nasync def check_litellm_usage() -> dict:\n    \"\"\"Query
+      LiteLLM for current token usage stats.\"\"\"\n    try:\n        async with httpx.AsyncClient()
+      as client:\n            resp = await client.get(\n                f\"{LITELLM_URL}/health\",
+      timeout=5\n            )\n            if resp.status_code == 200:\n                return
+      resp.json()\n    except Exception as e:\n        log.debug(f\"LiteLLM health
+      check failed (non-critical): {e}\")\n    return {}\n\n\nasync def get_audit_entries(count:
+      int = 100) -> list[dict]:\n    \"\"\"Fetch recent audit entries via MCP client
+      SDK.\"\"\"\n    try:\n        from mcp.client.streamable_http import streamablehttp_client\n
+      \       from mcp import ClientSession\n\n        audit_url = f\"{AUDIT_URL}/mcp\"\n
+      \       async with streamablehttp_client(audit_url) as (read, write, _):\n            async
+      with ClientSession(read, write) as session:\n                await session.initialize()\n
+      \               result = await session.call_tool(\n                    \"get_recent_audit\",
+      {\"count\": count}\n                )\n                if result.content:\n
+      \                   text = result.content[0].text\n                    entries
+      = []\n                    for line in text.strip().split(\"\\n\"):\n                        if
+      line.strip():\n                            try:\n                                entries.append(json.loads(line))\n
+      \                           except json.JSONDecodeError:\n                                pass\n
+      \                   return entries\n    except Exception as e:\n        log.debug(f\"Audit
+      fetch failed (non-critical): {e}\")\n    return []\n\n\nasync def enforce_budgets():\n
+      \   \"\"\"Main enforcement loop — check budgets and alert/kill on violations.\"\"\"\n
+      \   log.info(\"Starting budget enforcement loop\")\n\n    while True:\n        try:\n
+      \           budgets = load_budgets()\n            global_limits = budgets.get(\"global\",
+      {})\n            agent_limits = budgets.get(\"agents\", {})\n\n            #
+      Count recent tool calls per agent from audit log\n            entries = await
+      get_audit_entries(200)\n            agent_actions: dict[str, int] = defaultdict(int)\n
+      \           for entry in entries:\n                agent = entry.get(\"agent_name\",
+      \"unknown\")\n                if entry.get(\"event_type\") == \"AGENT_ACTION\":\n
+      \                   agent_actions[agent] += 1\n\n            # Check global
+      limits\n            total_actions = sum(agent_actions.values())\n            global_max
+      = global_limits.get(\"max_total_actions_per_hour\", 500)\n            if total_actions
+      > global_max * 0.8:\n                key = \"global-action-warning\"\n                if
+      key not in warnings_sent:\n                    await slack_alert(\n                        f\"⚠️
+      Total agent actions at {total_actions}/{global_max} \"\n                        f\"(80%
+      threshold). Agents may be throttled.\"\n                    )\n                    warnings_sent.add(key)\n\n
+      \           # Check per-agent limits\n            for agent_name, count in agent_actions.items():\n
+      \               agent_cfg = agent_limits.get(agent_name, agent_limits.get(\"_default\",
+      {}))\n                max_actions = agent_cfg.get(\"max_actions_per_hour\",
+      100)\n\n                # Warning at 80%\n                if count > max_actions
+      * 0.8:\n                    key = f\"{agent_name}-action-warning\"\n                    if
+      key not in warnings_sent:\n                        await slack_alert(\n                            f\"⚠️
+      Agent `{agent_name}` at {count}/{max_actions} \"\n                            f\"actions.
+      Approaching limit.\"\n                        )\n                        warnings_sent.add(key)\n\n
+      \               # Hard limit\n                if count > max_actions:\n                    key
+      = f\"{agent_name}-action-limit\"\n                    if key not in warnings_sent:\n
+      \                       await slack_alert(\n                            f\"\U0001F534
+      Agent `{agent_name}` EXCEEDED action limit \"\n                            f\"({count}/{max_actions}).
+      Manual review required.\"\n                        )\n                        warnings_sent.add(key)\n\n
+      \       except Exception as e:\n            log.error(f\"Budget enforcement
+      error: {e}\")\n\n        await asyncio.sleep(CHECK_INTERVAL)\n\n\n# ── MCP Tools
+      ────────────────────────────────────────────\n\n@mcp.tool()\nasync def check_budget(agent_name:
+      str) -> str:\n    \"\"\"\n    Check remaining budget for an agent. Agents should
+      call this\n    before starting expensive operations.\n\n    Args:\n        agent_name:
+      Name of the agent checking its budget\n    \"\"\"\n    budgets = load_budgets()\n
+      \   agent_limits = budgets.get(\"agents\", {})\n    agent_cfg = agent_limits.get(agent_name,
+      agent_limits.get(\"_default\", {}))\n\n    entries = await get_audit_entries(200)\n
+      \   action_count = sum(\n        1 for e in entries\n        if e.get(\"agent_name\")
+      == agent_name and e.get(\"event_type\") == \"AGENT_ACTION\"\n    )\n\n    max_actions
+      = agent_cfg.get(\"max_actions_per_hour\", 100)\n    remaining = max(0, max_actions
+      - action_count)\n\n    return json.dumps({\n        \"agent\": agent_name,\n
+      \       \"actions_used\": action_count,\n        \"actions_limit\": max_actions,\n
+      \       \"actions_remaining\": remaining,\n        \"status\": \"ok\" if remaining
+      > 0 else \"exceeded\",\n    })\n\n\n@mcp.tool()\nasync def get_system_status()
+      -> str:\n    \"\"\"\n    Get overall system resource status. Shows all agent
+      budgets\n    and global metrics.\n    \"\"\"\n    budgets = load_budgets()\n
+      \   entries = await get_audit_entries(200)\n\n    agent_actions: dict[str, int]
+      = defaultdict(int)\n    for e in entries:\n        if e.get(\"event_type\")
+      == \"AGENT_ACTION\":\n            agent_actions[e.get(\"agent_name\", \"unknown\")]
+      += 1\n\n    status = {\n        \"total_actions\": sum(agent_actions.values()),\n
+      \       \"global_limit\": budgets.get(\"global\", {}).get(\"max_total_actions_per_hour\",
+      500),\n        \"agents\": {},\n    }\n\n    agent_limits = budgets.get(\"agents\",
+      {})\n    for agent, count in agent_actions.items():\n        cfg = agent_limits.get(agent,
+      agent_limits.get(\"_default\", {}))\n        limit = cfg.get(\"max_actions_per_hour\",
+      100)\n        status[\"agents\"][agent] = {\n            \"actions\": count,\n
+      \           \"limit\": limit,\n            \"remaining\": max(0, limit - count),\n
+      \       }\n\n    return json.dumps(status, indent=2)\n\n\n# ── Entry point ──────────────────────────────────────────\n\nasync
+      def main():\n    import uvicorn\n\n    PORT = int(os.getenv(\"GOVERNOR_MCP_PORT\",
+      \"8093\"))\n    mcp_app = mcp.streamable_http_app()\n    config = uvicorn.Config(mcp_app,
+      host=\"0.0.0.0\", port=PORT, log_level=\"info\")\n    server = uvicorn.Server(config)\n\n
+      \   await asyncio.gather(\n        enforce_budgets(),\n        server.serve(),\n
+      \   )\n\n\nif __name__ == \"__main__\":\n    import anyio\n\n    anyio.run(main)\n"
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: "{\"apiVersion\":\"v1\",\"data\":{\"server.py\":\"\\\"\\\"\\\"\\nresource-governor.py
+        — Token/cost/step budget enforcement.\\n\\nRuns as a sidecar-style service
+        that:\\n  1. Monitors LiteLLM /api/usage endpoint for token consumption\\n
+        \ 2. Tracks per-agent step counts via audit log entries\\n  3. Exposes MCP
+        tools for agents to check their remaining budget\\n  4. Posts warnings to
+        Slack when budgets are approaching limits\\n  5. Can kill agent sessions that
+        exceed hard limits\\n\\nBudget config lives in /etc/governor/budgets.yaml
+        — deterministic\\nlimits that cannot be prompt-injected away.\\n\\\"\\\"\\\"\\n\\nimport
+        asyncio\\nimport json\\nimport logging\\nimport os\\nimport sys\\nfrom datetime
+        import datetime, timezone\\nfrom collections import defaultdict\\n\\nimport
+        httpx\\nimport yaml\\nfrom mcp.server.fastmcp import FastMCP\\nfrom mcp.server.transport_security
+        import TransportSecuritySettings\\n\\nlogging.basicConfig(\\n    level=logging.INFO,\\n
+        \   format=\\\"%(asctime)s %(levelname)s %(message)s\\\",\\n    stream=sys.stdout,\\n)\\nlog
+        = logging.getLogger(\\\"resource-governor\\\")\\n\\nBUDGET_PATH = \\\"/etc/governor/budgets.yaml\\\"\\nLITELLM_URL
+        = os.getenv(\\n    \\\"LITELLM_URL\\\", \\\"http://litellm-service.kagent.svc.cluster.local:4000\\\"\\n)\\nAUDIT_URL
+        = os.getenv(\\n    \\\"AUDIT_LOGGER_URL\\\", \\\"http://audit-logger.kagent.svc.cluster.local:8092\\\"\\n)\\nSLACK_BOT_TOKEN
+        = os.getenv(\\\"SLACK_BOT_TOKEN\\\", \\\"\\\")\\nSLACK_ALERT_CHANNEL = os.getenv(\\\"SLACK_ALERT_CHANNEL_ID\\\",
+        \\\"\\\")\\nCHECK_INTERVAL = int(os.getenv(\\\"CHECK_INTERVAL_SECONDS\\\",
+        \\\"60\\\"))\\n\\nmcp = FastMCP(\\n    \\\"resource-governor\\\",\\n    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),\\n)\\n\\n#
+        ── In-memory counters ───────────────────────────────────\\n# Tracks per-agent
+        tool call counts within the current monitoring window\\ntool_call_counts:
+        dict[str, int] = defaultdict(int)\\nwarnings_sent: set[str] = set()\\n\\n\\ndef
+        load_budgets() -\\u003e dict:\\n    with open(BUDGET_PATH) as f:\\n        return
+        yaml.safe_load(f)\\n\\n\\nasync def slack_alert(text: str):\\n    \\\"\\\"\\\"Post
+        a budget alert to Slack.\\\"\\\"\\\"\\n    if not SLACK_BOT_TOKEN or not SLACK_ALERT_CHANNEL:\\n
+        \       log.info(f\\\"ALERT (no Slack): {text}\\\")\\n        return\\n    try:\\n
+        \       async with httpx.AsyncClient() as client:\\n            await client.post(\\n
+        \               \\\"https://slack.com/api/chat.postMessage\\\",\\n                headers={\\n
+        \                   \\\"Authorization\\\": f\\\"Bearer {SLACK_BOT_TOKEN}\\\",\\n
+        \                   \\\"Content-Type\\\": \\\"application/json\\\",\\n                },\\n
+        \               json={\\n                    \\\"channel\\\": SLACK_ALERT_CHANNEL,\\n
+        \                   \\\"text\\\": f\\\"\U0001F4B0 *Resource Governor Alert*\\\\n{text}\\\",\\n
+        \               },\\n                timeout=10,\\n            )\\n    except
+        Exception as e:\\n        log.error(f\\\"Failed to post Slack alert: {e}\\\")\\n\\n\\nasync
+        def check_litellm_usage() -\\u003e dict:\\n    \\\"\\\"\\\"Query LiteLLM for
+        current token usage stats.\\\"\\\"\\\"\\n    try:\\n        async with httpx.AsyncClient()
+        as client:\\n            resp = await client.get(\\n                f\\\"{LITELLM_URL}/health\\\",
+        timeout=5\\n            )\\n            if resp.status_code == 200:\\n                return
+        resp.json()\\n    except Exception as e:\\n        log.debug(f\\\"LiteLLM
+        health check failed (non-critical): {e}\\\")\\n    return {}\\n\\n\\nasync
+        def get_audit_entries(count: int = 100) -\\u003e list[dict]:\\n    \\\"\\\"\\\"Fetch
+        recent audit entries via MCP client SDK.\\\"\\\"\\\"\\n    try:\\n        from
+        mcp.client.streamable_http import streamablehttp_client\\n        from mcp
+        import ClientSession\\n\\n        audit_url = f\\\"{AUDIT_URL}/mcp\\\"\\n
+        \       async with streamablehttp_client(audit_url) as (read, write, _):\\n
+        \           async with ClientSession(read, write) as session:\\n                await
+        session.initialize()\\n                result = await session.call_tool(\\n
+        \                   \\\"get_recent_audit\\\", {\\\"count\\\": count}\\n                )\\n
+        \               if result.content:\\n                    text = result.content[0].text\\n
+        \                   entries = []\\n                    for line in text.strip().split(\\\"\\\\n\\\"):\\n
+        \                       if line.strip():\\n                            try:\\n
+        \                               entries.append(json.loads(line))\\n                            except
+        json.JSONDecodeError:\\n                                pass\\n                    return
+        entries\\n    except Exception as e:\\n        log.debug(f\\\"Audit fetch
+        failed (non-critical): {e}\\\")\\n    return []\\n\\n\\nasync def enforce_budgets():\\n
+        \   \\\"\\\"\\\"Main enforcement loop — check budgets and alert/kill on violations.\\\"\\\"\\\"\\n
+        \   log.info(\\\"Starting budget enforcement loop\\\")\\n\\n    while True:\\n
+        \       try:\\n            budgets = load_budgets()\\n            global_limits
+        = budgets.get(\\\"global\\\", {})\\n            agent_limits = budgets.get(\\\"agents\\\",
+        {})\\n\\n            # Count recent tool calls per agent from audit log\\n
+        \           entries = await get_audit_entries(200)\\n            agent_actions:
+        dict[str, int] = defaultdict(int)\\n            for entry in entries:\\n                agent
+        = entry.get(\\\"agent_name\\\", \\\"unknown\\\")\\n                if entry.get(\\\"event_type\\\")
+        == \\\"AGENT_ACTION\\\":\\n                    agent_actions[agent] += 1\\n\\n
+        \           # Check global limits\\n            total_actions = sum(agent_actions.values())\\n
+        \           global_max = global_limits.get(\\\"max_total_actions_per_hour\\\",
+        500)\\n            if total_actions \\u003e global_max * 0.8:\\n                key
+        = \\\"global-action-warning\\\"\\n                if key not in warnings_sent:\\n
+        \                   await slack_alert(\\n                        f\\\"⚠️ Total
+        agent actions at {total_actions}/{global_max} \\\"\\n                        f\\\"(80%
+        threshold). Agents may be throttled.\\\"\\n                    )\\n                    warnings_sent.add(key)\\n\\n
+        \           # Check per-agent limits\\n            for agent_name, count in
+        agent_actions.items():\\n                agent_cfg = agent_limits.get(agent_name,
+        agent_limits.get(\\\"_default\\\", {}))\\n                max_actions = agent_cfg.get(\\\"max_actions_per_hour\\\",
+        100)\\n\\n                # Warning at 80%\\n                if count \\u003e
+        max_actions * 0.8:\\n                    key = f\\\"{agent_name}-action-warning\\\"\\n
+        \                   if key not in warnings_sent:\\n                        await
+        slack_alert(\\n                            f\\\"⚠️ Agent `{agent_name}` at
+        {count}/{max_actions} \\\"\\n                            f\\\"actions. Approaching
+        limit.\\\"\\n                        )\\n                        warnings_sent.add(key)\\n\\n
+        \               # Hard limit\\n                if count \\u003e max_actions:\\n
+        \                   key = f\\\"{agent_name}-action-limit\\\"\\n                    if
+        key not in warnings_sent:\\n                        await slack_alert(\\n
+        \                           f\\\"\U0001F534 Agent `{agent_name}` EXCEEDED
+        action limit \\\"\\n                            f\\\"({count}/{max_actions}).
+        Manual review required.\\\"\\n                        )\\n                        warnings_sent.add(key)\\n\\n
+        \       except Exception as e:\\n            log.error(f\\\"Budget enforcement
+        error: {e}\\\")\\n\\n        await asyncio.sleep(CHECK_INTERVAL)\\n\\n\\n#
+        ── MCP Tools ────────────────────────────────────────────\\n\\n@mcp.tool()\\nasync
+        def check_budget(agent_name: str) -\\u003e str:\\n    \\\"\\\"\\\"\\n    Check
+        remaining budget for an agent. Agents should call this\\n    before starting
+        expensive operations.\\n\\n    Args:\\n        agent_name: Name of the agent
+        checking its budget\\n    \\\"\\\"\\\"\\n    budgets = load_budgets()\\n    agent_limits
+        = budgets.get(\\\"agents\\\", {})\\n    agent_cfg = agent_limits.get(agent_name,
+        agent_limits.get(\\\"_default\\\", {}))\\n\\n    entries = await get_audit_entries(200)\\n
+        \   action_count = sum(\\n        1 for e in entries\\n        if e.get(\\\"agent_name\\\")
+        == agent_name and e.get(\\\"event_type\\\") == \\\"AGENT_ACTION\\\"\\n    )\\n\\n
+        \   max_actions = agent_cfg.get(\\\"max_actions_per_hour\\\", 100)\\n    remaining
+        = max(0, max_actions - action_count)\\n\\n    return json.dumps({\\n        \\\"agent\\\":
+        agent_name,\\n        \\\"actions_used\\\": action_count,\\n        \\\"actions_limit\\\":
+        max_actions,\\n        \\\"actions_remaining\\\": remaining,\\n        \\\"status\\\":
+        \\\"ok\\\" if remaining \\u003e 0 else \\\"exceeded\\\",\\n    })\\n\\n\\n@mcp.tool()\\nasync
+        def get_system_status() -\\u003e str:\\n    \\\"\\\"\\\"\\n    Get overall
+        system resource status. Shows all agent budgets\\n    and global metrics.\\n
+        \   \\\"\\\"\\\"\\n    budgets = load_budgets()\\n    entries = await get_audit_entries(200)\\n\\n
+        \   agent_actions: dict[str, int] = defaultdict(int)\\n    for e in entries:\\n
+        \       if e.get(\\\"event_type\\\") == \\\"AGENT_ACTION\\\":\\n            agent_actions[e.get(\\\"agent_name\\\",
+        \\\"unknown\\\")] += 1\\n\\n    status = {\\n        \\\"total_actions\\\":
+        sum(agent_actions.values()),\\n        \\\"global_limit\\\": budgets.get(\\\"global\\\",
+        {}).get(\\\"max_total_actions_per_hour\\\", 500),\\n        \\\"agents\\\":
+        {},\\n    }\\n\\n    agent_limits = budgets.get(\\\"agents\\\", {})\\n    for
+        agent, count in agent_actions.items():\\n        cfg = agent_limits.get(agent,
+        agent_limits.get(\\\"_default\\\", {}))\\n        limit = cfg.get(\\\"max_actions_per_hour\\\",
+        100)\\n        status[\\\"agents\\\"][agent] = {\\n            \\\"actions\\\":
+        count,\\n            \\\"limit\\\": limit,\\n            \\\"remaining\\\":
+        max(0, limit - count),\\n        }\\n\\n    return json.dumps(status, indent=2)\\n\\n\\n#
+        ── Entry point ──────────────────────────────────────────\\n\\nasync def main():\\n
+        \   import uvicorn\\n\\n    PORT = int(os.getenv(\\\"GOVERNOR_MCP_PORT\\\",
+        \\\"8093\\\"))\\n    mcp_app = mcp.streamable_http_app()\\n    config = uvicorn.Config(mcp_app,
+        host=\\\"0.0.0.0\\\", port=PORT, log_level=\\\"info\\\")\\n    server = uvicorn.Server(config)\\n\\n
+        \   await asyncio.gather(\\n        enforce_budgets(),\\n        server.serve(),\\n
+        \   )\\n\\n\\nif __name__ == \\\"__main__\\\":\\n    import anyio\\n\\n    anyio.run(main)\\n\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{},\"creationTimestamp\":null,\"name\":\"resource-governor-code\",\"namespace\":\"kagent\"}}\n"
+    creationTimestamp: "2026-03-26T00:48:29Z"
+    name: resource-governor-code
+    namespace: kagent
+    resourceVersion: "3241636"
+    uid: 9a322acf-ee17-48fa-acfb-d3ed0421166b
+- apiVersion: v1
+  data:
+    scheduler.py: |
+      """
+      scheduler.py — Sends periodic autonomous tasks to commander via A2A.
+
+      Runs as a K8s CronJob. Each invocation sends one task based on the
+      TASK_TYPE environment variable.
+
+      Tasks:
+        cso-security-audit  — CSO reviews agent permissions + tool drift
+        pm-prospecting      — PM runs a prospecting batch
+        coo-status-check    — COO checks for operational drift
+      """
+
+      import json
+      import logging
+      import os
+      import sys
+
+      import httpx
+
+      logging.basicConfig(
+          level=logging.INFO,
+          format="%(asctime)s %(levelname)s %(message)s",
+          stream=sys.stdout,
+      )
+      log = logging.getLogger("scheduler")
+
+      KAGENT_URL = os.getenv(
+          "KAGENT_URL",
+          "http://commander-agent.kagent.svc.cluster.local:8080",
+      )
+      AGENT_NAME = "commander-agent"
+      NAMESPACE = "kagent"
+      TASK_TYPE = os.getenv("TASK_TYPE", "cso-security-audit")
+
+      TASKS = {
+          "cso-security-audit": (
+              "SECURITY AUDIT REQUEST (scheduled): "
+              "Route to CSO. Ask CSO to: "
+              "1) List all agents and their current tools. "
+              "2) Check for any agent with gmail_send_email (forbidden). "
+              "3) Check for agents with tools not in the capability registry. "
+              "4) Write an audit entry summarizing findings. "
+              "Report the results back."
+          ),
+          "pm-prospecting": (
+              "PROSPECTING TASK (scheduled): "
+              "Route to PM. Ask PM to: "
+              "1) Check the current backlog for any existing prospecting tasks. "
+              "2) If no active prospecting tasks, create a new one: "
+              "   find businesses needing websites in Nashville, TN — plumbing industry. "
+              "3) Delegate to prospecting-agent. "
+              "4) Write audit entries for task creation and completion. "
+              "Report the results back."
+          ),
+          "coo-status-check": (
+              "OPERATIONS CHECK (scheduled): "
+              "Route to COO. Ask COO to: "
+              "1) Read the last 50 audit entries. "
+              "2) Check for any agent errors or repeated failures. "
+              "3) Check for any agents that haven't been active in the last cycle. "
+              "4) Post a brief status summary to Slack. "
+              "Report the results back."
+          ),
+      }
+
+
+      def send_task():
+          task_message = TASKS.get(TASK_TYPE)
+          if not task_message:
+              log.error(f"Unknown task type: {TASK_TYPE}. Valid: {list(TASKS.keys())}")
+              sys.exit(1)
+
+          log.info(f"Sending scheduled task: {TASK_TYPE}")
+          log.info(f"Target: {AGENT_NAME} via {KAGENT_URL}")
+
+          url = f"{KAGENT_URL}/"
+          payload = {
+              "jsonrpc": "2.0",
+              "method": "message/send",
+              "params": {
+                  "message": {
+                      "role": "user",
+                      "parts": [{"kind": "text", "text": task_message}],
+                      "messageId": f"scheduler-{TASK_TYPE}-{int(__import__('time').time())}",
+                  }
+              },
+              "id": f"scheduler-{TASK_TYPE}",
+          }
+
+          try:
+              resp = httpx.post(
+                  url,
+                  json=payload,
+                  headers={"Content-Type": "application/json"},
+                  timeout=120,
+              )
+              log.info(f"Response status: {resp.status_code}")
+              if resp.status_code == 200:
+                  data = resp.json()
+                  result = data.get("result", {})
+                  parts = result.get("artifacts", [{}])
+                  if parts:
+                      for artifact in parts:
+                          for part in artifact.get("parts", []):
+                              text = part.get("text", "")
+                              if text:
+                                  log.info(f"Agent response: {text[:500]}")
+                  log.info(f"Task {TASK_TYPE} completed successfully")
+              else:
+                  log.error(f"Task failed: {resp.status_code} — {resp.text[:500]}")
+                  sys.exit(1)
+          except Exception as e:
+              log.error(f"Failed to send task: {e}")
+              sys.exit(1)
+
+
+      if __name__ == "__main__":
+          send_task()
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"scheduler.py":"\"\"\"\nscheduler.py — Sends periodic autonomous tasks to commander via A2A.\n\nRuns as a K8s CronJob. Each invocation sends one task based on the\nTASK_TYPE environment variable.\n\nTasks:\n  cso-security-audit  — CSO reviews agent permissions + tool drift\n  pm-prospecting      — PM runs a prospecting batch\n  coo-status-check    — COO checks for operational drift\n\"\"\"\n\nimport json\nimport logging\nimport os\nimport sys\n\nimport httpx\n\nlogging.basicConfig(\n    level=logging.INFO,\n    format=\"%(asctime)s %(levelname)s %(message)s\",\n    stream=sys.stdout,\n)\nlog = logging.getLogger(\"scheduler\")\n\nKAGENT_URL = os.getenv(\n    \"KAGENT_URL\",\n    \"http://commander-agent.kagent.svc.cluster.local:8080\",\n)\nAGENT_NAME = \"commander-agent\"\nNAMESPACE = \"kagent\"\nTASK_TYPE = os.getenv(\"TASK_TYPE\", \"cso-security-audit\")\n\nTASKS = {\n    \"cso-security-audit\": (\n        \"SECURITY AUDIT REQUEST (scheduled): \"\n        \"Route to CSO. Ask CSO to: \"\n        \"1) List all agents and their current tools. \"\n        \"2) Check for any agent with gmail_send_email (forbidden). \"\n        \"3) Check for agents with tools not in the capability registry. \"\n        \"4) Write an audit entry summarizing findings. \"\n        \"Report the results back.\"\n    ),\n    \"pm-prospecting\": (\n        \"PROSPECTING TASK (scheduled): \"\n        \"Route to PM. Ask PM to: \"\n        \"1) Check the current backlog for any existing prospecting tasks. \"\n        \"2) If no active prospecting tasks, create a new one: \"\n        \"   find businesses needing websites in Nashville, TN — plumbing industry. \"\n        \"3) Delegate to prospecting-agent. \"\n        \"4) Write audit entries for task creation and completion. \"\n        \"Report the results back.\"\n    ),\n    \"coo-status-check\": (\n        \"OPERATIONS CHECK (scheduled): \"\n        \"Route to COO. Ask COO to: \"\n        \"1) Read the last 50 audit entries. \"\n        \"2) Check for any agent errors or repeated failures. \"\n        \"3) Check for any agents that haven't been active in the last cycle. \"\n        \"4) Post a brief status summary to Slack. \"\n        \"Report the results back.\"\n    ),\n}\n\n\ndef send_task():\n    task_message = TASKS.get(TASK_TYPE)\n    if not task_message:\n        log.error(f\"Unknown task type: {TASK_TYPE}. Valid: {list(TASKS.keys())}\")\n        sys.exit(1)\n\n    log.info(f\"Sending scheduled task: {TASK_TYPE}\")\n    log.info(f\"Target: {AGENT_NAME} via {KAGENT_URL}\")\n\n    url = f\"{KAGENT_URL}/\"\n    payload = {\n        \"jsonrpc\": \"2.0\",\n        \"method\": \"message/send\",\n        \"params\": {\n            \"message\": {\n                \"role\": \"user\",\n                \"parts\": [{\"kind\": \"text\", \"text\": task_message}],\n                \"messageId\": f\"scheduler-{TASK_TYPE}-{int(__import__('time').time())}\",\n            }\n        },\n        \"id\": f\"scheduler-{TASK_TYPE}\",\n    }\n\n    try:\n        resp = httpx.post(\n            url,\n            json=payload,\n            headers={\"Content-Type\": \"application/json\"},\n            timeout=120,\n        )\n        log.info(f\"Response status: {resp.status_code}\")\n        if resp.status_code == 200:\n            data = resp.json()\n            result = data.get(\"result\", {})\n            parts = result.get(\"artifacts\", [{}])\n            if parts:\n                for artifact in parts:\n                    for part in artifact.get(\"parts\", []):\n                        text = part.get(\"text\", \"\")\n                        if text:\n                            log.info(f\"Agent response: {text[:500]}\")\n            log.info(f\"Task {TASK_TYPE} completed successfully\")\n        else:\n            log.error(f\"Task failed: {resp.status_code} — {resp.text[:500]}\")\n            sys.exit(1)\n    except Exception as e:\n        log.error(f\"Failed to send task: {e}\")\n        sys.exit(1)\n\n\nif __name__ == \"__main__\":\n    send_task()\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"scheduler-code","namespace":"kagent"}}
+    creationTimestamp: "2026-03-26T00:51:20Z"
+    name: scheduler-code
+    namespace: kagent
+    resourceVersion: "3244360"
+    uid: b5b83f5d-a7a7-4acf-840b-d10112a63054
 - apiVersion: v1
   data:
     server.py: |

@@ -77,15 +77,6 @@ allowed_agents:
       - cso-agent
       - pm-agent
       - prospecting-agent
-      - number-agent-1
-      - number-agent-2
-      - number-agent-3
-      - sum-agent
-      - researcher-agent
-      - critic-agent
-      - writer-agent
-      - publisher-agent
-      - send-email-test
 
   # ── C-Suite ────────────────────────────────────────────
 

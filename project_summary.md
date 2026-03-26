@@ -1,5 +1,5 @@
 # Autobot Project Summary
-> Last updated: March 25, 2026
+> Last updated: March 26, 2026
 
 ## Vision
 A self-managing agentic software company with a pre-architected org structure. You provide high-level direction — the agent org executes, self-governs, and gets more reliable over time via a hardening loop.
@@ -24,15 +24,15 @@ A self-managing agentic software company with a pre-architected org structure. Y
 
 ## Target Agent Org Structure
 
-### C-Suite Agents (to be built)
-| Agent | Role |
-|---|---|
-| **CEO** | Holds original vision, never touches execution, ultimate source of truth for "why". Scope anchor. |
-| **COO** | Drift detector. Continuously compares current work against original intent. Scope watcher. |
-| **CFO** | Watches token budgets, API costs, step counts. Flags disproportionate resource consumption. |
-| **CSO** | Governs capability surface. Maintains approved MCP server registry and approved skills list. Role-specific permissions. Nothing gets used that hasn't been vetted. |
-| **PM** | Breaks work into tasks, sequences them, manages dependencies, handles blockers. |
-| **Hardening Agent** | Watches patterns across all agents. Progressively converts repetitive LLM decisions into deterministic rules. System gets more reliable over time automatically. **✅ v1 deployed — analyzing patterns every 5 min, creates PRs via github-mcp.** |
+### C-Suite Agents
+| Agent | Role | Status |
+|---|---|---|
+| **CEO** | Holds original vision, never touches execution, ultimate source of truth for "why". Scope anchor. | ✅ deployed |
+| **COO** | Drift detector. Continuously compares current work against original intent. Scope watcher. | ✅ deployed |
+| **CFO** | Watches token budgets, API costs, step counts. Flags disproportionate resource consumption. | ⬜ next |
+| **CSO** | HITL-gated enforcer. AUDIT / ENFORCE / EXECUTE modes. Registry governance. | ✅ deployed + tested |
+| **PM** | Breaks work into tasks, sequences them, manages dependencies, handles blockers. | ✅ deployed |
+| **Hardening Agent** | Watches patterns across all agents. Progressively converts repetitive LLM decisions into deterministic rules. **v1 deployed — analyzing patterns every 5 min, creates PRs via github-mcp.** | ✅ deployed |
 
 > **Commander refactor note:** The current commander is doing too much — CEO + COO + PM + router simultaneously. As C-suite agents are added, commander should become a thin protocol dispatcher: it knows how to reach agents and manages A2A mechanics, but has zero opinion about *what* to do. All intent lives in CEO, all sequencing lives in PM. Plan this refactor before scaling worker agents.
 
@@ -55,8 +55,9 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | `github-tool-server` | Repo create/push/enable Pages + branch/PR creation (7 tools) | ✅ Running + Accepted |
 | `audit-logger` | Independent audit trail — watches Agent CRs, MCP tools: `write_audit`, `get_recent_audit` | ✅ Running + Accepted |
 | `hardening-agent` | Pattern analysis + rule proposals — MCP tools: `get_patterns`, `get_active_rules` | ✅ Running + Accepted |
+| `hitl-tool-server` | Slack HITL approvals — `request_approval` + `post_notification` MCP tools, posts to #hitl-approvals with ✅/❌ buttons, severity-based timeouts | ✅ Running + Accepted |
+| `resource-governor` | Per-agent + global action budget enforcement — `check_budget`, `get_system_status` | ✅ Running + Accepted |
 | `kagent-grafana-mcp` | Metrics (intentionally disabled) | ❌ Disabled in helm |
-| `hitl-mcp` | Slack HITL approvals | ❌ To build |
 
 ### Skills (instructional only — different risk profile from MCP servers)
 - Build a **private tiered skills repo**:
@@ -374,13 +375,17 @@ Key schema notes:
 - `spec.declarative.systemMessage` (not `systemPrompt`)
 - A2A tools: `type: Agent` with `agent.name/namespace/kind/apiGroup`
 
-### Current Agents
+### Current Agents (live as of 2026-03-26)
 | Agent | Role | Status |
 |---|---|---|
-| `commander-agent` | Self-updating orchestrator, has kubectl + A2A tools | ✅ |
-| `number-agent-1` | Picks number 1-10 | ✅ |
-| `number-agent-2` | Picks number (configurable) | ✅ |
-| `sum-agent` | Calculates final sum | ✅ |
+| `commander-agent` | Thin router — dispatches to C-suite + HITL_RESUME routing | ✅ |
+| `ceo-agent` | Vision/strategy — no tools, pure reasoning | ✅ |
+| `coo-agent` | Ops oversight — audit read + Slack notifications | ✅ |
+| `cso-agent` | Security enforcement — AUDIT/ENFORCE/EXECUTE modes, HITL-gated | ✅ |
+| `pm-agent` | Project manager — backlog, triage, delegates to workers | ✅ |
+| `prospecting-agent` | Finds local businesses needing websites | ✅ |
+
+**Legacy demo agents deleted by CSO on 2026-03-26:** number-agent-1/2/3, sum-agent, researcher-agent, critic-agent, writer-agent, publisher-agent, send-email-test
 
 ### Commander Capabilities
 - Fetches live agent list at start of every conversation
@@ -451,40 +456,43 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 ## Next Steps (In Priority Order)
 
 ### Immediate
-- [ ] Build Slack HITL integration — build this *before or in parallel with* first autonomous worker agents
-  - Slack as nervous system and message bus
-  - `#hitl-approvals` channel with inline approve/reject buttons
-  - Each agent gets its own Slack identity
-  - Use Events API (never poll history)
-  - Independent audit log (don't rely on Slack)
+- [ ] **Switch Phase 1 webhook to `enforcement_mode: enforce`** — webhook is deployed but still in audit mode. CSO cleanup just proved the registry is clean and agent set is stable. Safe to flip now. Edit `capability-registry.yaml` line 1, run `./bootstrap.sh 1`.
+- [ ] **Real Slack button test** — HITL_RESUME was verified in-cluster but not via the actual Slack button path (Slack → Vercel `api/hitl.js` → commander → CSO). Trigger one fresh CSO enforce run, let it post to Slack, click ✅ on your phone.
 - [ ] Set `SLACK_PROPOSALS_CHANNEL_ID` on hardening-agent and `SLACK_AUDIT_CHANNEL_ID` on audit-logger
-- [ ] Wire search + github MCPs to first worker agent (prospecting agent is the natural first target — search_find_businesses + gmail outreach)
+
+### Next Capability: Site Builder
+- [ ] **`site-builder-agent`** — the natural next unlock. Prospecting works and HOT leads are being found. Site builder takes a prospect and auto-creates a demo GitHub Pages site as the pitch artifact.
+  - Tools: github_create_repo, github_push_file, github_enable_pages, github_get_pages_url
+  - Input: business name + address from prospecting-agent
+  - Output: live GitHub Pages URL for the prospect
+  - Wire PM → prospecting-agent → site-builder-agent as the first full pipeline
+  - Add to capability-registry.yaml before deploying (template already commented in)
+- [ ] **`outreach-agent`** — after site builder. Sends HITL-gated cold emails with the demo site URL.
+  - Tools: gmail_request_approval, gmail_check_approval, audit-logger
+  - Every send requires HITL approval (high severity)
 
 ### Agent Org Build-Out
-- [ ] CEO agent — vision holder, scope anchor
-- [ ] COO agent — drift detector, scope watcher
-- [ ] CFO agent — token/cost budget watcher
-- [ ] CSO agent — MCP registry + skills governance (build before scaling worker agents)
-- [ ] PM agent — task sequencing and dependency management
-- [x] Hardening agent — deployed, analyzing audit patterns every 5 min, creates PRs via github-mcp
-- [ ] Commander → thin router refactor (delegate to CEO/COO/PM, stop being the brains)
-
-### Capability Build-Out
-- [ ] Gmail outreach agent (MCP already connected)
-- [ ] Site builder agent (github MCP now live — create repo + push HTML + enable Pages + branch + PR)
-- [ ] Private tiered skills repo (Tier 1/2/3)
-- [ ] Google Calendar MCP for deadline-aware escalations (already connected)
+- [x] CEO agent — vision/strategy, no tools
+- [x] COO agent — ops oversight, audit read + Slack
+- [x] CSO agent — HITL-gated enforcement, AUDIT/ENFORCE/EXECUTE modes ✅ fully tested 2026-03-26
+- [x] PM agent — backlog management, delegates to prospecting-agent
+- [x] Commander → thin router with HITL_RESUME routing
+- [x] Hardening agent — deployed, analyzing patterns every 5 min, creates PRs via github-mcp
+- [ ] CFO agent — token/cost budget watcher (Phase 3 resource-governor MCP already running)
 
 ### Safety
-- [x] Phase 2: Audit logger — deployed, watches all Agent CRs, MCP tools available to agents
+- [x] Phase 1: Admission control webhook — deployed, `audit` mode
+- [x] Phase 2: Audit logger — deployed, watches Agent CRs, MCP tools available
+- [x] Phase 3: Resource governor — deployed (MCP running at :8093)
 - [x] Phase 4: Hardening loop — deployed, reads audit log, proposes rules via GitHub PRs
-- [ ] Phase 1: Admission control webhook (code exists, not deployed)
-- [ ] Phase 3: Resource governor (code exists, not deployed)
+- [x] HITL pipeline — CSO audit→enforce→approval→execute fully working end-to-end
+- [ ] **Flip Phase 1 to `enforcement_mode: enforce`** (next action)
+- [ ] `require_hitl_label_for_mcp: true` — enable after labeling existing agents
 - [ ] Install Calico CNI for NetworkPolicy enforcement (Flannel doesn't enforce)
-- [ ] CSO governs MCP registry and skills registry separately
 
 ### Infrastructure
 - [x] github-mcp updated with `github_create_branch` + `github_create_pr` tools (7 total)
+- [x] api/hitl.js — 5 bugs fixed: `tasks/send`→`message/send`, `type`→`kind`, added messageId, correct URL path with namespace, added `X-API-Secret`
 - [ ] Clean up `infra/hardening-bot/` scaffold (superseded by hardening-agent + github-mcp)
 - [ ] Pin image digests for all MCP server containers
 - [ ] Enable kagent memory on commander and all agents
