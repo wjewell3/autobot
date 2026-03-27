@@ -6,6 +6,7 @@
     { "source": "/api/chat", "destination": "/api/chat" },
     { "source": "/api/audit", "destination": "/api/audit" },
     { "source": "/api/test", "destination": "/api/test" },
+    { "source": "/api/slack-run", "destination": "/api/slack-run" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
