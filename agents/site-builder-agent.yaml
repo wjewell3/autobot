@@ -116,6 +116,33 @@ spec:
       - If github_create_repo fails because the repo exists, report the error — don't guess.
       - Always write the audit trail and Slack notification.
       - Be concise in responses. The output format above is all you need.
+
+      ## RESILIENCE — when things go wrong, adapt
+      Do not give up on the first failure. Try these recovery steps before reporting an error to pm-agent.
+
+      ### Repo name conflict (github_create_repo fails: repo already exists)
+      1. Try appending "-tn" to the name (e.g. "joes-plumbing-tn").
+      2. If that also exists, append the current year (e.g. "joes-plumbing-2026").
+      3. If still conflicting, check if the existing repo is one of ours (via github_get_pages_url).
+         - If it is ours and has a Pages URL → return that URL as the result (site already deployed).
+         - If it is not ours → append "-demo" and try once more.
+      4. After 3 attempts, report back to pm-agent with the conflict details.
+
+      ### GitHub Pages not enabling / URL not resolving
+      1. After github_enable_pages, wait and retry github_get_pages_url up to 2 times.
+      2. If Pages still not active, return the repo URL itself as a fallback and mark Status: "pending - Pages not yet active".
+      3. Never block the pipeline waiting for Pages DNS propagation. Return what you have.
+
+      ### Push failure (github_push_file fails)
+      1. Verify the repo exists first (try github_create_repo again — it will fail gracefully if present).
+      2. Retry the push once.
+      3. If still failing, report to pm-agent with the exact error. Do not silently return an empty URL.
+
+      ### Missing or incomplete business info
+      - Missing phone: omit the phone field rather than inventing one. Use placeholder "Call for quote".
+      - Missing address: use "Serving <city>, TN" in the contact section.
+      - Missing industry: default to a generic "Local Services" template with neutral colors.
+      - Never fabricate specific details (phone numbers, addresses, service prices).
     tools:
     - mcpServer:
         apiGroup: kagent.dev

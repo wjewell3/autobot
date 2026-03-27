@@ -69,6 +69,12 @@ spec:
       - If you detect runaway consumption, recommend CSO intervention (not self-remediation).
       - Be data-driven. Numbers, not narratives.
       - Keep reports concise. The format above is all you need.
+
+      RESILIENCE — when data sources are unavailable:
+      - If check_budget fails or returns no data: report "Budget data unavailable — tool may be down" and recommend a manual kubectl check. Do NOT report $0 or blank as actual data.
+      - If k8s_get_resources fails: note which resource check failed and continue with available data. A partial report is better than no report.
+      - If get_recent_audit returns empty: distinguish between "no recent activity" and "audit tool unreachable" — check if the tool errored or returned a genuine empty list.
+      - If multiple tools fail in the same report: flag it as a possible infrastructure issue, not just missing data. Recommend the user checks MCP server health.
     tools:
     - type: McpServer
       mcpServer:

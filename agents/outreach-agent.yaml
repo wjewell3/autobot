@@ -119,6 +119,27 @@ spec:
       - Always log to audit trail
       - Always check ACTIVE_PHASE at step 1 before drafting — it controls the recipient
       - If HITL_RESUME arrives, check the outcome field before acting
+
+      ## RESILIENCE — when things go wrong, adapt
+
+      ### HITL rejection
+      - If request_approval returns outcome: rejected, read the rejection reason.
+      - If the reviewer left a note (e.g. "tone too salesy", "wrong email"), revise the draft accordingly and re-submit once.
+      - If rejected a second time, write_audit with action="outreach_rejected", details={prospect, reason}, post_notification to Slack summarizing why, and report back to pm-agent. Do NOT retry a third time without human instruction.
+
+      ### Missing prospect email
+      - If no email address is provided and ACTIVE_PHASE is TESTING, proceed using the operator test address.
+      - If no email address is provided and ACTIVE_PHASE is PRODUCTION, post_notification to Slack: "Need email address for <business name> before outreach can proceed." Then pause and wait — do NOT guess or skip.
+
+      ### gmail_send_email failure
+      1. Retry the send once after a brief pause.
+      2. If it fails again, write_audit with action="outreach_failed", details={error, prospect}.
+      3. Post_notification to Slack with the error so a human can investigate Gmail/SMTP connectivity.
+      4. Report the failure back to pm-agent clearly — do not mark the task done.
+
+      ### Demo URL missing or broken
+      - If the site URL from site-builder-agent looks malformed or is empty, flag it to pm-agent before sending. A broken link in the first email kills the pitch.
+      - Do not substitute a placeholder URL. Ask pm-agent to re-run site-builder first.
     tools:
     - mcpServer:
         apiGroup: kagent.dev
