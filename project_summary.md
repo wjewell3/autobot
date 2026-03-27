@@ -498,6 +498,77 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 - [x] **`rd-agent`** — ✅ deployed 2026-03-27. Continuously researches best practices and proposes agent improvements via GitHub PRs. Hourly CronJob via internal A2A. Tools: search_web, k8s_get_resources, k8s_get_resource_yaml, github_create_branch/push_file/create_pr, hardening MCP (get_failure_patterns/get_patterns/get_active_rules), audit-logger, hitl post_notification. Can self-improve.
 
 ### Agent Org Build-Out
+
+#### Agent Creation Standard (mandatory for ALL agents)
+
+Every agent deployed to this cluster MUST pass this checklist before being considered production-ready. rd-agent enforces this in every PR. north-star-agent scores the fleet against it.
+
+**1. RESILIENCE section** — the agent MUST have documented recovery paths for its top 3 failure modes. No agent should block the pipeline or silently fail on the first error.
+- Minimum: 1 retry strategy + 1 alternative approach + clear escalation path
+- Example: prospecting-agent tries 3 query variations before reporting zero results
+- Example: site-builder tries alternate repo names before declaring conflict
+
+**2. Self-check step** — before returning output, the agent MUST verify its own work.
+- Prospecting: "Did I return at least 1 HOT or WARM lead? If not, did I try all query variations?"
+- Site-builder: "Does the HTML have a hero, contact section, and mobile meta tag?"
+- Outreach: "Does the email include the demo URL and correct business name?"
+- PM: "Did I log this to the audit trail and create/update a GitHub issue?"
+
+**3. Structured output** — every agent MUST have a defined output format with required fields.
+- Use the `## OUTPUT FORMAT` section with a fenced code block template
+- Missing fields should be flagged, not silently omitted
+
+**4. Few-shot examples** — minimum 2 examples in the system message.
+- At least one "happy path" and one "edge case" (partial data, ambiguous input, etc.)
+- GPT-4.1 relies heavily on examples for instruction adherence — this is how you close the model quality gap
+
+**5. Audit trail** — every agent MUST call `write_audit` on completion (success or failure).
+- Include: agent name, action, outcome (success/failure/blocked), key details
+
+**6. Slack notification** — every agent MUST call `post_notification` with results on completion.
+- Workers post to `#agent-workers`, C-suite to `#agent-commander`
+
+**7. Escalation path** — every agent MUST know what to do when it can't complete its task.
+- Worker agents: report back to pm-agent with structured failure details
+- C-suite agents: post to Slack with severity and recommendation
+- Never silently return empty results or hang
+
+**Template for new agent YAML:**
+```yaml
+systemMessage: |
+  You are <name> — <one-line role>.
+
+  ## YOUR JOB
+  <what this agent does, in 2-3 sentences>
+
+  ## INPUTS YOU EXPECT
+  <what caller provides>
+
+  ## WORKFLOW (follow exactly)
+  Step 1: ...
+  Step N: Self-check — verify output meets quality bar before returning
+  Step N+1: write_audit + post_notification
+
+  ## OUTPUT FORMAT
+  <fenced template with required fields>
+
+  ## FEW-SHOT EXAMPLES
+  Example 1 (happy path): ...
+  Example 2 (edge case): ...
+
+  ## RULES
+  <hard constraints>
+
+  ## RESILIENCE — when things go wrong
+  ### <failure mode 1>
+  - recovery steps...
+  ### <failure mode 2>
+  - recovery steps...
+  ### Escalation
+  - when to report back vs retry
+```
+
+### Fleet Agents
 - [x] CEO agent — vision/strategy, no tools
 - [x] COO agent — ops oversight, audit read + Slack
 - [x] CSO agent — HITL-gated enforcement, AUDIT/ENFORCE/EXECUTE modes ✅ fully tested 2026-03-26

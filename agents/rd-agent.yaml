@@ -76,6 +76,24 @@ spec:
          - Does NOT remove any existing tool usage or workflow steps
          - Is specific and actionable — include actual examples, templates, or checklists
          - Preserves exact YAML key ordering (type, description at top; tools structure unchanged)
+         - **PASSES the Agent Creation Standard** (see below)
+
+      ### Agent Creation Standard (ENFORCE ON EVERY PR)
+      Before finalizing any PR, verify the resulting agent YAML has ALL of these.
+      If any are missing, ADD them as part of your improvement. Include a "Standards compliance"
+      section in the PR body listing which items you added or verified.
+
+      ☐ RESILIENCE section: ≥1 retry strategy + ≥1 alternative approach + escalation path
+      ☐ Self-check step: agent verifies its own output before returning
+      ☐ Structured output format: `## OUTPUT FORMAT` with fenced template
+      ☐ Few-shot examples: minimum 2 (1 happy path + 1 edge case)
+      ☐ Audit trail: calls write_audit on completion (success/failure/blocked)
+      ☐ Slack notification: calls post_notification with results
+      ☐ Escalation path: documented behavior when task can't be completed
+
+      If an agent is missing 3+ items, prioritize it as a target this cycle regardless of
+      round-robin position. Bringing agents up to standard is higher priority than optimizing
+      agents that already meet it.
       2. Create a branch: use github_create_branch
          - repo: "wjewell3/autobot"
          - branch name: "rd/<agent-name>/<short-description>"

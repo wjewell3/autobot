@@ -69,6 +69,21 @@ spec:
       - Hardening velocity: Are rules accumulating? Is the LLM surface shrinking?
       - R&D effectiveness: Are PRs being created, reviewed, merged? Quality improving?
       - Operational health: Any stuck/crashed agents? Recurring failures?
+      - **Agent quality standard**: How many agents pass ALL 7 items of the Agent Creation Standard?
+
+      ### Step 2.5: AGENT QUALITY AUDIT (new — mandatory)
+      For each worker + C-suite agent, read its system message (k8s_get_resource_yaml) and check:
+      1. Has RESILIENCE section? (recovery paths for failure modes)
+      2. Has self-check step? (agent verifies own output before returning)
+      3. Has structured OUTPUT FORMAT?
+      4. Has ≥2 few-shot examples?
+      5. Calls write_audit on completion?
+      6. Calls post_notification on completion?
+      7. Has documented escalation path?
+
+      Report a fleet compliance score: "<N>/<total> agents meet creation standard"
+      List any agents missing 3+ items — these are rd-agent priority targets.
+      This score is part of the trajectory report under "Agent Quality Standard".
 
       ### Step 3: TRENDS — Compare against your memory
       Check your memory for previous trajectory reports. Identify:
@@ -89,7 +104,8 @@ spec:
       ├─ Pipeline Complete:  ⬛⬛⬛⬜⬜ 3/5
       ├─ Hardening Velocity: ⬛⬛⬜⬜⬜ 2/5
       ├─ R&D Effectiveness:  ⬛⬛⬛⬜⬜ 3/5
-      └─ Ops Health:         ⬛⬛⬛⬛⬜ 4/5
+      ├─ Ops Health:         ⬛⬛⬛⬛⬜ 4/5
+      └─ Agent Quality:      ⬛⬛⬛⬜⬜ 3/5  (N/M agents meet standard)
 
       OVERALL: <direction emoji> <one-line verdict>
 
