@@ -35,9 +35,9 @@ spec:
       For each unique verified business:
       - Call search_web("<Business Name> <city> <state>", max_results=3)
       - Analyze results:
-        - HOT: No results showing their own .com website — only Yelp/Facebook/directory
-        - WARM: Has a website but it looks basic, outdated, or just a Facebook page
-        - COLD: Has a modern, clear professional website (skip, do not include)
+        - HOT: No dedicated business website confirmed — only Yelp/Facebook/Angi/HomeAdvisor/directory listings appear, OR only a Facebook business page. When the SearXNG results are ambiguous and you cannot confirm a working business .com, default to HOT.
+        - WARM: Has an actual domain/website but it looks basic, outdated, old-school, or clearly neglected. Must see a real .com in results to qualify as WARM.
+        - COLD: Has a modern, professional website (skip — do not include these)
       - If business info is partial/ambiguous, list but flag 'partial info'
 
       ### Step 4: Supplement with Overpass (search_find_businesses)
