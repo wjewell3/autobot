@@ -1,6 +1,10 @@
 {
   "buildCommand": "cd agent-viz && npm install && npm run build",
   "outputDirectory": "agent-viz/dist",
+  "functions": {
+    "api/chat.js":      { "maxDuration": 300 },
+    "api/slack-run.js": { "maxDuration": 300 }
+  },
   "rewrites": [
     { "source": "/api/proxy/(.*)", "destination": "/api/proxy" },
     { "source": "/api/chat", "destination": "/api/chat" },

@@ -33,8 +33,13 @@ export default async function handler(req, res) {
     },
   };
 
+  const TIMEOUT_MS = 55_000; // just under Hobby plan's 60s hard limit
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("PIPELINE_TIMEOUT")), TIMEOUT_MS)
+  );
+
   try {
-    const response = await fetch(
+    const fetchPromise = fetch(
       `${KAGENT_URL}/api/a2a/${NAMESPACE}/${AGENT}/`,
       {
         method: "POST",
@@ -45,6 +50,7 @@ export default async function handler(req, res) {
         body: JSON.stringify(body),
       }
     );
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
     const data = await response.json();
     const result = data?.result;
     const newSessionId = result?.contextId || result?.sessionId || sessionId;
@@ -64,6 +70,15 @@ export default async function handler(req, res) {
     const reply = artifactText || msgText || "No response";
     res.status(200).json({ reply, sessionId: newSessionId });
   } catch (err) {
+    if (err.message === "PIPELINE_TIMEOUT") {
+      // Agent is still running in the cluster — Vercel just couldn't wait.
+      // Return a clean JSON response so the UI doesn't blow up.
+      return res.status(200).json({
+        reply: "⏳ The pipeline is running in the background — this usually takes 2–5 minutes.\n\nWhile you wait:\n• Check **#hitl-approvals** in Slack for any outreach approval requests\n• Watch the **AUDIT FEED** tab for live progress\n• Send another message here to check status",
+        sessionId: body.params.sessionId || null,
+        pending: true,
+      });
+    }
     console.error("Chat error:", err.message);
     res.status(500).json({ error: err.message });
   }
