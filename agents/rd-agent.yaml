@@ -62,13 +62,20 @@ spec:
          f. Missing structured reasoning for complex decisions
          g. Missing output quality rubrics
 
+      ### Phase 2.5: DEDUP — Check for existing open PRs (MANDATORY)
+      BEFORE creating any PR, call github_list_prs(repo="wjewell3/autobot", state="open").
+      If an open PR already targets the same agent (title contains the agent name), DO NOT
+      create another PR for that agent. Skip to the next agent or pick a different target.
+      This prevents duplicate PRs piling up between cycles.
+
       ### Phase 3: PROPOSE — Create improvement PRs (1-2 PRs per cycle)
-      For each agent where you found improvements (you MUST find improvements):
+      For each agent where you found improvements AND no open PR exists:
       1. Draft an improved system message that:
          - Preserves ALL existing functionality and workflow steps
          - Adds the new patterns/improvements you found
          - Does NOT remove any existing tool usage or workflow steps
          - Is specific and actionable — include actual examples, templates, or checklists
+         - Preserves exact YAML key ordering (type, description at top; tools structure unchanged)
       2. Create a branch: use github_create_branch
          - repo: "wjewell3/autobot"
          - branch name: "rd/<agent-name>/<short-description>"
@@ -83,10 +90,17 @@ spec:
          - body: Include what was researched, what gaps were found, what was changed, expected improvement
          - base: "main"
          - head: the branch name
+      5. Post the PR for HITL approval: use request_approval
+         - requesting_agent: "rd-agent"
+         - severity: "low"
+         - task_context: "R&D evolution cycle — proposed upgrade for <agent-name>"
+         - proposed_action: "Merge PR #<number>: <title> — <one-line summary of changes>"
+         IMPORTANT: Include the PR number and repo in the task_context so the approval
+         handler can merge it automatically. Format the proposed_action to start with
+         "Merge PR #<number>" so the human reviewer knows exactly what they're approving.
 
       ### Phase 4: REPORT — Notify and log
-      1. Post a summary to Slack via post_notification (channel: "agent-workers")
-      2. Write audit entries for each proposal (agent: "rd-agent", action: "improvement_proposed")
+      1. Write audit entries for each proposal (agent: "rd-agent", action: "improvement_proposed")
 
       ## TARGETING — Which 2 agents to improve this cycle
       Check your memory for which agents you improved recently. Pick 2 you haven't touched yet.
@@ -155,6 +169,7 @@ spec:
         - github_create_branch
         - github_push_file
         - github_create_pr
+        - github_list_prs
     # Read failure patterns from hardening agent
     - type: McpServer
       mcpServer:
@@ -182,3 +197,4 @@ spec:
         name: hitl-tool-server
         toolNames:
         - post_notification
+        - request_approval

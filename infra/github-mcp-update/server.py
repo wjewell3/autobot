@@ -68,6 +68,16 @@ class UpdateIssueInput(BaseModel):
 class AddCommentInput(BaseModel):
     repo: str = Field(description="owner/repo format")
     issue_number: int = Field(description="Issue number")
+
+class MergePRInput(BaseModel):
+    repo: str = Field(description="owner/repo format")
+    pull_number: int = Field(description="PR number to merge")
+    merge_method: Optional[str] = Field(default="squash", description="merge, squash, or rebase")
+
+class ListPRsInput(BaseModel):
+    repo: str = Field(description="owner/repo format")
+    state: Optional[str] = Field(default="open", description="open, closed, or all")
+    per_page: Optional[int] = Field(default=30, description="Results per page (max 100)")
     body: str = Field(description="Comment body (markdown)")
 
 @mcp.tool(name="github_list_repos", annotations={"readOnlyHint": True})
@@ -290,6 +300,40 @@ async def github_add_comment(params: AddCommentInput) -> str:
             data = r.json()
         print(f"[github_add_comment] repo={params.repo} issue=#{params.issue_number}")
         return json.dumps({"id": data["id"], "url": data["html_url"]}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_merge_pr", annotations={"destructiveHint": True})
+async def github_merge_pr(params: MergePRInput) -> str:
+    """Merge a pull request. Use after HITL approval. Supports squash, merge, or rebase."""
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.put(
+                f"{BASE}/repos/{params.repo}/pulls/{params.pull_number}/merge",
+                headers=HEADERS,
+                json={"merge_method": params.merge_method}
+            )
+            r.raise_for_status()
+            data = r.json()
+        print(f"[github_merge_pr] repo={params.repo} pr=#{params.pull_number} method={params.merge_method}")
+        return json.dumps({"merged": data.get("merged", False), "sha": data.get("sha", ""), "message": data.get("message", "")}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_list_prs", annotations={"readOnlyHint": True})
+async def github_list_prs(params: ListPRsInput) -> str:
+    """List pull requests on a repo. Use to check for existing open PRs before creating duplicates."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(
+                f"{BASE}/repos/{params.repo}/pulls",
+                headers=HEADERS,
+                params={"state": params.state, "per_page": params.per_page}
+            )
+            r.raise_for_status()
+            prs = r.json()
+        result = [{"number": pr["number"], "title": pr["title"], "head": pr["head"]["ref"], "state": pr["state"], "url": pr["html_url"]} for pr in prs]
+        return json.dumps(result, indent=2)
     except Exception as e:
         return json.dumps({"error": str(e)})
 

@@ -68,6 +68,8 @@ allowed_agents:
       - github-tool-server/github_get_issue
       - github-tool-server/github_update_issue
       - github-tool-server/github_add_comment
+      - github-tool-server/github_merge_pr
+      - github-tool-server/github_list_prs
       - gmail-tool-server/gmail_send_email     # khook auto-syncs this; blocked by forbidden_tools
       - gmail-tool-server/gmail_request_approval
       - gmail-tool-server/gmail_check_approval
@@ -87,6 +89,7 @@ allowed_agents:
       - site-builder-agent
       - outreach-agent
       - rd-agent
+      - north-star-agent
 
   # ── C-Suite ────────────────────────────────────────────
 
@@ -187,11 +190,30 @@ allowed_agents:
       - github-tool-server/github_create_branch
       - github-tool-server/github_push_file
       - github-tool-server/github_create_pr
+      - github-tool-server/github_list_prs
       - hardening-agent/get_failure_patterns
       - hardening-agent/get_patterns
       - hardening-agent/get_active_rules
       - audit-logger/write_audit
       - audit-logger/get_recent_audit
+      - hitl-tool-server/post_notification
+      - hitl-tool-server/request_approval
+    allowed_agent_calls: []
+
+  # ── North Star ─────────────────────────────────────────
+
+  north-star-agent:
+    description: "Trajectory assessor — compares system evolution against project_summary.md gold standard"
+    allowed_tools:
+      - kagent-tool-server/k8s_get_resources
+      - kagent-tool-server/k8s_get_resource_yaml
+      - audit-logger/get_recent_audit
+      - hardening-agent/get_patterns
+      - hardening-agent/get_active_rules
+      - github-tool-server/github_list_prs
+      - github-tool-server/github_list_issues
+      - github-tool-server/github_get_issue
+      - search-tool-server/search_web
       - hitl-tool-server/post_notification
     allowed_agent_calls: []
 

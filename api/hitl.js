@@ -91,6 +91,34 @@ async function resumeAgent(requestId, outcome, context) {
 }
 
 // ---------------------------------------------------------------------------
+// Merge a GitHub PR (called when HITL approves an R&D PR)
+// ---------------------------------------------------------------------------
+
+async function mergeGitHubPR(prNumber, repo) {
+  const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+  if (!GITHUB_TOKEN) throw new Error("GITHUB_TOKEN not set in Vercel env");
+
+  const resp = await fetch(
+    `https://api.github.com/repos/${repo}/pulls/${prNumber}/merge`,
+    {
+      method: "PUT",
+      headers: {
+        "Authorization": `Bearer ${GITHUB_TOKEN}`,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({ merge_method: "squash" }),
+    }
+  );
+
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`GitHub merge failed ${resp.status}: ${body}`);
+  }
+  return resp.json();
+}
+
+// ---------------------------------------------------------------------------
 // Replace Slack message buttons with a resolved state
 // ---------------------------------------------------------------------------
 
@@ -191,6 +219,42 @@ export default async function handler(req, res) {
     outcome,
     clickedBy
   ).catch((e) => console.error("Failed to update Slack message:", e));
+
+  // If this is a PR approval, merge it on GitHub
+  if (outcome === "approved" && value.pr_number && value.repo) {
+    try {
+      const mergeResult = await mergeGitHubPR(value.pr_number, value.repo);
+      console.log(`Merged PR #${value.pr_number}: ${JSON.stringify(mergeResult)}`);
+
+      // Post confirmation to Slack
+      await fetch("https://slack.com/api/chat.postMessage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+        },
+        body: JSON.stringify({
+          channel: payload.channel.id,
+          thread_ts: payload.message.ts,
+          text: `✅ PR #${value.pr_number} merged into main via squash merge.`,
+        }),
+      }).catch(() => {});
+    } catch (e) {
+      console.error(`Failed to merge PR #${value.pr_number}:`, e);
+      await fetch("https://slack.com/api/chat.postMessage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+        },
+        body: JSON.stringify({
+          channel: payload.channel.id,
+          thread_ts: payload.message.ts,
+          text: `⚠️ PR #${value.pr_number} approval noted but merge failed: ${e.message}`,
+        }),
+      }).catch(() => {});
+    }
+  }
 
   // Resume the agent — log failures but always return 200 to Slack
   // (Slack retries on non-200, which would double-fire the resume)
