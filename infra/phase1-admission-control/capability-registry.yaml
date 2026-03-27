@@ -42,35 +42,25 @@ allowed_agents:
 
   # ── Commander (thin router) ─────────────────────────────
   # khook auto-adds A2A for all agents + MCP from all servers.
-  # We allow the full khook set EXCEPT gmail_send_email (forbidden).
+  # We allow the full khook set EXCEPT:
+  #   - gmail_send_email (forbidden globally)
+  #   - k8s_apply_manifest / k8s_create_resource (deployment is human-only)
+  #   - github_merge_pr (merges must go through HITL flow via hitl.js, not direct)
+  # Commander is a ROUTER. It delegates to C-suite who delegate further.
+  # It should never unilaterally deploy, delete, or merge.
   commander-agent:
-    description: "Thin router — dispatches to C-suite agents"
+    description: "Thin router — dispatches to C-suite agents; no unilateral cluster writes or PR merges"
     allowed_tools:
       - kagent-tool-server/k8s_get_resources
       - kagent-tool-server/k8s_describe_resource
-      - kagent-tool-server/k8s_apply_manifest
-      - kagent-tool-server/k8s_delete_resource
-      - kagent-tool-server/k8s_create_resource
       - kagent-tool-server/k8s_get_resource_yaml
-      - kagent-tool-server/k8s_patch_resource
       - search-tool-server/search_web
       - search-tool-server/search_news
       - search-tool-server/search_find_businesses
       - github-tool-server/github_list_repos
-      - github-tool-server/github_create_repo
-      - github-tool-server/github_push_file
-      - github-tool-server/github_enable_pages
-      - github-tool-server/github_get_pages_url
-      - github-tool-server/github_create_branch
-      - github-tool-server/github_create_pr
-      - github-tool-server/github_create_issue
       - github-tool-server/github_list_issues
       - github-tool-server/github_get_issue
-      - github-tool-server/github_update_issue
-      - github-tool-server/github_add_comment
-      - github-tool-server/github_merge_pr
       - github-tool-server/github_list_prs
-      - gmail-tool-server/gmail_send_email     # khook auto-syncs this; blocked by forbidden_tools
       - gmail-tool-server/gmail_request_approval
       - gmail-tool-server/gmail_check_approval
       - hitl-tool-server/request_approval

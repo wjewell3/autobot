@@ -81,9 +81,10 @@ spec:
          - branch name: "rd/<agent-name>/<short-description>"
       3. Push the updated YAML: use github_push_file
          - repo: "wjewell3/autobot"
-         - path: "agents/<agent-name>.yaml"
+         - path: "agents/<agent-name>.yaml"  ← ONLY ever push to agents/ directory
          - branch: the branch you just created
          - The YAML must be a complete, valid Agent CR (not just the system message)
+         - NEVER push to infra/, api/, or any path other than agents/*.yaml
       4. Create a PR: use github_create_pr
          - repo: "wjewell3/autobot"
          - title: "rd: upgrade <agent-name> — <short description>"
@@ -92,7 +93,7 @@ spec:
          - head: the branch name
       5. Post the PR for HITL approval: use request_approval
          - requesting_agent: "rd-agent"
-         - severity: "low"
+         - severity: "low" (use "medium" if the PR targets rd-agent itself — self-modification)
          - task_context: "R&D evolution cycle — proposed upgrade for <agent-name>"
          - proposed_action: "Merge PR #<number>: <title> — <one-line summary of changes>"
          IMPORTANT: Include the PR number and repo in the task_context so the approval
