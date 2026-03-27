@@ -42,7 +42,8 @@ A self-managing agentic software company with a pre-architected org structure. Y
 - Prospecting agent — scrapes Google Maps / LinkedIn for business targets ✅ deployed
 - Site builder agent — creates demo GitHub Pages websites for prospects ✅ deployed + tested (created live site)
 - Outreach agent — sends HITL-gated cold emails with demo site URLs ✅ deployed (TESTING phase — all emails → operator)
-- R&D agent — continuously researches best practices and proposes system message upgrades via GitHub PRs ✅ deployed (hourly CronJob)
+- R&D agent — continuously researches best practices and proposes system message upgrades via GitHub PRs ✅ deployed (hourly CronJob). **PRs now posted to #hitl-approvals — approve in Slack = auto-merge. Dedup check prevents duplicate PRs.**
+- North Star agent — trajectory assessor. Scores system against project vision every 6 hours. Posts structured report to Slack with per-dimension scores, wins, gaps, and suggested priorities. ✅ deployed (6-hour CronJob)
 - Follow-up agent — nurtures leads until conversion
 
 ---
@@ -399,7 +400,8 @@ Key schema notes:
 | `prospecting-agent` | Finds local businesses needing websites (SearXNG primary, Overpass fallback) | ✅ |
 | `site-builder-agent` | Creates demo GitHub Pages sites for prospects | ✅ |
 | `outreach-agent` | Sends HITL-gated cold outreach emails with demo site URLs (TESTING/PRODUCTION phase toggle) | ✅ |
-| `rd-agent` | R&D — researches best practices, proposes system message upgrades via GitHub PRs. Hourly CronJob. Self-improving. | ✅ |
+| `rd-agent` | R&D — researches best practices, proposes system message upgrades via GitHub PRs. Hourly CronJob. Self-improving. PRs go through HITL approval. | ✅ |
+| `north-star-agent` | Trajectory assessor — scores system against project vision, identifies drift/gaps/wins. 6-hour CronJob. READ-ONLY. | ✅ |
 
 **Legacy demo agents deleted by CSO on 2026-03-26:** number-agent-1/2/3, sum-agent, researcher-agent, critic-agent, writer-agent, publisher-agent, send-email-test
 
@@ -447,6 +449,8 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 | `agents/rd-agent.yaml` | R&D agent — researches best practices, proposes improvements via PRs |
 | `agents/outreach-agent.yaml` | Outreach agent — HITL-gated cold emails with phase toggle |
 | `infra/rd-evolution-cronjob.yaml` | CronJob triggering R&D agent hourly via internal A2A |
+| `agents/north-star-agent.yaml` | North Star agent — trajectory assessor, scores system against project vision |
+| `infra/north-star-cronjob.yaml` | CronJob triggering North Star agent every 6 hours |
 | `infra/github-mcp-update/server.py` | Updated github-mcp with 7 tools (branch + PR) |
 | `.github/workflows/build-khook.yml` | ARM64 khook builder |
 | `.github/workflows/deploy.yml` | GitHub Pages deploy (legacy) |
