@@ -1,5 +1,5 @@
 # Autobot Project Summary
-> Last updated: March 26, 2026
+> Last updated: March 27, 2026
 
 ## Vision
 A self-managing agentic software company with a pre-architected org structure. You provide high-level direction — the agent org executes, self-governs, and gets more reliable over time via a hardening loop.
@@ -15,6 +15,8 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | Kubernetes | Oracle OKE (ARM) | Free forever |
 | Compute | VM.Standard.A1.Flex (4 OCPU / 24GB RAM) | Free forever |
 | Event triggers | Khook | Free (built from source) |
+| Agent memory | kagent pgvector (built-in) | Free |
+| Embedding | LiteLLM → text-embedding-3-small (GitHub Copilot) | $0 extra |
 | Public tunnel | Localtonet (ct0nsvobr7.localto.net) | Free (persistent URL) |
 | CORS proxy | nginx in-cluster | Free |
 | K8s API proxy | kubectl proxy in-cluster | Free |
@@ -310,10 +312,19 @@ EOF
 
 ### LiteLLM
 - Image: `ghcr.io/berriai/litellm:main-latest`
-- Config: `github_copilot/gpt-4.1`
+- Config: `github_copilot/gpt-4.1` + `github_copilot/text-embedding-3-small`
 - Memory: requests 512Mi, limits **1.5Gi** (needs this or OOMKilled)
 - Token stored on node hostPath: `/home/opc/.config/litellm/github_copilot`
 - First run requires device auth: watch logs → go to https://github.com/login/device
+
+### Agent Memory (pgvector)
+- All 8 agents configured with `spec.declarative.memory: {modelConfig: copilot-embedding, ttlDays: 30}`
+- **`copilot-embedding` ModelConfig** → LiteLLM → `text-embedding-3-small` (GitHub Copilot)
+- **Storage:** kagent controller's built-in pgvector store — 768-dim vectors (truncated + L2-normalized from 1536)
+- **Search:** each request embeds the query → `/api/memories/search` on kagent controller — matching memories injected as `<MEMORY>` blocks
+- **Save:** async background task after session end → `/api/memories/sessions/batch`; LLM-summarized before embedding
+- **Verified end-to-end (2026-03-27):** cross-session recall confirmed — stored "OMEGA / Q2 launch" in session 1, recalled in a completely new session (different contextId) ✅
+- **Note:** The `Memory` CR (v1alpha1) with Pinecone is a separate, independent feature from `spec.declarative.memory`. Active memory uses kagent's pgvector — Pinecone is provisioned but unused. See `infra/memory/README.md`.
 
 ### CORS Proxy (nginx)
 - Listens on port 8081
@@ -454,6 +465,8 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 - **kagent rejects MCP servers with DNS rebinding protection enabled** — always set `enable_dns_rebinding_protection=False` for in-cluster servers
 - **ConfigMap updates are cached in running pods** — `kubectl rollout restart` is not always sufficient; use `kubectl delete pod -l app=<name>` to force a clean mount
 - **Raw httpx POST to MCP Streamable HTTP endpoints fails** — returns 406 or 400. Use the MCP client SDK (`streamablehttp_client` + `ClientSession`) for server-to-server tool calls. See MCP Client SDK Pattern above.
+- **`spec.declarative.memory` (v1alpha2) ≠ Memory CR (v1alpha1)** — these are two separate features. `spec.declarative.memory` uses kagent's own pgvector backend (the working one). The `Memory` CRD is for external vector stores (e.g. Pinecone) and is a different, independent system. Configuring a Memory CR does NOT affect agent memory unless the agent explicitly references it.
+- **A2A message parts use `kind` not `type`** — `{"kind":"text","text":"..."}` is correct. `{"type":"text"}` returns "unsupported part kind". Correct A2A path: `POST /api/a2a/<namespace>/<agent-name>/` (trailing slash required). Auth: `x-api-secret` header from `nginx-cors` ConfigMap.
 - **RemoteMCPServer CRD requires both `protocol` and `url`** — omitting either causes kagent to silently ignore the server. Always include `protocol: STREAMABLE_HTTP` and `url: http://<service>.<namespace>.svc.cluster.local:<port>/mcp`
 - **deploy.yaml must not contain empty ConfigMap stubs** — a `data: {}` ConfigMap in deploy.yaml will overwrite a ConfigMap previously loaded via `kubectl create configmap --from-file`. Put a comment with the load command instead.
 - **kagent RemoteMCPServer re-discovery** — after restarting an MCP pod, kagent may cache the old tool list. Force re-discovery with `kubectl annotate remotemcpserver <name> -n kagent retry=$(date +%s) --overwrite`
@@ -464,8 +477,10 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 
 ### Immediate
 - [x] **Switch Phase 1 webhook to `enforcement_mode: enforce`** — ✅ done 2026-03-26. Registry clean, all 8 agents passing.
-- [ ] **Real Slack button test** — HITL_RESUME was verified in-cluster but not via the actual Slack button path (Slack → Vercel `api/hitl.js` → commander → CSO). Trigger one fresh CSO enforce run, let it post to Slack, click ✅ on your phone.
-- [ ] Set `SLACK_PROPOSALS_CHANNEL_ID` on hardening-agent and `SLACK_AUDIT_CHANNEL_ID` on audit-logger
+- [x] **Real Slack button test** — ✅ fully verified 2026-03-27. Both paths confirmed end-to-end:
+  - **Deny path:** CSO enforce → `request_approval` → Slack post → user clicked ❌ → Vercel `hitl.js` sig verify → commander → CSO EXECUTE → `write_audit` (REMEDIATION_REJECTED) ✅
+  - **Approve path:** CSO flagged `test-delete-me` legacy agent → user clicked ✅ → Vercel → commander → CSO EXECUTE → `k8s_delete_resource` (agent deleted) → `write_audit` ✅
+- [ ] Set `SLACK_PROPOSALS_CHANNEL_ID` on hardening-agent and `SLACK_AUDIT_CHANNEL_ID` on audit-logger (both currently `value: ""` — need channel IDs from user)
 
 ### Next Capability: Outreach Agent
 - [x] **`site-builder-agent`** — ✅ deployed + tested 2026-03-26. Created live GitHub Pages site (wjewell3/test-plumbing-demo). PM-agent has A2A tool to delegate to it.
@@ -488,7 +503,7 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 - [x] Phase 2: Audit logger — deployed, watches Agent CRs, MCP tools available
 - [x] Phase 3: Resource governor — deployed (MCP running at :8093)
 - [x] Phase 4: Hardening loop — deployed, reads audit log, proposes rules via GitHub PRs
-- [x] HITL pipeline — CSO audit→enforce→approval→execute fully working end-to-end
+- [x] HITL pipeline — CSO audit→enforce→approval→execute fully working end-to-end (both approve ✅ and deny ❌ paths verified via real Slack buttons 2026-03-27)
 - [x] **Phase 1 `enforcement_mode: enforce`** — ✅ flipped 2026-03-26, all agents passing
 - [x] **`require_hitl_label_for_mcp: true`** — ✅ enabled 2026-03-26. All 8 agents labeled `hitl-reviewed=true`. Unlabeled agents with MCP tools are rejected.
 - [x] **forbidden_tools override** — policy-server.py updated to allow explicit `allowed_tools` overrides for forbidden tools (needed for khook auto-synced tools on commander)
@@ -499,6 +514,6 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 - [x] api/hitl.js — 5 bugs fixed: `tasks/send`→`message/send`, `type`→`kind`, added messageId, correct URL path with namespace, added `X-API-Secret`
 - [ ] Clean up `infra/hardening-bot/` scaffold (superseded by hardening-agent + github-mcp)
 - [ ] Pin image digests for all MCP server containers
-- [ ] Enable kagent memory on commander and all agents
+- [x] **Enable kagent memory on all agents** — ✅ done 2026-03-27. All 8 agents using `copilot-embedding` ModelConfig (`text-embedding-3-small` via LiteLLM). pgvector-backed, 30-day TTL. Cross-session recall verified.
 - [ ] Add business metrics to dashboard (leads found, emails sent, revenue)
 - [ ] Get a real domain for persistent tunnel (optional but recommended)
