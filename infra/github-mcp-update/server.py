@@ -39,6 +39,37 @@ class CreatePRInput(BaseModel):
     head: str = Field(description="Branch containing changes")
     base: Optional[str] = Field(default="main", description="Target branch (default: main)")
 
+class CreateIssueInput(BaseModel):
+    repo: str = Field(description="owner/repo format")
+    title: str = Field(description="Issue title")
+    body: Optional[str] = Field(default="", description="Issue body (markdown)")
+    labels: Optional[list[str]] = Field(default=[], description="Labels e.g. ['agent:pm-agent', 'priority:high']")
+    assignees: Optional[list[str]] = Field(default=[], description="GitHub usernames to assign")
+
+class ListIssuesInput(BaseModel):
+    repo: str = Field(description="owner/repo format")
+    state: Optional[str] = Field(default="open", description="Filter: open, closed, or all")
+    labels: Optional[str] = Field(default="", description="Comma-separated label filter e.g. 'agent:pm-agent,priority:high'")
+    per_page: Optional[int] = Field(default=30, description="Results per page (max 100)")
+
+class IssueInput(BaseModel):
+    repo: str = Field(description="owner/repo format")
+    issue_number: int = Field(description="Issue number")
+
+class UpdateIssueInput(BaseModel):
+    repo: str = Field(description="owner/repo format")
+    issue_number: int = Field(description="Issue number")
+    title: Optional[str] = Field(default=None, description="New title")
+    body: Optional[str] = Field(default=None, description="New body")
+    state: Optional[str] = Field(default=None, description="open or closed")
+    labels: Optional[list[str]] = Field(default=None, description="Replace all labels")
+    assignees: Optional[list[str]] = Field(default=None, description="Replace all assignees")
+
+class AddCommentInput(BaseModel):
+    repo: str = Field(description="owner/repo format")
+    issue_number: int = Field(description="Issue number")
+    body: str = Field(description="Comment body (markdown)")
+
 @mcp.tool(name="github_list_repos", annotations={"readOnlyHint": True})
 async def github_list_repos(params: EmptyInput) -> str:
     """List GitHub repos for authenticated user."""
@@ -146,6 +177,119 @@ async def github_create_pr(params: CreatePRInput) -> str:
             "state": data["state"],
             "title": data["title"]
         }, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_create_issue", annotations={"destructiveHint": False})
+async def github_create_issue(params: CreateIssueInput) -> str:
+    """Create a GitHub issue. Use labels for agent tracking e.g. 'agent:pm-agent'."""
+    try:
+        payload = {"title": params.title, "body": params.body}
+        if params.labels:
+            payload["labels"] = params.labels
+        if params.assignees:
+            payload["assignees"] = params.assignees
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(f"{BASE}/repos/{params.repo}/issues", headers=HEADERS, json=payload)
+            r.raise_for_status()
+            data = r.json()
+        print(f"[github_create_issue] repo={params.repo} issue=#{data['number']}")
+        return json.dumps({
+            "number": data["number"],
+            "url": data["html_url"],
+            "title": data["title"],
+            "state": data["state"],
+            "labels": [l["name"] for l in data.get("labels", [])]
+        }, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_list_issues", annotations={"readOnlyHint": True})
+async def github_list_issues(params: ListIssuesInput) -> str:
+    """List issues in a repo. Filter by state and labels."""
+    try:
+        query = f"state={params.state}&per_page={params.per_page}"
+        if params.labels:
+            query += f"&labels={params.labels}"
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(f"{BASE}/repos/{params.repo}/issues?{query}", headers=HEADERS)
+            r.raise_for_status()
+            issues = [{
+                "number": i["number"],
+                "title": i["title"],
+                "state": i["state"],
+                "labels": [l["name"] for l in i.get("labels", [])],
+                "assignees": [a["login"] for a in i.get("assignees", [])],
+                "created_at": i["created_at"],
+                "updated_at": i["updated_at"]
+            } for i in r.json() if "pull_request" not in i]
+        return json.dumps(issues, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_get_issue", annotations={"readOnlyHint": True})
+async def github_get_issue(params: IssueInput) -> str:
+    """Get details of a specific issue including body and comments."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(f"{BASE}/repos/{params.repo}/issues/{params.issue_number}", headers=HEADERS)
+            r.raise_for_status()
+            i = r.json()
+            rc = await client.get(f"{BASE}/repos/{params.repo}/issues/{params.issue_number}/comments?per_page=20", headers=HEADERS)
+            comments = [{"author": c["user"]["login"], "body": c["body"], "created_at": c["created_at"]} for c in rc.json()] if rc.status_code == 200 else []
+        return json.dumps({
+            "number": i["number"],
+            "title": i["title"],
+            "body": i.get("body", ""),
+            "state": i["state"],
+            "labels": [l["name"] for l in i.get("labels", [])],
+            "assignees": [a["login"] for a in i.get("assignees", [])],
+            "created_at": i["created_at"],
+            "updated_at": i["updated_at"],
+            "comments": comments
+        }, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_update_issue", annotations={"destructiveHint": False, "idempotentHint": True})
+async def github_update_issue(params: UpdateIssueInput) -> str:
+    """Update an issue's title, body, state, labels, or assignees."""
+    try:
+        payload = {}
+        if params.title is not None:
+            payload["title"] = params.title
+        if params.body is not None:
+            payload["body"] = params.body
+        if params.state is not None:
+            payload["state"] = params.state
+        if params.labels is not None:
+            payload["labels"] = params.labels
+        if params.assignees is not None:
+            payload["assignees"] = params.assignees
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.patch(f"{BASE}/repos/{params.repo}/issues/{params.issue_number}", headers=HEADERS, json=payload)
+            r.raise_for_status()
+            data = r.json()
+        print(f"[github_update_issue] repo={params.repo} issue=#{params.issue_number}")
+        return json.dumps({
+            "number": data["number"],
+            "title": data["title"],
+            "state": data["state"],
+            "labels": [l["name"] for l in data.get("labels", [])]
+        }, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool(name="github_add_comment", annotations={"destructiveHint": False})
+async def github_add_comment(params: AddCommentInput) -> str:
+    """Add a comment to an issue. Agents use this for status updates."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(f"{BASE}/repos/{params.repo}/issues/{params.issue_number}/comments", headers=HEADERS, json={"body": params.body})
+            r.raise_for_status()
+            data = r.json()
+        print(f"[github_add_comment] repo={params.repo} issue=#{params.issue_number}")
+        return json.dumps({"id": data["id"], "url": data["html_url"]}, indent=2)
     except Exception as e:
         return json.dumps({"error": str(e)})
 
