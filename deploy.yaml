@@ -17,6 +17,9 @@ data:
       - model_name: gpt-4.1
         litellm_params:
           model: github_copilot/gpt-4.1
+      - model_name: text-embedding-3-small
+        litellm_params:
+          model: github_copilot/text-embedding-3-small
 
 ---
 # ── 3. LITELLM DEPLOYMENT ────────────────────────────────
@@ -101,6 +104,29 @@ spec:
     jsonOutput: true
     multipleSystemMessages: false
     structuredOutput: true
+    vision: false
+  openAI:
+    baseUrl: http://litellm-service.kagent.svc.cluster.local:4000
+
+---
+# ── 7. EMBEDDING MODEL CONFIG ─────────────────────────────
+# Used by all agents for pgvector-based long-term memory
+# Requires the same copilot-api-key Secret as copilot-gpt41
+apiVersion: kagent.dev/v1alpha1
+kind: ModelConfig
+metadata:
+  name: copilot-embedding
+  namespace: kagent
+spec:
+  apiKeySecretKey: key
+  apiKeySecretRef: copilot-api-key
+  model: text-embedding-3-small
+  modelInfo:
+    family: unknown
+    functionCalling: false
+    jsonOutput: false
+    multipleSystemMessages: false
+    structuredOutput: false
     vision: false
   openAI:
     baseUrl: http://litellm-service.kagent.svc.cluster.local:4000

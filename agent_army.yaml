@@ -9,6 +9,9 @@ spec:
   type: Declarative
   declarative:
     modelConfig: default-model-config
+    memory:
+      modelConfig: copilot-embedding
+      ttlDays: 30
     systemMessage: |
       You are number-agent-1. You are part of a chain of agents.
       When activated:
@@ -30,6 +33,9 @@ spec:
   type: Declarative
   declarative:
     modelConfig: default-model-config
+    memory:
+      modelConfig: copilot-embedding
+      ttlDays: 30
     systemMessage: |
       You are number-agent-2. You are part of a chain of agents.
       When activated with a message containing previous numbers:
@@ -51,6 +57,9 @@ spec:
   type: Declarative
   declarative:
     modelConfig: default-model-config
+    memory:
+      modelConfig: copilot-embedding
+      ttlDays: 30
     systemMessage: |
       You are number-agent-3. You are part of a chain of agents.
       When activated with a message containing previous numbers:
@@ -72,6 +81,9 @@ spec:
   type: Declarative
   declarative:
     modelConfig: default-model-config
+    memory:
+      modelConfig: copilot-embedding
+      ttlDays: 30
     systemMessage: |
       You are sum-agent. You are the final agent in the chain.
       When activated with a list of numbers:
@@ -93,6 +105,9 @@ spec:
   type: Declarative
   declarative:
     modelConfig: default-model-config
+    memory:
+      modelConfig: copilot-embedding
+      ttlDays: 30
     systemMessage: |
       You are the commander agent. You orchestrate a team of agents.
       Your team:

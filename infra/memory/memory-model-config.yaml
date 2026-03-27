@@ -1,0 +1,23 @@
+# ── EMBEDDING MODEL CONFIG ────────────────────────────────
+# Used by all agents for pgvector-based long-term memory via kagent controller.
+# Requires copilot-api-key Secret (create imperatively — key value is arbitrary):
+#   kubectl create secret generic copilot-api-key --namespace kagent \
+#     --from-literal=key=anything
+apiVersion: kagent.dev/v1alpha1
+kind: ModelConfig
+metadata:
+  name: copilot-embedding
+  namespace: kagent
+spec:
+  apiKeySecretKey: key
+  apiKeySecretRef: copilot-api-key
+  model: text-embedding-3-small
+  modelInfo:
+    family: unknown
+    functionCalling: false
+    jsonOutput: false
+    multipleSystemMessages: false
+    structuredOutput: false
+    vision: false
+  openAI:
+    baseUrl: http://litellm-service.kagent.svc.cluster.local:4000

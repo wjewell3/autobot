@@ -1,0 +1,23 @@
+# ── MEMORY CR (v1alpha1) — PINECONE EXTERNAL VECTOR DB ───
+# NOTE: This is a SEPARATE feature from spec.declarative.memory (v1alpha2).
+# Active agent memory uses kagent's built-in pgvector via the controller.
+# This CRD is provisioned for future use or explicit Memory CR referencing.
+#
+# Requires pinecone-api-key Secret (create imperatively — never commit key):
+#   kubectl create secret generic pinecone-api-key --namespace kagent \
+#     --from-literal=api-key="$PINECONE_API_KEY"
+#
+# Pinecone index: autobot-memory-a5x29de (us-east-1, 1536 dims, cosine metric)
+apiVersion: kagent.dev/v1alpha1
+kind: Memory
+metadata:
+  name: autobot-memory
+  namespace: kagent
+spec:
+  provider: pinecone
+  pinecone:
+    apiKeySecretRef: pinecone-api-key
+    apiKeySecretKey: api-key
+    indexHost: https://autobot-memory-a5x29de.svc.aped-4627-b74a.pinecone.io
+    topK: 5
+    scoreThreshold: 0.7

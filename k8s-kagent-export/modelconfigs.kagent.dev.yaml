@@ -5,6 +5,34 @@ items:
   metadata:
     annotations:
       kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"ModelConfig","metadata":{"annotations":{},"name":"copilot-embedding","namespace":"kagent"},"spec":{"apiKeySecret":"copilot-api-key","apiKeySecretKey":"key","model":"text-embedding-3-small","openAI":{"baseUrl":"http://litellm-service.kagent.svc.cluster.local:4000"},"provider":"OpenAI"}}
+    creationTimestamp: "2026-03-27T00:44:06Z"
+    generation: 1
+    name: copilot-embedding
+    namespace: kagent
+    resourceVersion: "3720750"
+    uid: 025ef47c-2b51-4645-a434-7c4b756c3aa2
+  spec:
+    apiKeySecret: copilot-api-key
+    apiKeySecretKey: key
+    model: text-embedding-3-small
+    openAI:
+      baseUrl: http://litellm-service.kagent.svc.cluster.local:4000
+    provider: OpenAI
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-27T00:44:06Z"
+      message: Model configuration accepted
+      reason: ModelConfigReconciled
+      status: "True"
+      type: Accepted
+    observedGeneration: 1
+    secretHash: c6aa61e4408286080effa50f16c27a1e2b43666b13745a191dd1bece9e2e89fb
+- apiVersion: kagent.dev/v1alpha2
+  kind: ModelConfig
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"kagent.dev/v1alpha1","kind":"ModelConfig","metadata":{"annotations":{},"name":"copilot-gpt41","namespace":"kagent"},"spec":{"apiKeySecretKey":"key","apiKeySecretRef":"copilot-api-key","model":"gpt-4.1","modelInfo":{"family":"unknown","functionCalling":true,"jsonOutput":true,"multipleSystemMessages":false,"structuredOutput":true,"vision":false},"openAI":{"baseUrl":"http://litellm-service.kagent.svc.cluster.local:4000"}}}
     creationTimestamp: "2026-03-19T11:10:20Z"
     generation: 1
