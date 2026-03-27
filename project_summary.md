@@ -480,7 +480,7 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 - [x] **Real Slack button test** — ✅ fully verified 2026-03-27. Both paths confirmed end-to-end:
   - **Deny path:** CSO enforce → `request_approval` → Slack post → user clicked ❌ → Vercel `hitl.js` sig verify → commander → CSO EXECUTE → `write_audit` (REMEDIATION_REJECTED) ✅
   - **Approve path:** CSO flagged `test-delete-me` legacy agent → user clicked ✅ → Vercel → commander → CSO EXECUTE → `k8s_delete_resource` (agent deleted) → `write_audit` ✅
-- [ ] Set `SLACK_PROPOSALS_CHANNEL_ID` on hardening-agent and `SLACK_AUDIT_CHANNEL_ID` on audit-logger (both currently `value: ""` — need channel IDs from user)
+- [x] Set `SLACK_PROPOSALS_CHANNEL_ID=C0AN2NT4T8W` on hardening-agent (`#hardening-proposals`) and `SLACK_AUDIT_CHANNEL_ID=C0AP4SZFN6S` on audit-logger (`#audit-log`) ✅ 2026-03-27
 
 ### Next Capability: Outreach Agent
 - [x] **`site-builder-agent`** — ✅ deployed + tested 2026-03-26. Created live GitHub Pages site (wjewell3/test-plumbing-demo). PM-agent has A2A tool to delegate to it.

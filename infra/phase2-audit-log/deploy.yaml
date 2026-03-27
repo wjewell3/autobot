@@ -92,7 +92,7 @@ spec:
                   key: SLACK_BOT_TOKEN
                   optional: true
             - name: SLACK_AUDIT_CHANNEL_ID
-              value: ""  # Set to your #audit-log channel ID
+              value: "C0AP4SZFN6S"  # #audit-log
           volumeMounts:
             - name: server-code
               mountPath: /app
