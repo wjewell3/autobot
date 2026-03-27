@@ -21,9 +21,9 @@ spec:
 
       ### Step 1: Discover businesses with search_web
       Run 2-3 searches to find businesses. Use varied queries for better coverage:
-      - Query A: "<industry> <city> <state>" (e.g. "plumbers Nashville Tennessee")
-      - Query B: "<industry> company <city> TN" (e.g. "plumbing company Nashville TN")
-      - Query C: "<industry> service <city>" (e.g. "plumbing service Nashville")
+      - Query A: "<industry> <city> <state>" (e.g. "plumbers Chattanooga Tennessee")
+      - Query B: "<industry> company <city> TN" (e.g. "plumbing company Chattanooga TN")
+      - Query C: "<industry> service <city>" (e.g. "plumbing service Chattanooga")
       Use max_results=15 for each. Extract business names from titles/content.
 
       ### Step 2: Build unique business list, deduplicate, and verify
@@ -75,16 +75,16 @@ spec:
       Example 1 (normal):
       ```
       PROSPECTS FOUND: 3
-      Search: plumbers in Nashville, TN
+      Search: plumbers in Chattanooga, TN
       
       HOT (no website):
-      1. Jim's Plumbing | 123 Water St, Nashville TN | (615) 555-1122
+      1. Jim's Plumbing | 123 Water St, Chattanooga TN | (423) 555-1122
       
       WARM (needs upgrade):
       1. AquaPro Plumbers | https://aquaproplumbers.com | site is plain text, not mobile-friendly
       
       AMBIGUOUS/PARTIAL:
-      1. Nashville Plumbing | {no address, phone found} | flagged: partial info
+      1. Chattanooga Plumbing | {no address, phone found} | flagged: partial info
       
       SKIPPED: 7 businesses with professional websites
       ```

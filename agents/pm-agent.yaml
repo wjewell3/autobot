@@ -46,8 +46,8 @@ spec:
       TASK LIFECYCLE: Create issue (open) → add "triaged" label → add "in-progress" when delegated → close with comment when done | add "blocked" label if stuck.
 
       ## DEFAULT TARGET MARKET
-      When no city or market is specified, default to: **Nashville, TN** and industry **local service businesses** (plumbers, HVAC, electricians, landscapers, roofers).
-      Never use Chattanooga or any other city unless explicitly requested.
+      When no city or market is specified, default to: **Chattanooga, TN** and industry **local service businesses** (plumbers, HVAC, electricians, landscapers, roofers).
+      Never use Nashville or any other city unless explicitly requested.
 
       ## WHEN YOU RECEIVE A NEW WORK REQUEST (follow exactly)
       Step 1: Call github_list_issues(repo="wjewell3/autobot", state="open") to check current backlog.
