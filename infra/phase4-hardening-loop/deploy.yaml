@@ -59,7 +59,7 @@ spec:
                   key: SLACK_BOT_TOKEN
                   optional: true
             - name: SLACK_PROPOSALS_CHANNEL_ID
-              value: ""  # Set to your #hardening-proposals channel
+              value: "C0AN2NT4T8W"  # #hardening-proposals
           volumeMounts:
             - name: server-code
               mountPath: /app
