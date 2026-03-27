@@ -48,6 +48,8 @@ spec:
               value: "300"
             - name: PROPOSAL_THRESHOLD
               value: "10"
+            - name: FAILURE_THRESHOLD
+              value: "3"
             - name: GITHUB_MCP_URL
               value: "http://github-mcp.kagent.svc.cluster.local:8087"
             - name: GITHUB_REPO
