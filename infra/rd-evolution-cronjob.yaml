@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rd-evolution-cycle
+  namespace: kagent
+spec:
+  schedule: "0 */6 * * *"    # Every 6 hours
+  concurrencyPolicy: Forbid   # Skip if previous run still going
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 600   # 10 min max
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: trigger
+            image: docker.io/curlimages/curl:8.5.0
+            command:
+            - sh
+            - -c
+            - |
+              curl -sS -X POST \
+                "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/rd-agent/" \
+                -H "Content-Type: application/json" \
+                -d '{
+                  "jsonrpc": "2.0",
+                  "method": "message/send",
+                  "id": "rd-cron-'"$(date +%s)"'",
+                  "params": {
+                    "message": {
+                      "role": "user",
+                      "parts": [{"kind": "text", "text": "Run evolution cycle: inventory all agents, research best practices for the weakest agents, and propose system message improvements via GitHub PRs. Check your memory for previous cycles to avoid repeating proposals."}]
+                    }
+                  }
+                }'
