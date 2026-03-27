@@ -1,5 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  useEffect(() => {
+    const h = () => setMobile(window.innerWidth < 768);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+  return mobile;
+}
+
 // ── Shared Styles & Helpers ─────────────────────────────
 
 const FONT = "'JetBrains Mono', 'Fira Code', monospace";
@@ -15,6 +25,7 @@ const YELLOW = "#facc15";
 
 const GLOBAL_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+*, *::before, *::after { box-sizing: border-box; }
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: #0f172a; }
 ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
@@ -29,6 +40,10 @@ textarea:focus, input:focus { outline: none; }
 }
 .fade-in { animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 767px) {
+  body { -webkit-text-size-adjust: 100%; }
+  input, textarea, select { font-size: 16px !important; }
+}
 `;
 
 function getAgentColor(name) {
@@ -116,7 +131,7 @@ function LoginScreen({ onLogin }) {
   return (
     <div style={{ background: BG, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT }}>
       <style>{GLOBAL_CSS}</style>
-      <div style={{ textAlign: "center", width: 320 }}>
+      <div style={{ textAlign: "center", width: "min(320px, calc(100vw - 32px))" }}>
         <div style={{ color: ACCENT, fontSize: 28, fontWeight: 600, letterSpacing: 4, marginBottom: 8 }}>AUTOBOT</div>
         <div style={{ color: MUTED, fontSize: 11, letterSpacing: 2, marginBottom: 40 }}>COMMAND CENTER</div>
         <Panel>
@@ -218,6 +233,8 @@ function AgentsTab({ agents, layout, sessionMap, setSessionMap, selected, setSel
   const [thinking, setThinking] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [activityLog, setActivityLog] = useState([]);
+  const [showGraph, setShowGraph] = useState(false);
+  const isMobile = useIsMobile();
   const chatRef = useRef(null);
 
   useEffect(() => {
@@ -267,11 +284,24 @@ function AgentsTab({ agents, layout, sessionMap, setSessionMap, selected, setSel
   const selectedAgent = selected ? agents.find(a => a.metadata?.name === selected) : null;
 
   return (
-    <div style={{ display: "flex", gap: 10, height: "100%" }} className="fade-in">
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 10, height: "100%" }} className="fade-in">
+      {/* Mobile graph toggle */}
+      {isMobile && (
+        <button onClick={() => setShowGraph(g => !g)} style={{
+          background: "transparent", color: showGraph ? ACCENT : MUTED,
+          border: `1px solid ${showGraph ? "rgba(99,102,241,0.3)" : BORDER}`,
+          borderRadius: 6, padding: "8px 12px", cursor: "pointer",
+          fontFamily: FONT, fontSize: 11, letterSpacing: 1, textAlign: "left",
+        }}>
+          {showGraph ? "▴ HIDE GRAPH" : "▾ SHOW AGENT GRAPH"}
+        </button>
+      )}
+
       {/* LEFT: Graph + Detail */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: "0 0 560px" }}>
+      {(!isMobile || showGraph) && (
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: isMobile ? "none" : "0 0 560px" }}>
         {/* Graph */}
-        <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, position: "relative", overflow: "hidden" }}>
+        <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, position: "relative", overflow: isMobile ? "auto" : "hidden" }}>
           <div className="scan-line" />
           <svg width={SVG_W} height={SVG_H} style={{ display: "block", position: "relative", zIndex: 1 }}>
             {Array.from({ length: 12 }).map((_, row) =>
@@ -349,12 +379,14 @@ function AgentsTab({ agents, layout, sessionMap, setSessionMap, selected, setSel
           )}
         </Panel>
       </div>
+      )} {/* end mobile conditional graph */}
 
       {/* RIGHT: Chat */}
       <div style={{
         flex: 1, display: "flex", flexDirection: "column",
         background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8,
         padding: 12, minWidth: 0, position: "relative", overflow: "hidden",
+        minHeight: isMobile ? 0 : undefined,
       }}>
         <div className="scan-line" />
         <div style={{ color: MUTED, fontSize: 10, marginBottom: 10, letterSpacing: 1, position: "relative", zIndex: 1 }}>
@@ -374,7 +406,7 @@ function AgentsTab({ agents, layout, sessionMap, setSessionMap, selected, setSel
                 background: m.role === "user" ? "rgba(99,102,241,0.15)" : "rgba(15,23,42,0.8)",
                 border: `1px solid ${m.role === "user" ? "rgba(99,102,241,0.4)" : BORDER}`,
                 borderRadius: m.role === "user" ? "10px 10px 2px 10px" : "10px 10px 10px 2px",
-                padding: "8px 12px", fontSize: 11,
+                padding: "8px 12px", fontSize: isMobile ? 15 : 11,
                 color: m.role === "user" ? "#c7d2fe" : "#94a3b8",
                 whiteSpace: "pre-wrap", lineHeight: 1.6,
               }}>
@@ -395,16 +427,17 @@ function AgentsTab({ agents, layout, sessionMap, setSessionMap, selected, setSel
             placeholder="send orders to commander..."
             style={{
               flex: 1, background: "#0f172a", border: `1px solid ${BORDER}`, borderRadius: 6,
-              color: TEXT, padding: "8px 10px", fontSize: 11, fontFamily: "inherit",
-              resize: "none", height: 54,
+              color: TEXT, padding: "10px 12px", fontSize: 16, fontFamily: "inherit",
+              resize: "none", height: isMobile ? 72 : 54,
             }}
           />
           <button onClick={send} disabled={thinking || !input.trim()} style={{
             background: thinking || !input.trim() ? "transparent" : "rgba(99,102,241,0.2)",
             color: thinking || !input.trim() ? BORDER : ACCENT,
             border: `1px solid ${thinking || !input.trim() ? BORDER : "rgba(99,102,241,0.4)"}`,
-            borderRadius: 6, padding: "0 16px", cursor: thinking ? "not-allowed" : "pointer",
-            fontFamily: "inherit", fontSize: 16, transition: "all 0.15s",
+            borderRadius: 6, padding: isMobile ? "0 20px" : "0 16px", cursor: thinking ? "not-allowed" : "pointer",
+            fontFamily: "inherit", fontSize: isMobile ? 20 : 16, transition: "all 0.15s",
+            minWidth: 52,
           }}>▶</button>
         </div>
       </div>
@@ -420,6 +453,7 @@ function AuditTab() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ agent: "", type: "" });
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const isMobile = useIsMobile();
 
   const fetchEntries = async () => {
     try {
@@ -471,9 +505,9 @@ function AuditTab() {
   const allTypes = stats ? Object.keys(stats.event_types || {}).sort() : [];
 
   return (
-    <div style={{ display: "flex", gap: 10, height: "100%" }} className="fade-in">
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 10, height: "100%" }} className="fade-in">
       {/* LEFT: Stats + Filters */}
-      <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ flex: isMobile ? "none" : "0 0 280px", display: "flex", flexDirection: isMobile ? "row" : "column", flexWrap: "wrap", gap: 10 }}>
         <Panel>
           <div style={{ color: MUTED, fontSize: 10, letterSpacing: 1, marginBottom: 10 }}>AUDIT STATS</div>
           {stats ? (
@@ -912,6 +946,7 @@ const STATUS_META = {
 function RoadmapTab() {
   const [tasks, setTasks] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const load = async () => {
@@ -965,7 +1000,7 @@ function RoadmapTab() {
   }));
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 12, height: "100%", overflow: "hidden" }}>
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 380px", gap: 12, height: "100%", overflow: "hidden" }}>
 
       {/* Left: Strategic Roadmap */}
       <div style={{ overflowY: "auto", paddingRight: 4 }}>
@@ -1014,7 +1049,7 @@ function RoadmapTab() {
       </div>
 
       {/* Right: Live Task Log from pm-agent */}
-      <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden", maxHeight: isMobile ? 320 : undefined }}>
         <div style={{ padding: "10px 14px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ color: ACCENT, fontSize: 10, letterSpacing: 1.5 }}>LIVE TASK LOG</span>
           <span style={{ color: MUTED, fontSize: 9 }}>pm-agent • 15s refresh</span>
@@ -1080,6 +1115,7 @@ function Dashboard() {
   const [selected, setSelected] = useState(null);
   const [sessionMap, setSessionMap] = useState({});
   const [layout, setLayout] = useState({});
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const poll = async () => {
@@ -1126,44 +1162,46 @@ function Dashboard() {
   return (
     <div style={{
       background: BG, minHeight: "100vh", color: TEXT,
-      fontFamily: FONT, padding: 12, boxSizing: "border-box",
+      fontFamily: FONT, padding: isMobile ? "8px 8px 64px" : 12, boxSizing: "border-box",
     }}>
       <style>{GLOBAL_CSS}</style>
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, padding: "0 4px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ color: ACCENT, fontSize: 16, fontWeight: 600, letterSpacing: 2 }}>AUTOBOT</span>
+          <span style={{ color: ACCENT, fontSize: isMobile ? 14 : 16, fontWeight: 600, letterSpacing: 2 }}>AUTOBOT</span>
           <span style={{ color: BORDER, fontSize: 14 }}>//</span>
-          <span style={{ color: MUTED, fontSize: 11 }}>COMMAND CENTER</span>
+          <span style={{ color: MUTED, fontSize: isMobile ? 10 : 11 }}>COMMAND CENTER</span>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 2 }}>
-          {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{
-              background: tab === t.id ? "rgba(99,102,241,0.15)" : "transparent",
-              color: tab === t.id ? ACCENT : MUTED,
-              border: `1px solid ${tab === t.id ? "rgba(99,102,241,0.3)" : "transparent"}`,
-              borderRadius: 4, padding: "5px 12px", cursor: "pointer",
-              fontFamily: FONT, fontSize: 10, letterSpacing: 1,
-              transition: "all 0.15s",
-            }}>
-              {t.icon} {t.label}
-            </button>
-          ))}
-        </div>
+        {/* Tabs — desktop only */}
+        {!isMobile && (
+          <div style={{ display: "flex", gap: 2 }}>
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)} style={{
+                background: tab === t.id ? "rgba(99,102,241,0.15)" : "transparent",
+                color: tab === t.id ? ACCENT : MUTED,
+                border: `1px solid ${tab === t.id ? "rgba(99,102,241,0.3)" : "transparent"}`,
+                borderRadius: 4, padding: "5px 12px", cursor: "pointer",
+                fontFamily: FONT, fontSize: 10, letterSpacing: 1,
+                transition: "all 0.15s",
+              }}>
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Status */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 10 }}>
-          <span style={{ color: error ? RED : GREEN }}>{error ? `ERR ${error}` : "* LIVE"}</span>
-          <span style={{ color: MUTED }}>{lastPoll || "—"}</span>
-          <span style={{ color: ACCENT }}>{agents.length} AGENTS</span>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 16, fontSize: 10 }}>
+          <span style={{ color: error ? RED : GREEN }}>{error ? `ERR` : "● LIVE"}</span>
+          {!isMobile && <span style={{ color: MUTED }}>{lastPoll || "—"}</span>}
+          <span style={{ color: ACCENT }}>{agents.length}{isMobile ? "" : " AGENTS"}</span>
         </div>
       </div>
 
       {/* Tab Content */}
-      <div style={{ height: "calc(100vh - 56px)" }}>
+      <div style={{ height: isMobile ? "calc(100vh - 48px - 64px)" : "calc(100vh - 56px)" }}>
         {tab === "agents" && (
           <AgentsTab agents={agents} layout={layout} sessionMap={sessionMap}
             setSessionMap={setSessionMap} selected={selected} setSelected={setSelected} />
@@ -1173,6 +1211,29 @@ function Dashboard() {
         {tab === "pipeline" && <PipelineTab agents={agents} />}
         {tab === "tests" && <TestsTab />}
       </div>
+
+      {/* Mobile bottom tab bar */}
+      {isMobile && (
+        <div style={{
+          position: "fixed", bottom: 0, left: 0, right: 0,
+          background: PANEL, borderTop: `1px solid ${BORDER}`,
+          display: "flex", zIndex: 100,
+        }}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              flex: 1, padding: "10px 4px 12px", cursor: "pointer",
+              background: tab === t.id ? "rgba(99,102,241,0.15)" : "transparent",
+              color: tab === t.id ? ACCENT : MUTED,
+              border: "none", borderTop: `2px solid ${tab === t.id ? ACCENT : "transparent"}`,
+              fontFamily: FONT, fontSize: 8, letterSpacing: 0.5,
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+            }}>
+              <span style={{ fontSize: 16 }}>{t.icon}</span>
+              <span>{t.label.split(" ")[0]}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
