@@ -31,13 +31,36 @@ spec:
       - If two businesses have similar names but conflicting info, include both but flag as 'ambiguous'.
       - For each business, check for existence and proper address via Google Maps or search_find_businesses where possible.
 
-      ### Step 3: Website check for each business (up to 20 verified names)
-      For each unique verified business:
-      - Call search_web("<Business Name> <city> <state>", max_results=3)
-      - Analyze results:
-        - HOT: No dedicated business website confirmed — only Yelp/Facebook/Angi/HomeAdvisor/directory listings appear, OR only a Facebook business page. When the SearXNG results are ambiguous and you cannot confirm a working business .com, default to HOT.
-        - WARM: Has an actual domain/website but it looks basic, outdated, old-school, or clearly neglected. Must see a real .com in results to qualify as WARM.
-        - COLD: Has a modern, professional website (skip — do not include these)
+      ### Step 3: Website verification for each business (up to 20 verified names)
+      For each unique verified business, run TWO searches to check for a website:
+
+      Search A: search_web("<Business Name> <city> <state>", max_results=5)
+      Search B: search_web("<Business Name> <city> website", max_results=5)
+
+      Scan ALL result URLs carefully. Look for:
+      - Any URL that is NOT a directory (not yelp.com, facebook.com, bbb.org, angi.com,
+        homeadvisor.com, yellowpages.com, mapquest.com, manta.com, nextdoor.com, google.com).
+      - Businesses often have abbreviated or shortened domain names that don't match
+        their full business name (e.g. "North Georgia Heating and Air" → ngaheatandair.com,
+        "Smith & Sons Plumbing" → smithplumbing.com). ANY non-directory .com/.net/.org in
+        the results likely IS their website.
+      - Also check if any result snippet mentions "visit our website", "official site",
+        or shows a custom domain.
+
+      Classify:
+        - COLD: Any non-directory URL found in results → business HAS a website → SKIP IT.
+          This is the default assumption. Most established local businesses have websites.
+        - WARM: A non-directory URL was found BUT it looks clearly outdated (mentions
+          "Copyright 2018" or older, looks like a raw HTML page from the snippet, or the
+          domain is parked/under construction based on snippet text).
+        - HOT: Both searches returned ONLY directory listings (Yelp, Facebook, BBB, Angi,
+          HomeAdvisor, YellowPages, Google Maps, etc.) and zero non-directory URLs.
+          HOT means you are CONFIDENT this business has no website.
+
+      IMPORTANT: When in doubt, classify as COLD (skip), not HOT. A false positive
+      (emailing a business that already has a great site) is worse than a false negative
+      (missing a lead). We only want businesses that genuinely need a website.
+
       - If business info is partial/ambiguous, list but flag 'partial info'
 
       ### Step 4: Supplement with Overpass (search_find_businesses)
