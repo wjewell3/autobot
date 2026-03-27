@@ -34,14 +34,15 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | **CFO** | Watches token limits, context windows, cluster resources, action budgets. READ-ONLY monitor. | ✅ deployed + tested |
 | **CSO** | HITL-gated enforcer. AUDIT / ENFORCE / EXECUTE modes. Registry governance. | ✅ deployed + tested |
 | **PM** | Breaks work into tasks, sequences them, manages dependencies, handles blockers. | ✅ deployed |
-| **Hardening Agent** | Watches patterns across all agents. Progressively converts repetitive LLM decisions into deterministic rules. **v1 deployed — analyzing patterns every 5 min, creates PRs via github-mcp.** | ✅ deployed |
+| **Hardening Agent** | Watches patterns across all agents. Progressively converts repetitive LLM decisions into deterministic rules. **v2 deployed — L1 frequency counting (threshold=10) + L2 failure pattern analysis (threshold=3). Creates PRs via github-mcp.** | ✅ deployed |
 
 > **Commander refactor note:** The current commander is doing too much — CEO + COO + PM + router simultaneously. As C-suite agents are added, commander should become a thin protocol dispatcher: it knows how to reach agents and manages A2A mechanics, but has zero opinion about *what* to do. All intent lives in CEO, all sequencing lives in PM. Plan this refactor before scaling worker agents.
 
 ### Worker Agents (narrow, single-purpose, no awareness of bigger picture)
 - Prospecting agent — scrapes Google Maps / LinkedIn for business targets ✅ deployed
 - Site builder agent — creates demo GitHub Pages websites for prospects ✅ deployed + tested (created live site)
-- Outreach agent — sends cold emails via Gmail MCP (next)
+- Outreach agent — sends HITL-gated cold emails with demo site URLs ✅ deployed (TESTING phase — all emails → operator)
+- R&D agent — continuously researches best practices and proposes system message upgrades via GitHub PRs ✅ deployed (hourly CronJob)
 - Follow-up agent — nurtures leads until conversion
 
 ---
@@ -56,7 +57,7 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | `search-tool-server` | Web search + business prospecting via SearXNG + Overpass API | ✅ Running + Accepted |
 | `github-tool-server` | Repo create/push/enable Pages + branch/PR creation (7 tools) | ✅ Running + Accepted |
 | `audit-logger` | Independent audit trail — watches Agent CRs, MCP tools: `write_audit`, `get_recent_audit` | ✅ Running + Accepted |
-| `hardening-agent` | Pattern analysis + rule proposals — MCP tools: `get_patterns`, `get_active_rules` | ✅ Running + Accepted |
+| `hardening-agent` | Pattern analysis (L1 frequency + L2 failure) + rule proposals — MCP tools: `get_patterns`, `get_failure_patterns`, `get_active_rules` | ✅ Running + Accepted |
 | `hitl-tool-server` | Slack HITL approvals — `request_approval` + `post_notification` MCP tools, posts to #hitl-approvals with ✅/❌ buttons, severity-based timeouts | ✅ Running + Accepted |
 | `resource-governor` | Per-agent + global action budget enforcement — `check_budget`, `get_system_status` | ✅ Running + Accepted |
 | `kagent-grafana-mcp` | Metrics (intentionally disabled) | ❌ Disabled in helm |
@@ -386,7 +387,7 @@ Key schema notes:
 - `spec.declarative.systemMessage` (not `systemPrompt`)
 - A2A tools: `type: Agent` with `agent.name/namespace/kind/apiGroup`
 
-### Current Agents (live as of 2026-03-26)
+### Current Agents (live as of 2026-03-27)
 | Agent | Role | Status |
 |---|---|---|
 | `commander-agent` | Thin router — dispatches to C-suite + HITL_RESUME routing | ✅ |
@@ -394,9 +395,11 @@ Key schema notes:
 | `coo-agent` | Ops oversight — audit read + Slack notifications | ✅ |
 | `cso-agent` | Security enforcement — AUDIT/ENFORCE/EXECUTE modes, HITL-gated | ✅ |
 | `cfo-agent` | Token limits, context windows, cluster resources, action budgets (READ-ONLY) | ✅ |
-| `pm-agent` | Project manager — backlog, triage, delegates to workers | ✅ |
-| `prospecting-agent` | Finds local businesses needing websites | ✅ |
+| `pm-agent` | Project manager — backlog, triage, delegates to workers. Worker output validation (skeptic mode). | ✅ |
+| `prospecting-agent` | Finds local businesses needing websites (SearXNG primary, Overpass fallback) | ✅ |
 | `site-builder-agent` | Creates demo GitHub Pages sites for prospects | ✅ |
+| `outreach-agent` | Sends HITL-gated cold outreach emails with demo site URLs (TESTING/PRODUCTION phase toggle) | ✅ |
+| `rd-agent` | R&D — researches best practices, proposes system message upgrades via GitHub PRs. Hourly CronJob. Self-improving. | ✅ |
 
 **Legacy demo agents deleted by CSO on 2026-03-26:** number-agent-1/2/3, sum-agent, researcher-agent, critic-agent, writer-agent, publisher-agent, send-email-test
 
@@ -439,8 +442,11 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 | `agents/site-builder-agent.yaml` | Site builder — creates GitHub Pages demo sites |
 | `infra/phase2-audit-log/audit-logger.py` | K8s Agent CR watcher + MCP audit tools |
 | `infra/phase2-audit-log/deploy.yaml` | Audit logger deployment + RBAC + RemoteMCPServer |
-| `infra/phase4-hardening-loop/hardening-agent.py` | Pattern analyzer + github-mcp PR flow |
+| `infra/phase4-hardening-loop/hardening-agent.py` | Pattern analyzer (L1 frequency + L2 failure) + github-mcp PR flow |
 | `infra/phase4-hardening-loop/deploy.yaml` | Hardening agent deployment + RemoteMCPServer |
+| `agents/rd-agent.yaml` | R&D agent — researches best practices, proposes improvements via PRs |
+| `agents/outreach-agent.yaml` | Outreach agent — HITL-gated cold emails with phase toggle |
+| `infra/rd-evolution-cronjob.yaml` | CronJob triggering R&D agent hourly via internal A2A |
 | `infra/github-mcp-update/server.py` | Updated github-mcp with 7 tools (branch + PR) |
 | `.github/workflows/build-khook.yml` | ARM64 khook builder |
 | `.github/workflows/deploy.yml` | GitHub Pages deploy (legacy) |
@@ -484,10 +490,8 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 
 ### Next Capability: Outreach Agent
 - [x] **`site-builder-agent`** — ✅ deployed + tested 2026-03-26. Created live GitHub Pages site (wjewell3/test-plumbing-demo). PM-agent has A2A tool to delegate to it.
-- [ ] **`outreach-agent`** — next unlock. Sends HITL-gated cold emails with the demo site URL.
-  - Tools: gmail_request_approval, gmail_check_approval, audit-logger
-  - Every send requires HITL approval (high severity)
-  - Wire PM → prospecting-agent → site-builder-agent → outreach-agent as the full pipeline
+- [x] **`outreach-agent`** — ✅ deployed 2026-03-27. TESTING phase (all emails → operator). HITL-gated via Slack approval. Phase toggle: `scripts/set-outreach-phase.sh [testing|production]`. Full pipeline wired: PM → prospecting → site-builder → outreach.
+- [x] **`rd-agent`** — ✅ deployed 2026-03-27. Continuously researches best practices and proposes agent improvements via GitHub PRs. Hourly CronJob via internal A2A. Tools: search_web, k8s_get_resources, k8s_get_resource_yaml, github_create_branch/push_file/create_pr, hardening MCP (get_failure_patterns/get_patterns/get_active_rules), audit-logger, hitl post_notification. Can self-improve.
 
 ### Agent Org Build-Out
 - [x] CEO agent — vision/strategy, no tools
@@ -495,8 +499,9 @@ Browser → Vercel (autobot-chi-tawny.vercel.app)
 - [x] CSO agent — HITL-gated enforcement, AUDIT/ENFORCE/EXECUTE modes ✅ fully tested 2026-03-26
 - [x] PM agent — backlog management, delegates to prospecting-agent
 - [x] Commander → thin router with HITL_RESUME routing
-- [x] Hardening agent — deployed, analyzing patterns every 5 min, creates PRs via github-mcp
+- [x] Hardening agent — v2 deployed, L1 frequency + L2 failure analysis every 5 min, creates PRs via github-mcp
 - [x] CFO agent — ✅ deployed + tested 2026-03-26. Monitors token limits, cluster resources, action budgets. Uses resource-governor MCP tools.
+- [x] R&D agent — ✅ deployed 2026-03-27. Researches best practices, proposes system message upgrades via GitHub PRs. Hourly evolution cycles.
 
 ### Safety
 - [x] Phase 1: Admission control webhook — deployed, **`enforce` mode** ✅ 2026-03-26

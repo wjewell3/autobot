@@ -4,7 +4,7 @@ metadata:
   name: rd-evolution-cycle
   namespace: kagent
 spec:
-  schedule: "0 */6 * * *"    # Every 6 hours
+  schedule: "0 * * * *"       # Every hour
   concurrencyPolicy: Forbid   # Skip if previous run still going
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
