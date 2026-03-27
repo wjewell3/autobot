@@ -6,8 +6,9 @@ TASK_TYPE environment variable.
 
 Tasks:
   cso-security-audit  — CSO reviews agent permissions + tool drift
-  pm-prospecting      — PM runs a prospecting batch
+  pm-full-pipeline    — PM runs full cycle: prospect → site → outreach (HITL-gated)
   coo-status-check    — COO checks for operational drift
+  cfo-resource-check  — CFO reviews token usage, cluster resources, action budgets
 """
 
 import json
@@ -42,15 +43,19 @@ TASKS = {
         "4) Write an audit entry summarizing findings. "
         "Report the results back."
     ),
-    "pm-prospecting": (
-        "PROSPECTING TASK (scheduled): "
-        "Route to PM. Ask PM to: "
-        "1) Check the current backlog for any existing prospecting tasks. "
-        "2) If no active prospecting tasks, create a new one: "
-        "   find businesses needing websites in Nashville, TN — plumbing industry. "
-        "3) Delegate to prospecting-agent. "
-        "4) Write audit entries for task creation and completion. "
-        "Report the results back."
+    "pm-full-pipeline": (
+        "PIPELINE CYCLE (scheduled): "
+        "Route to PM. Ask PM to run the full business pipeline: "
+        "1) Check the current backlog for any incomplete tasks (businesses found but no site yet, "
+        "   or sites built but no outreach yet). Complete those first. "
+        "2) If the backlog is clear, start a new prospecting batch: "
+        "   find 3-5 businesses needing websites in Nashville, TN — focus on service trades "
+        "   (plumbing, HVAC, electricians, landscaping). "
+        "3) For each business found, delegate to site-builder-agent to create a demo GitHub Pages site. "
+        "4) For each site built, delegate to outreach-agent to request HITL approval and send a "
+        "   cold outreach email with the demo site URL. "
+        "5) Write audit entries for each stage. "
+        "The outreach step is HITL-gated — the PM should request approval before sending any email."
     ),
     "coo-status-check": (
         "OPERATIONS CHECK (scheduled): "
@@ -59,6 +64,16 @@ TASKS = {
         "2) Check for any agent errors or repeated failures. "
         "3) Check for any agents that haven't been active in the last cycle. "
         "4) Post a brief status summary to Slack. "
+        "Report the results back."
+    ),
+    "cfo-resource-check": (
+        "RESOURCE CHECK (scheduled): "
+        "Route to CFO. Ask CFO to: "
+        "1) Check current token usage and budget burn rate across all agents. "
+        "2) Check cluster resource utilization (CPU, memory) across all pods in kagent namespace. "
+        "3) Check action budget status — any agents near their limits? "
+        "4) Post a brief resource summary to Slack. Flag anything requiring attention. "
+        "5) Write an audit entry with the current resource state. "
         "Report the results back."
     ),
 }

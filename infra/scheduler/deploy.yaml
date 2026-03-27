@@ -7,9 +7,10 @@
 #     -n kagent --dry-run=client -o yaml | kubectl apply -f -
 #
 # Three CronJobs, each sending a different task type:
-#   1. CSO security audit  — every 6 hours
-#   2. PM prospecting      — daily at 9am UTC
-#   3. COO status check    — every 4 hours
+#   1. CSO security audit   — every 6 hours
+#   2. PM full pipeline     — every 8 hours (3x/day; outreach is HITL-gated so safe to run often)
+#   3. COO status check     — every 4 hours
+#   4. CFO resource check   — every 2 hours
 
 ---
 # ── CSO Security Audit — every 6 hours ──────────────────
@@ -55,14 +56,57 @@ spec:
                 name: scheduler-code
 
 ---
-# ── PM Prospecting — daily at 9am UTC ───────────────────
+# ── PM Full Pipeline — every 8 hours (3x/day) ───────────
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: scheduler-pm-prospecting
+  name: scheduler-pm-pipeline
   namespace: kagent
 spec:
-  schedule: "0 9 * * *"
+  schedule: "0 */8 * * *"  # midnight, 8am, 4pm UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 900  # 15 min — pipeline is longer than individual tasks
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: scheduler
+              image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4  # python:3.12-slim
+              command: ["/bin/sh", "-c"]
+              args:
+                - pip install httpx --quiet && python /app/scheduler.py
+              env:
+                - name: TASK_TYPE
+                  value: "pm-full-pipeline"
+              volumeMounts:
+                - name: code
+                  mountPath: /app
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "25m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "100m"
+          volumes:
+            - name: code
+              configMap:
+                name: scheduler-code
+
+---
+# ── CFO Resource Check — every 2 hours ──────────────────
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduler-cfo-check
+  namespace: kagent
+spec:
+  schedule: "0 */2 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
@@ -81,7 +125,7 @@ spec:
                 - pip install httpx --quiet && python /app/scheduler.py
               env:
                 - name: TASK_TYPE
-                  value: "pm-prospecting"
+                  value: "cfo-resource-check"
               volumeMounts:
                 - name: code
                   mountPath: /app
