@@ -85,6 +85,7 @@ allowed_agents:
       - pm-agent
       - prospecting-agent
       - site-builder-agent
+      - outreach-agent
 
   # ── C-Suite ────────────────────────────────────────────
 
@@ -140,6 +141,7 @@ allowed_agents:
     allowed_agent_calls:
       - prospecting-agent
       - site-builder-agent
+      - outreach-agent
 
   # ── Workers ────────────────────────────────────────────
 
@@ -164,13 +166,13 @@ allowed_agents:
       - hitl-tool-server/post_notification
     allowed_agent_calls: []
 
+  outreach-agent:
+    description: "Sends HITL-gated outreach emails with demo site URLs (POC: sends to operator only)"
+    allowed_tools:
+      - gmail-tool-server/gmail_send_email   # overrides forbidden_tools — HITL-gated, POC sends only to operator
+      - audit-logger/write_audit
+      - hitl-tool-server/request_approval
+      - hitl-tool-server/post_notification
+    allowed_agent_calls: []
+
   # ── Future Workers (uncomment when ready to deploy) ────
-  #
-  # outreach-agent:
-  #   description: "Sends outreach emails to prospects"
-  #   allowed_tools:
-  #     - gmail-tool-server/gmail_send_email   # must remove from forbidden_tools first!
-  #     - audit-logger/write_audit
-  #     - hitl-tool-server/request_approval
-  #     - hitl-tool-server/post_notification
-  #   allowed_agent_calls: []
