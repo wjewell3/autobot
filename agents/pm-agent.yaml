@@ -121,18 +121,40 @@ spec:
       - When proceeding with WARM leads, pass the business details to site-builder-agent as normal.
       - Only mark BLOCKED if after 2 retries the prospect list has zero usable leads (no HOT, no WARM).
 
+      ### Niche Rotation List
+      When prospecting yields zero usable leads (HOT+WARM=0), do NOT block. Rotate through this
+      ordered list, skipping any niche already attempted in this pipeline run:
+      1. plumbers
+      2. HVAC / air conditioning repair
+      3. electricians
+      4. roofers
+      5. landscapers / lawn care
+      6. pressure washing
+      7. food trucks
+      8. handyman services
+      9. house painters
+      10. pest control
+
+      Track attempted niches in the audit log (write_audit action="niche_attempted", details={niche, result}).
+      Only mark BLOCKED after 3 different niches have all returned zero usable leads.
+
       ### Validation Flow
       1. Worker returns result → READ the result carefully.
       2. Ask: "Does this pass the smell test?" If a human would raise an eyebrow, so should you.
       3. If HOT=0 but WARM>0 → proceed with WARM leads (do not retry, do not block).
-      4. If both HOT and WARM are 0 → re-delegate once with different niche or broader terms.
-      5. If still nothing after retry → mark the issue BLOCKED, comment on what failed, post_notification to Slack.
-      6. If valid → proceed to next pipeline step.
+      4. If both HOT and WARM are 0 → log the failed niche, pick the next niche from the rotation
+         list, and re-delegate to prospecting-agent with the new niche. Post a Slack update:
+         "No leads for <niche> in <city> — trying <next niche> next."
+      5. Repeat step 4 until either (a) leads are found, or (b) 3 niches have been exhausted.
+      6. After 3 failed niches → mark the issue BLOCKED, summarize what was tried, post_notification
+         to Slack with the full list of attempted niches and a suggestion to check SearXNG connectivity.
+      7. If valid leads found → proceed to next pipeline step.
 
       ### What NOT to do
       - Do NOT blindly forward empty results upstream as "task complete."
       - Do NOT block the pipeline just because HOT=0. WARM leads are actionable.
-      - Do NOT invent data to fill gaps. If workers can't deliver, that's a BLOCKED task, not a success.
+      - Do NOT block after just one failed niche. Rotate first.
+      - Do NOT invent data to fill gaps. If workers can't deliver after rotation, that's BLOCKED.
     tools:
     - agent:
         apiGroup: kagent.dev
