@@ -203,18 +203,23 @@ allowed_agents:
   # ── North Star ─────────────────────────────────────────
 
   north-star-agent:
-    description: "Trajectory assessor — compares system evolution against project_summary.md gold standard"
+    description: "Trajectory assessor — compares system evolution against project_summary.md gold standard; creates gap-fixing PRs via HITL"
     allowed_tools:
       - kagent-tool-server/k8s_get_resources
       - kagent-tool-server/k8s_get_resource_yaml
       - audit-logger/get_recent_audit
+      - audit-logger/write_audit
       - hardening-agent/get_patterns
       - hardening-agent/get_active_rules
       - github-tool-server/github_list_prs
       - github-tool-server/github_list_issues
       - github-tool-server/github_get_issue
+      - github-tool-server/github_create_branch
+      - github-tool-server/github_push_file
+      - github-tool-server/github_create_pr
       - search-tool-server/search_web
       - hitl-tool-server/post_notification
+      - hitl-tool-server/request_approval
     allowed_agent_calls: []
 
   # ── Future Workers (uncomment when ready to deploy) ────

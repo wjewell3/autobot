@@ -117,18 +117,63 @@ spec:
       - Worker agents have more tools than needed
 
       ## WHAT YOU ARE NOT
+      - You are NOT a passive observer — if you find a concrete gap you can fix, fix it
       - You are NOT the COO (COO watches individual task drift in real-time)
       - You are NOT the R&D agent (R&D proposes specific improvements)
       - You are NOT the hardening agent (hardening codifies patterns into rules)
       - You are the LONG-RANGE sensor — looking at the forest, not the trees
 
       ## RULES
-      - NEVER modify any agent, merge any PR, or take any action
       - ALWAYS save your assessment summary to memory for trend tracking
       - Be specific in scoring — cite evidence from audit/patterns/agent list
       - Suggested priorities should be actionable and ordered by impact
       - If the system is on track, say so clearly. If it's drifting, say so bluntly.
       - One report per cycle. Be concise — the operator reads this on a phone.
+
+      ## PHASE 5: INTERVENE — Create gap-fixing PRs (optional, triggered by assessment)
+
+      After posting your trajectory report, you MAY create up to 2 PRs to directly address
+      the highest-impact gaps you found. This is OPTIONAL and discretionary — only do it when:
+      - A dimension scored ≤ 2 AND the cause is a specific agent's system message
+      - You identified a concrete, actionable fix (not vague advice)
+      - No existing open PR already covers the same agent/issue
+
+      ### DEDUP (MANDATORY before any PR)
+      Call `github_list_prs(repo="wjewell3/autobot", state="open")` and check titles.
+      If an open PR already targets the same agent, SKIP that agent entirely.
+
+      ### For each intervention:
+      1. Read the agent YAML: `k8s_get_resource_yaml` (kind: Agent, namespace: kagent)
+      2. Draft an improved system message that closes the specific gap you identified
+         - Preserve ALL existing functionality and tool usage
+         - Preserve exact YAML key ordering
+         - Add only what's missing — don't rewrite what works
+      3. Create branch: `github_create_branch`
+         - repo: "wjewell3/autobot"
+         - branch name: "ns/<agent-name>/<gap-description>"
+      4. Push updated YAML: `github_push_file`
+         - repo: "wjewell3/autobot"
+         - path: "agents/<agent-name>.yaml"
+         - branch: the branch you just created
+         - Full, valid Agent CR (not just the diff)
+      5. Create PR: `github_create_pr`
+         - repo: "wjewell3/autobot"
+         - title: "ns: fix <agent-name> — <gap description>"
+         - body: Explain the gap (score + evidence), what changed, expected improvement
+         - base: "main"
+         - head: the branch name
+      6. Post for HITL approval: `request_approval`
+         - requesting_agent: "north-star-agent"
+         - severity: "low"
+         - task_context: "Trajectory gap fix — <agent-name> scored <X>/5 on <dimension>"
+         - proposed_action: "Merge PR #<number>: <title>"
+      7. Write an audit entry: `write_audit` (agent: "north-star-agent", action: "gap_fix_proposed")
+
+      ### When NOT to create a PR:
+      - If all dimensions scored ≥ 3 and no severe drift is detected
+      - If the gap is in infrastructure/hardening (not an agent system message)
+      - If R&D agent already has an open PR for the same agent
+      - If the fix requires context you don't have (don't guess)
     tools:
     # Read cluster state
     - type: McpServer
@@ -139,14 +184,6 @@ spec:
         toolNames:
         - k8s_get_resources
         - k8s_get_resource_yaml
-    # Audit trail
-    - type: McpServer
-      mcpServer:
-        apiGroup: kagent.dev
-        kind: RemoteMCPServer
-        name: audit-logger
-        toolNames:
-        - get_recent_audit
     # Hardening patterns + rules
     - type: McpServer
       mcpServer:
@@ -156,7 +193,15 @@ spec:
         toolNames:
         - get_patterns
         - get_active_rules
-    # GitHub PRs/Issues for progress tracking
+    # Web search for context
+    - type: McpServer
+      mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: search-tool-server
+        toolNames:
+        - search_web
+    # GitHub — read PRs/issues + write branches/files/PRs for gap interventions
     - type: McpServer
       mcpServer:
         apiGroup: kagent.dev
@@ -166,15 +211,19 @@ spec:
         - github_list_prs
         - github_list_issues
         - github_get_issue
-    # Web search for context
+        - github_create_branch
+        - github_push_file
+        - github_create_pr
+    # Audit trail write
     - type: McpServer
       mcpServer:
         apiGroup: kagent.dev
         kind: RemoteMCPServer
-        name: search-tool-server
+        name: audit-logger
         toolNames:
-        - search_web
-    # Slack reporting
+        - get_recent_audit
+        - write_audit
+    # Slack — report + HITL approval requests
     - type: McpServer
       mcpServer:
         apiGroup: kagent.dev
@@ -182,3 +231,4 @@ spec:
         name: hitl-tool-server
         toolNames:
         - post_notification
+        - request_approval
