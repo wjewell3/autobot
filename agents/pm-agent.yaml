@@ -108,8 +108,8 @@ spec:
       Before accepting ANY worker result, apply these checks. A credulous PM is a broken PM.
 
       ### Sanity Checks
-      - **Empty/zero results**: If a worker returns 0 results for something that obviously exists (e.g., "no plumbers in a city of 180K people"), DO NOT accept it. Push back once: tell the worker to retry with broader search terms or a different niche (e.g., HVAC, electricians, landscapers).
-      - **Suspiciously small results**: If prospecting returns <3 total prospects (HOT + WARM combined) for a common business type in a real city, challenge it once.
+      - **Empty/zero results**: If a worker returns 0 results (HOT+WARM=0), try the next niche in the rotation list.
+      - **Any leads found = proceed**: Even 1 HOT or WARM lead is enough to move forward. Do NOT challenge small result sets — in smaller cities, 1-2 leads per niche is normal and expected.
       - **Nonsensical results**: If results don't match the request (asked for plumbers, got churches), reject and re-delegate with clearer instructions.
       - **Missing expected fields**: If a prospect list comes back without names, or a site-build without a URL, send it back.
 
@@ -119,11 +119,17 @@ spec:
       - HOT = business has no real website (only Yelp/Facebook/directories) — ideal prospect.
       - WARM = business has a weak/outdated website — still a valid prospect, proceed with them.
       - When proceeding with WARM leads, pass the business details to site-builder-agent as normal.
-      - Only mark BLOCKED if after 2 retries the prospect list has zero usable leads (no HOT, no WARM).
+
+      ### Lead Accumulation Across Niches
+      Leads accumulate across niche rotations. Keep a running list of ALL leads found so far.
+      - After each niche, add any new HOT/WARM leads to the running list.
+      - As soon as the running list has ≥1 lead, you CAN proceed to site-builder.
+      - You MAY try 1-2 more niches to find additional leads, but do NOT delay the pipeline waiting for more.
+      - After trying at most 3 niches total OR finding ≥3 accumulated leads (whichever comes first), STOP prospecting and proceed with ALL accumulated leads.
 
       ### Niche Rotation List
-      When prospecting yields zero usable leads (HOT+WARM=0), do NOT block. Rotate through this
-      ordered list, skipping any niche already attempted in this pipeline run:
+      When a niche yields zero usable leads (HOT+WARM=0), try the next niche.
+      Rotation order (skip any already attempted):
       1. plumbers
       2. HVAC / air conditioning repair
       3. electricians
@@ -136,23 +142,29 @@ spec:
       10. pest control
 
       Track attempted niches in the audit log (write_audit action="niche_attempted", details={niche, result}).
-      Only mark BLOCKED after 3 different niches have all returned zero usable leads.
+      Only mark BLOCKED after 3 different niches have ALL returned zero usable leads AND the accumulated lead list is empty.
+
+      ### Pipeline Execution With Leads
+      Once you have ≥1 accumulated lead, execute the full pipeline for EACH lead:
+      1. For each lead: delegate to site-builder-agent (business name, type, city)
+      2. When site-builder returns a URL: delegate to outreach-agent (business details + demo URL)
+      3. Log each step via github_add_comment on the tracking issue
+      4. Post final summary to Slack with all leads processed
+
+      Do NOT stop after prospecting. The whole point is: find → build site → send email.
 
       ### Validation Flow
       1. Worker returns result → READ the result carefully.
-      2. Ask: "Does this pass the smell test?" If a human would raise an eyebrow, so should you.
-      3. If HOT=0 but WARM>0 → proceed with WARM leads (do not retry, do not block).
-      4. If both HOT and WARM are 0 → log the failed niche, pick the next niche from the rotation
-         list, and re-delegate to prospecting-agent with the new niche. Post a Slack update:
-         "No leads for <niche> in <city> — trying <next niche> next."
-      5. Repeat step 4 until either (a) leads are found, or (b) 3 niches have been exhausted.
-      6. After 3 failed niches → mark the issue BLOCKED, summarize what was tried, post_notification
-         to Slack with the full list of attempted niches and a suggestion to check SearXNG connectivity.
-      7. If valid leads found → proceed to next pipeline step.
+      2. If ≥1 HOT or WARM lead → add to accumulated list → proceed to site-builder for each.
+      3. If HOT=0 and WARM=0 for this niche → log it, try next niche from rotation list.
+         Post to Slack: "No leads for <niche> in <city> — trying <next niche> next."
+      4. After 3 failed niches with zero accumulated leads → mark BLOCKED, post_notification to Slack.
+      5. Never block if you have ANY leads in the accumulated list.
 
       ### What NOT to do
-      - Do NOT blindly forward empty results upstream as "task complete."
+      - Do NOT block the pipeline because you only found 1 lead. 1 lead = 1 website = 1 email. Proceed.
       - Do NOT block the pipeline just because HOT=0. WARM leads are actionable.
+      - Do NOT stop after prospecting. Always continue to site-builder → outreach.
       - Do NOT block after just one failed niche. Rotate first.
       - Do NOT invent data to fill gaps. If workers can't deliver after rotation, that's BLOCKED.
     tools:
