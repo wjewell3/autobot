@@ -1,0 +1,107 @@
+# Image Digest Manifest — pinned 2026-03-26
+# All non-agent-CR deployments and CronJobs use these exact digests.
+# Agent CR deployments (ceo, cfo, coo, cso, pm, commander, prospecting, site-builder)
+# are managed by the kagent controller and pinned to cr.kagent.dev/kagent-dev/kagent/app:0.7.23
+#
+# To update a digest: pull the new image, get its sha256, update here AND in the
+# deployment YAML, then kubectl apply. Keep the comment showing the original tag.
+
+images:
+  python-3.12-slim:
+    tag: "docker.io/python:3.12-slim"
+    digest: "docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4"
+    used_by:
+      - agent-policy-server
+      - audit-logger
+      - hardening-agent
+      - hitl-tool-server
+      - resource-governor
+      - slack-bot
+      - scheduler-coo-status (CronJob)
+      - scheduler-cso-audit (CronJob)
+      - scheduler-pm-prospecting (CronJob)
+
+  python-3.11-slim:
+    tag: "docker.io/python:3.11-slim"
+    digest: "docker.io/python@sha256:77411cf6fbec5540a8b956963f5d6e969d304cfee24fed7c0ef42f22c49e608a"
+    used_by:
+      - approval-server
+      - github-mcp
+      - gmail-mcp
+      - search-mcp
+
+  bitnami-kubectl:
+    tag: "docker.io/bitnami/kubectl:latest"
+    digest: "docker.io/bitnami/kubectl@sha256:bbaacd3e8a863f057b0e54bad421ffbe8a52caca0b05fd824f5847a0088b7ea9"
+    used_by:
+      - commander-tools-watcher
+      - kubectl-proxy
+
+  nginx-alpine:
+    tag: "docker.io/nginx:alpine"
+    digest: "docker.io/nginx@sha256:59dfef79926174d0e2c5eafdd13521fb1b8871522da11f26d3af8d5c50a402cf"
+    used_by:
+      - cors-proxy
+
+  searxng:
+    tag: "docker.io/searxng/searxng:latest"
+    digest: "docker.io/searxng/searxng@sha256:a3f5331c79c581fc377adcc7abe8ada57a301a929102ce46fcb7f42ec9defa3f"
+    used_by:
+      - searxng
+
+  litellm:
+    tag: "ghcr.io/berriai/litellm:main-latest"
+    digest: "ghcr.io/berriai/litellm@sha256:48fbad5dfd885f7e59a20a2e671c38175aa3251fcb91ed0e9c82f65dda66c25c"
+    used_by:
+      - litellm
+
+  khook:
+    tag: "ghcr.io/wjewell3/khook:latest"
+    digest: "ghcr.io/wjewell3/khook@sha256:50b861d43476b88340505b63132af995fb1977bd7af02c6979b13bf8dc0421c1"
+    used_by:
+      - khook
+
+  kmcp-controller:
+    tag: "ghcr.io/kagent-dev/kmcp/controller:0.2.7"
+    digest: "ghcr.io/kagent-dev/kmcp/controller@sha256:22ee8c4a914ff8275e45d9d0948a823559955f3bed00e19a6ee1d0f83f1b1478"
+    used_by:
+      - kagent-kmcp-controller-manager
+
+  doc2vec-mcp:
+    tag: "ghcr.io/kagent-dev/doc2vec/mcp:1.1.14"
+    digest: "ghcr.io/kagent-dev/doc2vec/mcp@sha256:3e3d9b0f9da7edbd7397ffd58cbc79018e70ca45e378dd4257dc6304ecc2ca9c"
+    used_by:
+      - kagent-querydoc
+
+  kagent-tools:
+    tag: "ghcr.io/kagent-dev/kagent/tools:0.1.1"
+    digest: "ghcr.io/kagent-dev/kagent/tools@sha256:4ca0ebd304a35588305e55dc00e5da90c1230d54ed70a2f73a2826274398907b"
+    used_by:
+      - kagent-tools
+
+  # Managed by kagent controller — do not set image directly on deployments
+  kagent-app:
+    tag: "cr.kagent.dev/kagent-dev/kagent/app:0.7.23"
+    digest: "cr.kagent.dev/kagent-dev/kagent/app@sha256:197e931a6e1373d8328907808a8c21f75a7c68d67160a33976dfeb39960b471b"
+    managed_by: kagent-controller
+    used_by:
+      - ceo-agent
+      - cfo-agent
+      - commander-agent
+      - coo-agent
+      - cso-agent
+      - pm-agent
+      - prospecting-agent
+      - site-builder-agent
+
+  kagent-controller:
+    tag: "cr.kagent.dev/kagent-dev/kagent/controller:0.7.23"
+    digest: "cr.kagent.dev/kagent-dev/kagent/controller@sha256:07ae55806f8803896b51a54f7302fcf1557602403ca7d8cc03914a237df9f068"
+    used_by:
+      - kagent-controller
+
+  kagent-ui:
+    tag: "cr.kagent.dev/kagent-dev/kagent/ui:0.7.23"
+    digest: "cr.kagent.dev/kagent-dev/kagent/ui@sha256:188ce841ddf6a0239328f4f48f9e1559265bfe4f79a3aae207d30b1e3da4c485"
+    used_by:
+      - kagent-ui
