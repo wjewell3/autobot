@@ -1136,8 +1136,8 @@ function FeedbackTab() {
 
   const inputStyle = {
     background: "#0d1f3a", border: `1px solid ${BORDER}`, borderRadius: 4,
-    color: TEXT, fontFamily: FONT, fontSize: 12, padding: "8px 10px",
-    width: "100%", resize: "vertical",
+    color: TEXT, fontFamily: FONT, fontSize: isMobile ? 16 : 12, padding: isMobile ? "12px 14px" : "8px 10px",
+    width: "100%", resize: "vertical", WebkitAppearance: "none",
   };
   const labelStyle = { color: MUTED, fontSize: 10, letterSpacing: 1, marginBottom: 4, display: "block" };
 
@@ -1202,9 +1202,11 @@ function FeedbackTab() {
               background: loading ? MUTED : "rgba(167,139,250,0.15)",
               border: `1px solid ${loading ? MUTED : ACCENT}`,
               color: loading ? MUTED : ACCENT,
-              borderRadius: 4, padding: "10px 20px", cursor: loading ? "default" : "pointer",
-              fontFamily: FONT, fontSize: 11, letterSpacing: 1.5, fontWeight: 600,
-              transition: "all 0.15s",
+              borderRadius: 4, padding: isMobile ? "14px 20px" : "10px 20px",
+              cursor: loading ? "default" : "pointer",
+              fontFamily: FONT, fontSize: isMobile ? 13 : 11, letterSpacing: 1.5, fontWeight: 600,
+              transition: "all 0.15s", width: isMobile ? "100%" : "auto",
+              WebkitTapHighlightColor: "transparent",
             }}
           >
             {loading ? "ROUTING..." : "→ SEND TO PM-AGENT"}
@@ -1245,12 +1247,12 @@ function FeedbackTab() {
 // ── Main Dashboard ───────────────────────────────────────
 
 const TABS = [
-  { id: "agents",   label: "AGENTS",   icon: "[]" },
-  { id: "audit",    label: "AUDIT FEED", icon: ">>" },
-  { id: "roadmap",  label: "ROADMAP",  icon: "#" },
-  { id: "pipeline", label: "PIPELINE", icon: "|>" },
-  { id: "tests",    label: "TESTS",    icon: "ok" },
-  { id: "feedback", label: "FEEDBACK", icon: "🔄" },
+  { id: "agents",   label: "AGENTS",   mobileLabel: "AGENTS",   icon: "[]" },
+  { id: "audit",    label: "AUDIT FEED", mobileLabel: "AUDIT",  icon: ">>" },
+  { id: "roadmap",  label: "ROADMAP",  mobileLabel: "MAP",      icon: "#" },
+  { id: "pipeline", label: "PIPELINE", mobileLabel: "PIPE",     icon: "|>" },
+  { id: "tests",    label: "TESTS",    mobileLabel: "TESTS",    icon: "ok" },
+  { id: "feedback", label: "FEEDBACK", mobileLabel: "FDBK",     icon: "🔄" },
 ];
 
 function Dashboard() {
@@ -1364,19 +1366,20 @@ function Dashboard() {
         <div style={{
           position: "fixed", bottom: 0, left: 0, right: 0,
           background: PANEL, borderTop: `1px solid ${BORDER}`,
-          display: "flex", zIndex: 100,
+          display: "flex", zIndex: 100, paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
-              flex: 1, padding: "10px 4px 12px", cursor: "pointer",
+              flex: 1, padding: "8px 2px 10px", cursor: "pointer",
               background: tab === t.id ? "rgba(99,102,241,0.15)" : "transparent",
               color: tab === t.id ? ACCENT : MUTED,
               border: "none", borderTop: `2px solid ${tab === t.id ? ACCENT : "transparent"}`,
-              fontFamily: FONT, fontSize: 8, letterSpacing: 0.5,
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+              fontFamily: FONT, fontSize: 7, letterSpacing: 0.3,
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+              minWidth: 0, WebkitTapHighlightColor: "transparent",
             }}>
-              <span style={{ fontSize: 16 }}>{t.icon}</span>
-              <span>{t.label.split(" ")[0]}</span>
+              <span style={{ fontSize: 15 }}>{t.icon}</span>
+              <span style={{ whiteSpace: "nowrap" }}>{t.mobileLabel}</span>
             </button>
           ))}
         </div>

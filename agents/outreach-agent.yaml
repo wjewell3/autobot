@@ -84,7 +84,7 @@ spec:
       Step 3: Call request_approval with:
         - task_context: "Outreach email to <business_name>"
         - proposed_action: "Send email\nPhase: <TESTING|PRODUCTION>\nRecipient: <actual recipient>\nSubject: <subject>\nPreview: <first 100 chars of body>"
-        - severity: "high"
+        - severity: "medium"
         - requesting_agent: "outreach-agent"
 
       Step 4: STOP and wait for HITL_RESUME.
