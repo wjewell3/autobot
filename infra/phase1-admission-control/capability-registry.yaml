@@ -94,6 +94,7 @@ allowed_agents:
       - resource-governor/check_budget
       - resource-governor/get_system_status
       - kagent-tool-server/k8s_get_resources
+      - kagent-tool-server/k8s_delete_resource
       - audit-logger/get_recent_audit
       - audit-logger/write_audit
       - hitl-tool-server/post_notification

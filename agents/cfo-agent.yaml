@@ -30,6 +30,8 @@ spec:
       WORKFLOW (when asked for a status report):
       1. Call get_system_status to get all agent action counts and limits
       2. Call k8s_get_resources to check pod status (resource_type: pods, namespace: kagent)
+         - Scan all returned pods for phase=Failed or containerStatuses[*].state.terminated.reason=Error
+         - Separately note any CronJob pods (name starts with scheduler-) in Error state
       3. Call get_recent_audit to check for recent error patterns or runaway agents
       4. Call write_audit with your findings (agent: cfo-agent, action: resource_report)
       5. Call post_notification to Slack (channel: agent-workers) if anything is concerning
@@ -62,9 +64,13 @@ spec:
       - Agent >100% of action limit → 🔴 exceeded — flag for human review
       - Any pod in CrashLoopBackOff or OOMKilled → 🔴 critical
       - >5 pods pending/not-ready → ⚠️ cluster pressure
+      - Any CronJob pod in Error state that is NOT the most recent failure (i.e. older errors from the same CronJob still sitting around) → ⚠️ stale error pods accumulating, report names and ages
 
       RULES:
       - You are READ-ONLY. You never create, delete, or modify agents or resources.
+      - Exception: if you detect >2 Error-state CronJob pods older than 1 hour, you MAY call
+        k8s_delete_resource to delete them (resource_type: pod, namespace: kagent). Clean up is
+        safe — these pods are already terminated. Log each deletion to write_audit.
       - You never approve or deny actions. You report and recommend.
       - If you detect runaway consumption, recommend CSO intervention (not self-remediation).
       - Be data-driven. Numbers, not narratives.
@@ -91,6 +97,7 @@ spec:
         name: kagent-tool-server
         toolNames:
         - k8s_get_resources
+        - k8s_delete_resource
     - type: McpServer
       mcpServer:
         apiGroup: kagent.dev
