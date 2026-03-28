@@ -1097,14 +1097,160 @@ function RoadmapTab() {
   );
 }
 
+// ── Tab: Feedback ──────────────────────────────────────
+
+function FeedbackTab() {
+  const [business, setBusiness] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [type, setType] = useState("quality_issue");
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState(null); // { ok, reply } | null
+  const isMobile = useIsMobile();
+
+  const submit = async () => {
+    if (!business.trim() || !feedback.trim() || loading) return;
+    setLoading(true);
+    setStatus(null);
+    const message = [
+      `OPERATOR_FEEDBACK`,
+      `business: ${business.trim()}`,
+      `feedback_type: ${type}`,
+      `feedback: ${feedback.trim()}`,
+    ].join("\n");
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      const data = await res.json();
+      setStatus({ ok: true, reply: data.reply || "Feedback routed to pm-agent." });
+      setBusiness("");
+      setFeedback("");
+    } catch (e) {
+      setStatus({ ok: false, reply: `Error: ${e.message}` });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputStyle = {
+    background: "#0d1f3a", border: `1px solid ${BORDER}`, borderRadius: 4,
+    color: TEXT, fontFamily: FONT, fontSize: 12, padding: "8px 10px",
+    width: "100%", resize: "vertical",
+  };
+  const labelStyle = { color: MUTED, fontSize: 10, letterSpacing: 1, marginBottom: 4, display: "block" };
+
+  return (
+    <div style={{ height: "100%", overflowY: "auto", padding: isMobile ? 8 : 16 }} className="fade-in">
+      <div style={{ maxWidth: 640, margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ color: ACCENT, fontSize: 13, fontWeight: 600, letterSpacing: 1.5, marginBottom: 6 }}>
+            🔄 AFTER-THE-FACT FEEDBACK
+          </div>
+          <div style={{ color: MUTED, fontSize: 11, lineHeight: 1.6 }}>
+            Use this when you notice an issue after a site was already built — wrong quality, business already has a website, etc.
+            Your feedback is routed directly to pm-agent for action.
+          </div>
+        </div>
+
+        {/* Form */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <label style={labelStyle}>BUSINESS NAME</label>
+            <input
+              style={{ ...inputStyle, resize: "none" }}
+              value={business}
+              onChange={e => setBusiness(e.target.value)}
+              placeholder="e.g. Joe's Pizza Nashville"
+              onKeyDown={e => e.key === "Enter" && e.preventDefault()}
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>FEEDBACK TYPE</label>
+            <select
+              style={{ ...inputStyle, cursor: "pointer" }}
+              value={type}
+              onChange={e => setType(e.target.value)}
+            >
+              <option value="quality_issue">🎨 Site quality issue — please redo</option>
+              <option value="has_website">🌐 Business already has a website</option>
+              <option value="other">❓ Other / general note</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={labelStyle}>WHAT NEEDS TO CHANGE?</label>
+            <textarea
+              style={{ ...inputStyle, minHeight: 100 }}
+              value={feedback}
+              onChange={e => setFeedback(e.target.value)}
+              placeholder={
+                type === "has_website"
+                  ? "e.g. They already have an active site at joespizza.com"
+                  : "e.g. Hero image is too generic, needs customer testimonials, color scheme doesn't match their brand"
+              }
+            />
+          </div>
+
+          <button
+            onClick={submit}
+            disabled={!business.trim() || !feedback.trim() || loading}
+            style={{
+              background: loading ? MUTED : "rgba(167,139,250,0.15)",
+              border: `1px solid ${loading ? MUTED : ACCENT}`,
+              color: loading ? MUTED : ACCENT,
+              borderRadius: 4, padding: "10px 20px", cursor: loading ? "default" : "pointer",
+              fontFamily: FONT, fontSize: 11, letterSpacing: 1.5, fontWeight: 600,
+              transition: "all 0.15s",
+            }}
+          >
+            {loading ? "ROUTING..." : "→ SEND TO PM-AGENT"}
+          </button>
+        </div>
+
+        {/* Result */}
+        {status && (
+          <div style={{
+            marginTop: 20, padding: "12px 14px",
+            background: status.ok ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
+            border: `1px solid ${status.ok ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+            borderRadius: 4,
+          }}>
+            <div style={{ color: status.ok ? GREEN : RED, fontSize: 10, letterSpacing: 1, marginBottom: 6 }}>
+              {status.ok ? "✓ FEEDBACK SENT" : "✗ ERROR"}
+            </div>
+            <div style={{ color: TEXT, fontSize: 11, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+              {status.reply}
+            </div>
+          </div>
+        )}
+
+        {/* Help */}
+        <div style={{ marginTop: 32, padding: "12px 14px", background: "rgba(30,41,59,0.5)", borderRadius: 4, border: `1px solid ${BORDER}` }}>
+          <div style={{ color: MUTED, fontSize: 10, letterSpacing: 1, marginBottom: 8 }}>WHAT HAPPENS NEXT</div>
+          <div style={{ color: MUTED, fontSize: 11, lineHeight: 1.8 }}>
+            <div>🎨 <strong style={{ color: TEXT }}>Quality issue</strong> — pm-agent re-delegates to site-builder with your notes, then re-queues outreach</div>
+            <div>🌐 <strong style={{ color: TEXT }}>Already has website</strong> — pm-agent marks the prospect as skipped, no email sent</div>
+            <div>❓ <strong style={{ color: TEXT }}>Other</strong> — commander routes based on your description</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Dashboard ───────────────────────────────────────
 
 const TABS = [
-  { id: "agents",  label: "AGENTS",   icon: "[]" },
-  { id: "audit",   label: "AUDIT FEED", icon: ">>" },
-  { id: "roadmap", label: "ROADMAP",  icon: "#" },
+  { id: "agents",   label: "AGENTS",   icon: "[]" },
+  { id: "audit",    label: "AUDIT FEED", icon: ">>" },
+  { id: "roadmap",  label: "ROADMAP",  icon: "#" },
   { id: "pipeline", label: "PIPELINE", icon: "|>" },
-  { id: "tests",   label: "TESTS",    icon: "ok" },
+  { id: "tests",    label: "TESTS",    icon: "ok" },
+  { id: "feedback", label: "FEEDBACK", icon: "🔄" },
 ];
 
 function Dashboard() {
@@ -1210,6 +1356,7 @@ function Dashboard() {
         {tab === "roadmap" && <RoadmapTab />}
         {tab === "pipeline" && <PipelineTab agents={agents} />}
         {tab === "tests" && <TestsTab />}
+        {tab === "feedback" && <FeedbackTab />}
       </div>
 
       {/* Mobile bottom tab bar */}

@@ -102,6 +102,29 @@ spec:
         - Call write_audit with action: "email_rejected", details include business name + phase
         - Output: "Email for <business_name> rejected by operator. Phase: <phase>. No email sent."
 
+      Step 5 (on HITL_RESUME with outcome: request_changes):
+        Read the feedback and feedback_type fields from the HITL_RESUME message.
+
+        If feedback_type = "has_website":
+          - Call write_audit:
+              agent: "outreach-agent"
+              action: "email_skipped"
+              details: "Business already has website. Operator feedback: <feedback>. Business: <business_name>."
+              severity: "info"
+          - Output: "Skipping <business_name> — operator confirmed they already have a website. No email sent."
+          - Do NOT send email or retry.
+
+        If feedback_type = "quality_issue" or "other":
+          - Call write_audit:
+              agent: "outreach-agent"
+              action: "site_redo_requested"
+              details: "Operator requested site improvement. Business: <business_name>. Feedback: <feedback>"
+              severity: "info"
+          - Delegate back to site-builder-agent via A2A message:
+              "REDO_SITE\nbusiness: <business_name>\nfeedback: <feedback>\noriginal_demo_url: <demo_url if known>"
+          - STOP. Do not send the email until site-builder responds with a new demo URL.
+          - When site-builder responds with a new demo URL, re-draft the email using the new URL and restart from Step 3 (request_approval).
+
       ## EMAIL TEMPLATE GUIDELINES
       - Subject: mention business name, keep under 60 chars
       - Opening: personal, reference their specific business/location
@@ -126,6 +149,11 @@ spec:
       - If request_approval returns outcome: rejected, read the rejection reason.
       - If the reviewer left a note (e.g. "tone too salesy", "wrong email"), revise the draft accordingly and re-submit once.
       - If rejected a second time, write_audit with action="outreach_rejected", details={prospect, reason}, post_notification to Slack summarizing why, and report back to pm-agent. Do NOT retry a third time without human instruction.
+
+      ### HITL request_changes
+      - Follow Step 5 (outcome: request_changes) instructions above.
+      - If feedback_type=has_website, do NOT retry under any circumstances.
+      - If feedback_type=quality_issue, wait for site-builder to provide a new demo URL before resubmitting for approval.
 
       ### Missing prospect email
       - If no email address is provided and ACTIVE_PHASE is TESTING, proceed using the operator test address.

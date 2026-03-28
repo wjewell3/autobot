@@ -134,6 +134,12 @@ async def post_approval_message(
                     "action_id": "escalated",
                     "value": button_value,
                 },
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "🔄 Request Changes"},
+                    "action_id": "request_changes",
+                    "value": button_value,
+                },
             ],
         },
     ]

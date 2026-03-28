@@ -54,12 +54,17 @@ async function verifySlackSignature(req, rawBody) {
 
 async function resumeAgent(requestId, outcome, context) {
   const requestingAgent = context?.requesting_agent || "unknown";
-  const resumeMessage =
-    `HITL_RESUME\n` +
-    `request_id: ${requestId}\n` +
-    `outcome: ${outcome}\n` +
-    `requesting_agent: ${requestingAgent}\n` +
-    `original_context: ${JSON.stringify(context)}`;
+  const feedbackLines = [];
+  if (context?.feedback) feedbackLines.push(`feedback: ${context.feedback}`);
+  if (context?.feedback_type) feedbackLines.push(`feedback_type: ${context.feedback_type}`);
+  const resumeMessage = [
+    `HITL_RESUME`,
+    `request_id: ${requestId}`,
+    `outcome: ${outcome}`,
+    `requesting_agent: ${requestingAgent}`,
+    ...feedbackLines,
+    `original_context: ${JSON.stringify(context)}`,
+  ].join("\n");
 
   const resp = await fetch(
     `${KAGENT_URL}/api/a2a/kagent/${KAGENT_RESUME_AGENT}/`,
@@ -123,7 +128,7 @@ async function mergeGitHubPR(prNumber, repo) {
 // ---------------------------------------------------------------------------
 
 async function resolveSlackMessage(channelId, messageTs, originalText, outcome, clickedBy) {
-  const emoji = { approved: "✅", rejected: "❌", escalated: "⬆️" }[outcome] ?? "❓";
+  const emoji = { approved: "✅", rejected: "❌", escalated: "⬆️", request_changes: "🔄" }[outcome] ?? "❓";
   const ts = Math.floor(Date.now() / 1000);
 
   await fetch("https://slack.com/api/chat.update", {
@@ -163,6 +168,103 @@ async function resolveSlackMessage(channelId, messageTs, originalText, outcome, 
 // posting side (slack_poster.py). See slack_poster.py for the timeout scheduler.
 
 // ---------------------------------------------------------------------------
+// "🔄 Request Changes" — open a Slack modal asking for feedback details
+// ---------------------------------------------------------------------------
+
+async function openRequestChangesModal(triggerId, metadata) {
+  const resp = await fetch("https://slack.com/api/views.open", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+    },
+    body: JSON.stringify({
+      trigger_id: triggerId,
+      view: {
+        type: "modal",
+        callback_id: "request_changes_modal",
+        private_metadata: JSON.stringify(metadata),
+        title: { type: "plain_text", text: "Request Changes" },
+        submit: { type: "plain_text", text: "Send Feedback" },
+        close: { type: "plain_text", text: "Cancel" },
+        blocks: [
+          {
+            type: "input",
+            block_id: "feedback_block",
+            label: { type: "plain_text", text: "What needs to change?" },
+            element: {
+              type: "plain_text_input",
+              action_id: "feedback_text",
+              multiline: true,
+              placeholder: {
+                type: "plain_text",
+                text: "e.g. The hero image is too generic, needs testimonials, wrong color scheme...",
+              },
+            },
+          },
+          {
+            type: "input",
+            block_id: "type_block",
+            label: { type: "plain_text", text: "Feedback type" },
+            element: {
+              type: "static_select",
+              action_id: "feedback_type",
+              placeholder: { type: "plain_text", text: "Select a category" },
+              options: [
+                {
+                  text: { type: "plain_text", text: "🎨 Site quality issue — please redo" },
+                  value: "quality_issue",
+                },
+                {
+                  text: { type: "plain_text", text: "🌐 Business already has a website" },
+                  value: "has_website",
+                },
+                {
+                  text: { type: "plain_text", text: "❓ Other" },
+                  value: "other",
+                },
+              ],
+            },
+          },
+        ],
+      },
+    }),
+  });
+  const data = await resp.json();
+  if (!data.ok) throw new Error(`views.open failed: ${data.error}`);
+  return data;
+}
+
+async function pendingRequestChanges(channelId, messageTs, originalText, clickedBy) {
+  await fetch("https://slack.com/api/chat.update", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+    },
+    body: JSON.stringify({
+      channel: channelId,
+      ts: messageTs,
+      blocks: [
+        {
+          type: "section",
+          text: { type: "mrkdwn", text: originalText },
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `🔄 *Awaiting change details from @${clickedBy}...*`,
+            },
+          ],
+        },
+      ],
+    }),
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------
 
@@ -193,7 +295,49 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Bad JSON" });
   }
 
-  // Only handle button clicks
+  // Only handle button clicks and modal submissions
+  if (payload.type === "view_submission") {
+    const view = payload.view;
+    if (view?.callback_id !== "request_changes_modal") {
+      return res.status(200).json({ ok: true });
+    }
+
+    let meta = {};
+    try { meta = JSON.parse(view.private_metadata || "{}"); } catch { /* ignore */ }
+
+    const feedbackText = view.state?.values?.feedback_block?.feedback_text?.value || "";
+    const feedbackType = view.state?.values?.type_block?.feedback_type?.selected_option?.value || "other";
+    const { request_id, context, channel_id, message_ts, original_text, clicked_by } = meta;
+
+    // Finalize the original Slack message
+    await resolveSlackMessage(channel_id, message_ts, original_text, "request_changes", clicked_by)
+      .catch((e) => console.error("Failed to finalize Slack message:", e));
+
+    // Post feedback as a thread reply so it's easy to read in Slack
+    await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+      },
+      body: JSON.stringify({
+        channel: channel_id,
+        thread_ts: message_ts,
+        text: `💬 *Feedback from @${clicked_by}*\n*Type:* ${feedbackType}\n*Detail:* ${feedbackText}`,
+      }),
+    }).catch(() => {});
+
+    // Resume the agent with the feedback details
+    await resumeAgent(request_id, "request_changes", {
+      ...context,
+      feedback: feedbackText,
+      feedback_type: feedbackType,
+    }).catch((e) => console.error("Failed to resume agent:", e));
+
+    // Return 200 with no response_action → Slack closes the modal
+    return res.status(200).json({ ok: true });
+  }
+
   if (payload.type !== "block_actions") {
     return res.status(200).json({ ok: true });
   }
@@ -201,7 +345,7 @@ export default async function handler(req, res) {
   const action = payload.actions?.[0];
   if (!action) return res.status(200).json({ ok: true });
 
-  const outcome = action.action_id; // "approved" | "rejected" | "escalated"
+  const outcome = action.action_id; // "approved" | "rejected" | "escalated" | "request_changes"
   let value = {};
   try { value = JSON.parse(action.value || "{}"); } catch { /* ignore */ }
 
@@ -210,6 +354,29 @@ export default async function handler(req, res) {
   const originalText = payload.message?.blocks?.[0]?.text?.text ?? "HITL Request";
 
   console.log(`HITL: ${outcome} | request_id=${request_id} | by=${clickedBy}`);
+
+  // "Request Changes" — open a modal for feedback; don't finalize yet
+  if (outcome === "request_changes") {
+    // Show intermediate "pending" state (removes buttons)
+    await pendingRequestChanges(
+      payload.channel.id,
+      payload.message.ts,
+      originalText,
+      clickedBy
+    ).catch((e) => console.error("Failed to show pending state:", e));
+
+    // Open the feedback modal (trigger_id is valid for 3 seconds)
+    await openRequestChangesModal(payload.trigger_id, {
+      request_id,
+      context,
+      channel_id: payload.channel.id,
+      message_ts: payload.message.ts,
+      original_text: originalText,
+      clicked_by: clickedBy,
+    }).catch((e) => console.error("Failed to open modal:", e));
+
+    return res.status(200).json({ ok: true });
+  }
 
   // Update Slack message to remove buttons and show resolution
   await resolveSlackMessage(
