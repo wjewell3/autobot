@@ -1,0 +1,86 @@
+# ── Eval Baseline Bootstrap Job ──────────────────────────────────────────────
+# Runs once to capture initial eval scores for all agent suites.
+# Must run AFTER eval-harness pod is Running + Accepted.
+#
+# Apply:  kubectl apply -f infra/phase6-eval-harness/set-baselines-job.yaml
+# Logs:   kubectl logs job/set-eval-baselines -n kagent -f
+# Re-run: kubectl delete job set-eval-baselines -n kagent && kubectl apply -f ...
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: set-eval-baselines
+  namespace: kagent
+spec:
+  ttlSecondsAfterFinished: 86400   # auto-cleanup after 24h
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: set-eval-baselines
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: set-baselines
+        image: docker.io/python:3.11-slim
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          pip install mcp httpx --quiet 2>/dev/null
+          python - <<'PYEOF'
+          import asyncio, json
+          from mcp.client.streamable_http import streamablehttp_client
+          from mcp import ClientSession
+
+          EVAL_HARNESS_URL = "http://eval-harness.kagent.svc.cluster.local:8096"
+          HITL_URL = "http://hitl-tool-server.kagent.svc.cluster.local:8091"
+          AGENTS = [
+              "prospecting-agent",
+              "pm-agent",
+              "site-builder-agent",
+              "commander-agent",
+              "outreach-agent",
+          ]
+
+          async def main():
+              passed = []
+              failed = []
+
+              async with streamablehttp_client(f"{EVAL_HARNESS_URL}/mcp") as (read, write, _):
+                  async with ClientSession(read, write) as session:
+                      await session.initialize()
+                      for suite in AGENTS:
+                          try:
+                              result = await session.call_tool("set_baseline", {"agent": suite, "suite": "default"})
+                              text = result.content[0].text if result.content else "ok"
+                              print(f"[OK]  {suite}: {text}")
+                              passed.append(suite)
+                          except Exception as e:
+                              print(f"[ERR] {suite}: {e}")
+                              failed.append(suite)
+
+              # Post summary to Slack
+              summary = (
+                  f"*Eval baselines set* ✅\n"
+                  f"Captured: {', '.join(passed)}\n"
+              )
+              if failed:
+                  summary += f"Failed (agents may not be running): {', '.join(failed)}\n"
+              summary += "_rd-agent will now compare against these before proposing PRs._"
+
+              try:
+                  async with streamablehttp_client(f"{HITL_URL}/mcp") as (r2, w2, _):
+                      async with ClientSession(r2, w2) as s2:
+                          await s2.initialize()
+                          await s2.call_tool("post_notification", {
+                              "message": summary,
+                              "channel": "agent-workers"
+                          })
+                  print("[OK]  Slack notification sent")
+              except Exception as e:
+                  print(f"[WARN] Slack notify failed (non-fatal): {e}")
+
+              if failed:
+                  raise SystemExit(1)
+
+          asyncio.run(main())
+          PYEOF

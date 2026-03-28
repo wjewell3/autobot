@@ -1,0 +1,106 @@
+# ── Adversarial Sweep CronJob ─────────────────────────────────────────────────
+# Runs the full adversarial test suite every week (Monday 3am UTC).
+# Tests all 4 categories: data_quality, injection, boundary, governance.
+# Posts a coverage report to #agent-workers in Slack.
+#
+# Apply:    kubectl apply -f infra/phase9-adversarial-testing/adversarial-cronjob.yaml
+# Trigger:  kubectl create job adversarial-sweep-manual --from=cronjob/adversarial-sweep -n kagent
+# Logs:     kubectl logs -l job-name=adversarial-sweep-manual -n kagent -f
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: adversarial-sweep
+  namespace: kagent
+spec:
+  schedule: "0 3 * * 1"   # Mondays 3am UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: adversarial-sweep
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: adversarial-sweep
+            image: docker.io/python:3.11-slim
+            command: ["/bin/sh", "-c"]
+            args:
+            - |
+              pip install mcp httpx --quiet 2>/dev/null
+              python - <<'PYEOF'
+              import asyncio, json, datetime
+              from mcp.client.streamable_http import streamablehttp_client
+              from mcp import ClientSession
+
+              ADVERSARIAL_URL = "http://adversarial-tester.kagent.svc.cluster.local:8098"
+              HITL_URL = "http://hitl-tool-server.kagent.svc.cluster.local:8091"
+              CATEGORIES = ["data_quality", "injection", "boundary", "governance"]
+
+              async def main():
+                  results = {}
+                  coverage = None
+
+                  async with streamablehttp_client(f"{ADVERSARIAL_URL}/mcp") as (read, write, _):
+                      async with ClientSession(read, write) as session:
+                          await session.initialize()
+                          for cat in CATEGORIES:
+                              try:
+                                  r = await session.call_tool("run_adversarial_suite", {"category": cat})
+                                  results[cat] = json.loads(r.content[0].text) if r.content else {}
+                                  passed = results[cat].get("passed", 0)
+                                  total = results[cat].get("total", 0)
+                                  print(f"[{cat}] {passed}/{total} passed")
+                              except Exception as e:
+                                  results[cat] = {"error": str(e)}
+                                  print(f"[{cat}] ERROR: {e}")
+
+                          try:
+                              cr = await session.call_tool("get_coverage_report", {})
+                              coverage = cr.content[0].text if cr.content else None
+                          except Exception as e:
+                              coverage = f"coverage report failed: {e}"
+
+                  # Build summary
+                  date = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+                  lines = [f"*Weekly adversarial sweep* ({date})"]
+                  all_pass = True
+                  for cat, res in results.items():
+                      if "error" in res:
+                          lines.append(f"  ❌ {cat}: error — {res['error']}")
+                          all_pass = False
+                      else:
+                          passed = res.get("passed", 0)
+                          total = res.get("total", 0)
+                          failures = res.get("failures", [])
+                          icon = "✅" if passed == total else "⚠️"
+                          if passed != total:
+                              all_pass = False
+                          lines.append(f"  {icon} {cat}: {passed}/{total}")
+                          for f in failures:
+                              lines.append(f"      • FAIL: {f}")
+                  if coverage:
+                      lines.append(f"\n{coverage}")
+                  lines.append("_governance controls verified_" if all_pass else "_⚠️ review failures above_")
+                  message = "\n".join(lines)
+                  print(message)
+
+                  # Post to Slack
+                  try:
+                      async with streamablehttp_client(f"{HITL_URL}/mcp") as (r2, w2, _):
+                          async with ClientSession(r2, w2) as s2:
+                              await s2.initialize()
+                              await s2.call_tool("post_notification", {
+                                  "message": message,
+                                  "channel": "agent-workers"
+                              })
+                      print("[OK] Slack notification sent")
+                  except Exception as e:
+                      print(f"[WARN] Slack notify failed (non-fatal): {e}")
+
+              asyncio.run(main())
+              PYEOF

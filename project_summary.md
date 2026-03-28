@@ -61,11 +61,11 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | `hardening-agent` | Pattern analysis (L1 frequency + L2 failure) + rule proposals — MCP tools: `get_patterns`, `get_failure_patterns`, `get_active_rules` | ✅ Running + Accepted |
 | `hitl-tool-server` | Slack HITL approvals — `request_approval` + `post_notification` MCP tools, posts to #hitl-approvals with ✅/❌ buttons, severity-based timeouts | ✅ Running + Accepted |
 | `resource-governor` | Per-agent + global action budget enforcement — `check_budget`, `get_system_status` | ✅ Running + Accepted |
-| `rules-engine` | **Runtime execution of approved hardening rules.** Agents call `check_rule` before LLM decisions — if an active rule matches, the deterministic output replaces the LLM call. Rule lifecycle: proposed → shadow → active → retired. MCP tools: `check_rule`, `get_rule_stats`, `reload_rules`, `promote_rule` | 🔜 Ready to deploy |
-| `eval-harness` | **Measures agent quality before/after every change.** Stores baselines, runs eval suites (predefined test cases with expected outputs), compares current vs baseline. rd-agent calls `compare_eval` before proposing PRs. MCP tools: `run_eval`, `compare_eval`, `set_baseline`, `get_baseline`, `list_suites` | 🔜 Ready to deploy |
-| `playbook-server` | **Business module abstraction.** Agents read pipeline config from playbooks instead of hardcoding business logic. Switching playbooks = switching business models with zero agent changes. MCP tools: `get_playbook`, `get_stage_config`, `get_niche_rotation`, `get_qualification_rules`, `list_playbooks` | 🔜 Ready to deploy |
-| `shared-state` | **Blackboard pattern for agent coordination.** Agents read/write shared state instead of relying only on A2A. Enables real drift detection, pipeline visibility, distributed locks. MCP tools: `state_get`, `state_set`, `state_list`, `pipeline_status`, `acquire_lock`, `release_lock` | 🔜 Ready to deploy |
-| `adversarial-tester` | **Feeds bad inputs to prove governance works** before production failures find gaps. Tests: data quality, prompt injection, boundary cases, governance bypass. MCP tools: `run_adversarial_suite`, `run_single_test`, `get_coverage_report`, `list_tests` | 🔜 Ready to deploy |
+| `rules-engine` | **Runtime execution of approved hardening rules.** Agents call `check_rule` before LLM decisions — if an active rule matches, the deterministic output replaces the LLM call. Rule lifecycle: proposed → shadow → active → retired. MCP tools: `check_rule`, `get_rule_stats`, `reload_rules`, `promote_rule` | ✅ Running + Accepted |
+| `eval-harness` | **Measures agent quality before/after every change.** Stores baselines, runs eval suites (predefined test cases with expected outputs), compares current vs baseline. rd-agent calls `compare_eval` before proposing PRs. MCP tools: `run_eval`, `compare_eval`, `set_baseline`, `get_baseline`, `list_suites` | ✅ Running + Accepted |
+| `playbook-server` | **Business module abstraction.** Agents read pipeline config from playbooks instead of hardcoding business logic. Switching playbooks = switching business models with zero agent changes. MCP tools: `get_playbook`, `get_stage_config`, `get_niche_rotation`, `get_qualification_rules`, `list_playbooks` | ✅ Running + Accepted |
+| `shared-state` | **Blackboard pattern for agent coordination.** Agents read/write shared state instead of relying only on A2A. Enables real drift detection, pipeline visibility, distributed locks. MCP tools: `state_get`, `state_set`, `state_list`, `pipeline_status`, `acquire_lock`, `release_lock` | ✅ Running + Accepted |
+| `adversarial-tester` | **Feeds bad inputs to prove governance works** before production failures find gaps. Tests: data quality, prompt injection, boundary cases, governance bypass. MCP tools: `run_adversarial_suite`, `run_single_test`, `get_coverage_report`, `list_tests` | ✅ Running + Accepted |
 | `kagent-grafana-mcp` | Metrics (intentionally disabled) | ❌ Disabled in helm |
 
 ### Skills (instructional only — different risk profile from MCP servers)
@@ -471,6 +471,8 @@ Browser → Vercel (autobot1.vercel.app)
 | `infra/phase8-shared-state/shared-state.py` | Shared state blackboard — agents coordinate via namespaced key-value state |
 | `infra/phase9-adversarial-testing/adversarial-tester.py` | Adversarial tester — feeds bad inputs to prove governance works |
 | `infra/phase9-adversarial-testing/tests.yaml` | Adversarial test cases (data quality, injection, boundary, governance) |
+| `infra/phase6-eval-harness/set-baselines-job.yaml` | K8s Job — captures eval baselines for all 5 agents on deploy (auto-runs via deploy script) |
+| `infra/phase9-adversarial-testing/adversarial-cronjob.yaml` | Weekly CronJob — runs full adversarial suite every Monday 3am UTC, posts to #agent-workers |
 | `infra/deploy-phases-5-9.sh` | Bootstrap script to deploy all Phase 5-9 infrastructure |
 | `.github/workflows/build-khook.yml` | ARM64 khook builder |
 | `.github/workflows/deploy.yml` | GitHub Pages deploy (legacy) |
@@ -499,6 +501,7 @@ Browser → Vercel (autobot1.vercel.app)
 - **A2A message parts use `kind` not `type`** — `{"kind":"text","text":"..."}` is correct. `{"type":"text"}` returns "unsupported part kind". Correct A2A path: `POST /api/a2a/<namespace>/<agent-name>/` (trailing slash required). Auth: `x-api-secret` header from `nginx-cors` ConfigMap.
 - **RemoteMCPServer CRD requires both `protocol` and `url`** — omitting either causes kagent to silently ignore the server. Always include `protocol: STREAMABLE_HTTP` and `url: http://<service>.<namespace>.svc.cluster.local:<port>/mcp`
 - **deploy.yaml must not contain empty ConfigMap stubs** — a `data: {}` ConfigMap in deploy.yaml will overwrite a ConfigMap previously loaded via `kubectl create configmap --from-file`. Put a comment with the load command instead.
+- **deploy script webhook race condition** — after updating capability-registry ConfigMap, the script must use `kubectl rollout restart` + `kubectl rollout status --timeout=60s` before applying agent YAMLs. `kubectl delete pod` returns immediately but the webhook takes ~10s to be ready. Fixed in `infra/deploy-phases-5-9.sh`.
 - **kagent RemoteMCPServer re-discovery** — after restarting an MCP pod, kagent may cache the old tool list. Force re-discovery with `kubectl annotate remotemcpserver <name> -n kagent retry=$(date +%s) --overwrite`
 
 ---
@@ -607,11 +610,11 @@ systemMessage: |
 - [x] **Phase 1 `enforcement_mode: enforce`** — ✅ flipped 2026-03-26, all agents passing
 - [x] **`require_hitl_label_for_mcp: true`** — ✅ enabled 2026-03-26. All 8 agents labeled `hitl-reviewed=true`. Unlabeled agents with MCP tools are rejected.
 - [x] **forbidden_tools override** — policy-server.py updated to allow explicit `allowed_tools` overrides for forbidden tools (needed for khook auto-synced tools on commander)
-- [ ] Phase 5: Rules Engine — **built, ready to deploy** (`infra/deploy-phases-5-9.sh`). Rules engine executes approved hardening rules at runtime. Run `bash infra/deploy-phases-5-9.sh` to deploy all Phase 5-9 infra.
-- [ ] Phase 6: Eval Harness — **built, ready to deploy.** Measures quality before/after agent changes. Run eval baselines after deploying.
-- [ ] Phase 7: Business Module Abstraction — **built, ready to deploy.** Playbook server decouples PM/workers from specific business models (3 playbooks: local-web-services, saas-landing-pages, local-seo-audits).
-- [ ] Phase 8: Shared State — **built, ready to deploy.** Blackboard for agent coordination and pipeline visibility.
-- [ ] Phase 9: Adversarial Testing — **built, ready to deploy.** Tests governance controls under adversarial inputs (injection, bypass, boundary edge cases).
+- [x] Phase 5: Rules Engine — ✅ deployed 2026-03-27. Intercepts agent decisions at runtime, active rules replace LLM. Currently `rules: []` — activates as hardening-agent PRs get merged.
+- [x] Phase 6: Eval Harness — ✅ deployed 2026-03-27. Baselines captured via `set-eval-baselines` K8s Job (runs automatically on deploy). rd-agent now measures before/after scores for every PR.
+- [x] Phase 7: Business Module Abstraction — ✅ deployed 2026-03-27. Playbook server live, pm-agent reads `local-web-services` playbook on every run. Add playbooks to `playbooks.yaml` to switch business models with zero agent changes.
+- [x] Phase 8: Shared State — ✅ deployed 2026-03-27. pm-agent writes pipeline state to `pipeline/<run-id>` namespace automatically. Ask pm-agent to `pipeline_status` to see active runs.
+- [x] Phase 9: Adversarial Testing — ✅ deployed 2026-03-27. Weekly CronJob (`adversarial-sweep`) runs every Monday 3am UTC, posts results to #agent-workers. Manual trigger: `kubectl create job adversarial-sweep-manual --from=cronjob/adversarial-sweep -n kagent`
 - [ ] Install Calico CNI for NetworkPolicy enforcement (Flannel doesn't enforce)
 
 ### Infrastructure

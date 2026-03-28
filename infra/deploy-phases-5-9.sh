@@ -70,8 +70,9 @@ echo "=== Updating Capability Registry ==="
 kubectl create configmap capability-registry \
   --from-file=capability-registry.yaml=infra/phase1-admission-control/capability-registry.yaml \
   -n "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-kubectl delete pod -l app=agent-policy-server -n "$NAMESPACE" 2>/dev/null || true
-echo "  ✓ Capability registry updated"
+kubectl rollout restart deployment/agent-policy-server -n "$NAMESPACE"
+kubectl rollout status deployment/agent-policy-server -n "$NAMESPACE" --timeout=60s
+echo "  ✓ Capability registry updated (webhook ready)"
 
 echo ""
 echo "=== Updating Agent YAMLs (tools wiring) ==="
@@ -99,8 +100,28 @@ echo "  playbook-server    :8099  — Business playbook config for pipeline agen
 echo "  shared-state       :8097  — Blackboard for agent coordination"
 echo "  adversarial-tester :8098  — Feeds bad inputs to prove governance works"
 echo ""
-echo "Next steps:"
-echo "  1. Run a pipeline to confirm everything still works"
-echo "  2. Set eval baselines: have rd-agent call set_baseline for each agent"
-echo "  3. Approve first hardening rules in rules.yaml to activate the rules engine"
-echo "  4. Run adversarial tests: ask commander to 'run adversarial tests'"
+echo ""
+echo "=== Setting Eval Baselines ==="
+kubectl delete job set-eval-baselines -n "$NAMESPACE" 2>/dev/null || true
+kubectl apply -f infra/phase6-eval-harness/set-baselines-job.yaml
+echo "  ✓ Baseline job started (kubectl logs job/set-eval-baselines -n kagent -f)"
+
+echo ""
+echo "=== Deploying Adversarial Sweep CronJob ==="
+kubectl apply -f infra/phase9-adversarial-testing/adversarial-cronjob.yaml
+echo "  ✓ Adversarial sweep scheduled (Mondays 3am UTC)"
+echo "  ✓ Manual trigger: kubectl create job adversarial-sweep-manual --from=cronjob/adversarial-sweep -n kagent"
+
+echo ""
+echo "=== All Phase 5-9 infrastructure deployed ==="
+echo ""
+echo "Automated:"
+echo "  rules-engine       :8095  — active/shadow rules execute automatically per agent call"
+echo "  playbook-server    :8099  — pm-agent reads config on every pipeline run"
+echo "  shared-state       :8097  — pm-agent writes pipeline state automatically"
+echo "  eval baselines     job    — capturing now (watch: kubectl logs job/set-eval-baselines -n kagent -f)"
+echo "  adversarial sweep  cron   — runs weekly Mondays 3am UTC, posts to #agent-workers"
+echo ""
+echo "One-time after baseline job completes:"
+echo "  Approve first hardening rules: edit infra/phase5-rules-engine/rules.yaml, set status: shadow"
+echo "  Re-run baselines anytime: kubectl delete job set-eval-baselines -n kagent && kubectl apply -f ..."
