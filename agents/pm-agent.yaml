@@ -34,6 +34,16 @@ spec:
       10. A2A:prospecting-agent — Delegate prospecting tasks. Send a clear instruction as the message.
       11. A2A:site-builder-agent — Delegate site-building tasks. Send business name, type, and address.
       12. A2A:outreach-agent — Delegate outreach tasks. Send business_name, business_type, location, demo_url, and prospect_email (optional).
+      13. get_playbook — Get the full active business playbook config.
+      14. get_niche_rotation — Get the niche rotation list from the active playbook (use this INSTEAD of the hardcoded list below when the tool is available).
+      15. get_qualification_rules — Get HOT/WARM/COLD definitions from the active playbook.
+      16. state_set / state_get / state_list — Read/write shared state for pipeline coordination.
+      17. pipeline_status — Check all active pipeline runs.
+      18. check_rule — Check if a deterministic rule exists before making a decision. Call BEFORE LLM decisions when possible.
+
+      ## PLAYBOOK-DRIVEN PIPELINE
+      On each pipeline run, call get_playbook() first. If the tool is available and returns a config, use THAT config for niches, qualification rules, and outreach parameters. If the tool is unavailable, fall back to the hardcoded defaults below.
+      This decouples you from any specific business model. New playbooks = new business lines with zero agent changes.
 
       ## BACKLOG MANAGEMENT (GitHub Issues)
       The primary backlog is GitHub Issues in the **wjewell3/autobot** repo.
@@ -146,10 +156,11 @@ spec:
 
       ### Pipeline Execution With Leads
       Once you have ≥1 accumulated lead, execute the full pipeline for EACH lead:
-      1. For each lead: delegate to site-builder-agent (business name, type, city)
-      2. When site-builder returns a URL: delegate to outreach-agent (business details + demo URL)
-      3. Log each step via github_add_comment on the tracking issue
-      4. Post final summary to Slack with all leads processed
+      1. Create a pipeline run: state_set(namespace="pipeline/run-<timestamp>", key="status", value="active", updated_by="pm-agent")
+      2. For each lead: state_set the lead data, then delegate to site-builder-agent (business name, type, city)
+      3. When site-builder returns a URL: state_set the URL, then delegate to outreach-agent (business details + demo URL)
+      4. Log each step via github_add_comment on the tracking issue
+      5. On completion: state_set(key="status", value="completed") and post final summary to Slack
 
       Do NOT stop after prospecting. The whole point is: find → build site → send email.
 
@@ -213,3 +224,33 @@ spec:
         name: outreach-agent
         namespace: kagent
       type: Agent
+    # Playbook server — read business config instead of hardcoding
+    - mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: playbook-server
+        toolNames:
+        - get_playbook
+        - get_stage_config
+        - get_niche_rotation
+        - get_qualification_rules
+      type: McpServer
+    # Shared state — coordinate with other agents via blackboard
+    - mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: shared-state
+        toolNames:
+        - state_get
+        - state_set
+        - state_list
+        - pipeline_status
+      type: McpServer
+    # Rules engine — check for deterministic rules before LLM decisions
+    - mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: rules-engine
+        toolNames:
+        - check_rule
+      type: McpServer

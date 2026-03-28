@@ -1,0 +1,94 @@
+---
+# Phase 5: Rules Engine — Runtime execution of approved hardening rules
+#
+# This is the piece that makes the hardening loop compound.
+# hardening-agent PROPOSES rules → human approves → rules-engine EXECUTES them.
+#
+# Dependencies: Phase 4 (hardening-agent) for rule proposals.
+#               Phase 2 (audit-logger) for tracking rule execution.
+#
+# ConfigMap populated by:
+#   kubectl create configmap rules-engine-code \
+#     --from-file=server.py=infra/phase5-rules-engine/rules-engine.py \
+#     --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+#
+# Rules ConfigMap populated by:
+#   kubectl create configmap rules-engine-rules \
+#     --from-file=rules.yaml=infra/phase5-rules-engine/rules.yaml \
+#     --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rules-engine
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rules-engine
+  template:
+    metadata:
+      labels:
+        app: rules-engine
+    spec:
+      containers:
+        - name: rules-engine
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn mcp httpx pyyaml anyio --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8095
+          env:
+            - name: RULES_ENGINE_PORT
+              value: "8095"
+            - name: RULES_PATH
+              value: "/etc/rules-engine/rules.yaml"
+            - name: AUDIT_LOGGER_URL
+              value: "http://audit-logger.kagent.svc.cluster.local:8092"
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+            - name: rules
+              mountPath: /etc/rules-engine
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "25m"
+            limits:
+              memory: "192Mi"
+              cpu: "100m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: rules-engine-code
+        - name: rules
+          configMap:
+            name: rules-engine-rules
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rules-engine
+  namespace: kagent
+spec:
+  selector:
+    app: rules-engine
+  ports:
+    - port: 8095
+      targetPort: 8095
+
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: rules-engine
+  namespace: kagent
+spec:
+  description: "Rules engine — executes approved hardening rules at runtime. Agents call check_rule() before LLM decisions."
+  protocol: STREAMABLE_HTTP
+  url: http://rules-engine.kagent.svc.cluster.local:8095/mcp

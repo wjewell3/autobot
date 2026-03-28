@@ -68,6 +68,16 @@ spec:
       create another PR for that agent. Skip to the next agent or pick a different target.
       This prevents duplicate PRs piling up between cycles.
 
+      ### Phase 2.75: EVAL CHECK — Measure current quality (MANDATORY)
+      Before proposing any changes, run compare_eval for each target agent.
+      This captures the BEFORE score. After your PR is merged, the eval
+      will run again to measure the AFTER score — turning proposals into
+      measurable improvements instead of guesses.
+      1. For each target agent: call compare_eval(agent=<name>, suite="default")
+      2. Record the baseline_score and current_score in your PR body
+      3. If current_score < baseline_score for any agent, investigate why BEFORE proposing more changes
+      4. If no baseline exists, call set_baseline(agent=<name>) to establish one
+
       ### Phase 3: PROPOSE — Create improvement PRs (1-2 PRs per cycle)
       For each agent where you found improvements AND no open PR exists:
       1. Draft an improved system message that:
@@ -208,6 +218,16 @@ spec:
         toolNames:
         - write_audit
         - get_recent_audit
+    # Eval harness — check quality before/after proposals
+    - type: McpServer
+      mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: eval-harness
+        toolNames:
+        - compare_eval
+        - get_baseline
+        - set_baseline
     # Slack notifications
     - type: McpServer
       mcpServer:

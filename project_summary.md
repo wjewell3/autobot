@@ -61,6 +61,11 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | `hardening-agent` | Pattern analysis (L1 frequency + L2 failure) + rule proposals — MCP tools: `get_patterns`, `get_failure_patterns`, `get_active_rules` | ✅ Running + Accepted |
 | `hitl-tool-server` | Slack HITL approvals — `request_approval` + `post_notification` MCP tools, posts to #hitl-approvals with ✅/❌ buttons, severity-based timeouts | ✅ Running + Accepted |
 | `resource-governor` | Per-agent + global action budget enforcement — `check_budget`, `get_system_status` | ✅ Running + Accepted |
+| `rules-engine` | **Runtime execution of approved hardening rules.** Agents call `check_rule` before LLM decisions — if an active rule matches, the deterministic output replaces the LLM call. Rule lifecycle: proposed → shadow → active → retired. MCP tools: `check_rule`, `get_rule_stats`, `reload_rules`, `promote_rule` | 🔜 Ready to deploy |
+| `eval-harness` | **Measures agent quality before/after every change.** Stores baselines, runs eval suites (predefined test cases with expected outputs), compares current vs baseline. rd-agent calls `compare_eval` before proposing PRs. MCP tools: `run_eval`, `compare_eval`, `set_baseline`, `get_baseline`, `list_suites` | 🔜 Ready to deploy |
+| `playbook-server` | **Business module abstraction.** Agents read pipeline config from playbooks instead of hardcoding business logic. Switching playbooks = switching business models with zero agent changes. MCP tools: `get_playbook`, `get_stage_config`, `get_niche_rotation`, `get_qualification_rules`, `list_playbooks` | 🔜 Ready to deploy |
+| `shared-state` | **Blackboard pattern for agent coordination.** Agents read/write shared state instead of relying only on A2A. Enables real drift detection, pipeline visibility, distributed locks. MCP tools: `state_get`, `state_set`, `state_list`, `pipeline_status`, `acquire_lock`, `release_lock` | 🔜 Ready to deploy |
+| `adversarial-tester` | **Feeds bad inputs to prove governance works** before production failures find gaps. Tests: data quality, prompt injection, boundary cases, governance bypass. MCP tools: `run_adversarial_suite`, `run_single_test`, `get_coverage_report`, `list_tests` | 🔜 Ready to deploy |
 | `kagent-grafana-mcp` | Metrics (intentionally disabled) | ❌ Disabled in helm |
 
 ### Skills (instructional only — different risk profile from MCP servers)
@@ -209,15 +214,20 @@ Hardening agent monitors decision patterns across all agents
     ↓
 High frequency, low variance decisions → proposed as deterministic rules
     ↓
-Rules run in shadow mode alongside LLM decisions
+Human reviews proposals in #hardening-proposals (or merges PR)
     ↓
-Human reviews proposals in #hardening-proposals
+Approved rules added to rules-engine ConfigMap (status: shadow or active)
     ↓
-Approved rules replace LLM decisions
+Rules engine intercepts agent decisions at runtime via check_rule()
+    ↓
+Shadow rules: run alongside LLM, output compared, logged
+Active rules: REPLACE LLM decision entirely — deterministic
     ↓
 LLM surface shrinks, deterministic surface grows
     ↓
 Cost ↓, Latency ↓, Reliability ↑ (compounds over time)
+    ↓
+Eval harness measures impact: before/after scores prove improvement
 ```
 
 > **Prioritize early:** Even a dumb v1 of the hardening loop — just posting "I saw this decision made 10 times this week, should I codify it?" to `#hardening-proposals` — starts building the muscle before you have full infrastructure. Get it running early so the compounding starts sooner.
@@ -452,6 +462,16 @@ Browser → Vercel (autobot1.vercel.app)
 | `agents/north-star-agent.yaml` | North Star agent — trajectory assessor, scores system against project vision |
 | `infra/north-star-cronjob.yaml` | CronJob triggering North Star agent every 6 hours |
 | `infra/github-mcp-update/server.py` | Updated github-mcp with 7 tools (branch + PR) |
+| `infra/phase5-rules-engine/rules-engine.py` | Rules engine — runtime execution of approved hardening rules |
+| `infra/phase5-rules-engine/rules.yaml` | Active rules file (proposed → shadow → active → retired lifecycle) |
+| `infra/phase6-eval-harness/eval-harness.py` | Eval harness — measures agent quality before/after changes |
+| `infra/phase6-eval-harness/cases.yaml` | Eval test cases per agent (prospecting, PM, site-builder, commander, outreach) |
+| `infra/phase7-business-modules/playbook-server.py` | Playbook server — business module abstraction, agents read config not hardcoded logic |
+| `infra/phase7-business-modules/playbooks.yaml` | Business playbook definitions (local-web-services, saas-landing-pages, local-seo-audits) |
+| `infra/phase8-shared-state/shared-state.py` | Shared state blackboard — agents coordinate via namespaced key-value state |
+| `infra/phase9-adversarial-testing/adversarial-tester.py` | Adversarial tester — feeds bad inputs to prove governance works |
+| `infra/phase9-adversarial-testing/tests.yaml` | Adversarial test cases (data quality, injection, boundary, governance) |
+| `infra/deploy-phases-5-9.sh` | Bootstrap script to deploy all Phase 5-9 infrastructure |
 | `.github/workflows/build-khook.yml` | ARM64 khook builder |
 | `.github/workflows/deploy.yml` | GitHub Pages deploy (legacy) |
 
@@ -587,6 +607,11 @@ systemMessage: |
 - [x] **Phase 1 `enforcement_mode: enforce`** — ✅ flipped 2026-03-26, all agents passing
 - [x] **`require_hitl_label_for_mcp: true`** — ✅ enabled 2026-03-26. All 8 agents labeled `hitl-reviewed=true`. Unlabeled agents with MCP tools are rejected.
 - [x] **forbidden_tools override** — policy-server.py updated to allow explicit `allowed_tools` overrides for forbidden tools (needed for khook auto-synced tools on commander)
+- [ ] Phase 5: Rules Engine — **built, ready to deploy** (`infra/deploy-phases-5-9.sh`). Rules engine executes approved hardening rules at runtime. Run `bash infra/deploy-phases-5-9.sh` to deploy all Phase 5-9 infra.
+- [ ] Phase 6: Eval Harness — **built, ready to deploy.** Measures quality before/after agent changes. Run eval baselines after deploying.
+- [ ] Phase 7: Business Module Abstraction — **built, ready to deploy.** Playbook server decouples PM/workers from specific business models (3 playbooks: local-web-services, saas-landing-pages, local-seo-audits).
+- [ ] Phase 8: Shared State — **built, ready to deploy.** Blackboard for agent coordination and pipeline visibility.
+- [ ] Phase 9: Adversarial Testing — **built, ready to deploy.** Tests governance controls under adversarial inputs (injection, bypass, boundary edge cases).
 - [ ] Install Calico CNI for NetworkPolicy enforcement (Flannel doesn't enforce)
 
 ### Infrastructure

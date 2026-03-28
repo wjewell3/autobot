@@ -1,0 +1,102 @@
+---
+# Phase 6: Eval Harness — Measure agent quality before/after changes
+#
+# Turns random walks into gradient descent. Without measurement,
+# you can't know if a system message tweak helped or hurt.
+#
+# rd-agent calls compare_eval() before proposing PRs.
+# north-star-agent calls run_eval() during trajectory assessment.
+#
+# ConfigMap populated by:
+#   kubectl create configmap eval-harness-code \
+#     --from-file=server.py=infra/phase6-eval-harness/eval-harness.py \
+#     --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+#
+# Eval cases ConfigMap:
+#   kubectl create configmap eval-harness-cases \
+#     --from-file=cases.yaml=infra/phase6-eval-harness/cases.yaml \
+#     --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eval-harness
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eval-harness
+  template:
+    metadata:
+      labels:
+        app: eval-harness
+    spec:
+      containers:
+        - name: eval-harness
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn mcp httpx pyyaml anyio --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8096
+          env:
+            - name: EVAL_HARNESS_PORT
+              value: "8096"
+            - name: EVAL_CASES_PATH
+              value: "/etc/eval-harness/cases.yaml"
+            - name: BASELINES_PATH
+              value: "/data/baselines.json"
+            - name: AUDIT_LOGGER_URL
+              value: "http://audit-logger.kagent.svc.cluster.local:8092"
+            - name: KAGENT_API_URL
+              value: "http://kagent-controller.kagent.svc.cluster.local:8083"
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+            - name: cases
+              mountPath: /etc/eval-harness
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "25m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: eval-harness-code
+        - name: cases
+          configMap:
+            name: eval-harness-cases
+        - name: data
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eval-harness
+  namespace: kagent
+spec:
+  selector:
+    app: eval-harness
+  ports:
+    - port: 8096
+      targetPort: 8096
+
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: eval-harness
+  namespace: kagent
+spec:
+  description: "Eval harness — measures agent quality before/after changes. Tools: run_eval, compare_eval, set_baseline, get_baseline, list_suites"
+  protocol: STREAMABLE_HTTP
+  url: http://eval-harness.kagent.svc.cluster.local:8096/mcp

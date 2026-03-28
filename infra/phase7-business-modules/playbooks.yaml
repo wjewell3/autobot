@@ -1,0 +1,200 @@
+# ── Business Playbooks ──────────────────────────────────
+#
+# This file decouples the agent org from any specific business model.
+# Each playbook defines: what to find, how to qualify, what to build, how to reach out.
+#
+# PM-agent reads the active playbook and configures its pipeline accordingly.
+# Workers read their stage config from the playbook, not from hardcoded prompts.
+#
+# To switch business models: change active_playbook and apply.
+# No agent system messages need to change.
+#
+# kubectl create configmap business-playbooks \
+#   --from-file=playbooks.yaml=infra/phase7-business-modules/playbooks.yaml \
+#   --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+
+active_playbook: local-web-services
+
+playbooks:
+
+  # ── Playbook 1: Local Business Web Services (current PoC) ──
+  local-web-services:
+    name: "Local Business Web Services"
+    description: "Find local service businesses without websites, build demo sites, send outreach"
+    version: "1.0"
+    default_market:
+      city: "Chattanooga"
+      state: "TN"
+      country: "US"
+
+    # What the prospecting stage looks for
+    prospecting:
+      method: "web_search + overpass"
+      niche_rotation:
+        - "plumbers"
+        - "HVAC / air conditioning repair"
+        - "electricians"
+        - "roofers"
+        - "landscapers / lawn care"
+        - "pressure washing"
+        - "food trucks"
+        - "handyman services"
+        - "house painters"
+        - "pest control"
+      max_niches_before_block: 3
+      min_leads_to_proceed: 1
+      qualification:
+        hot: "Business has no real website — only Yelp/Facebook/directory listings"
+        warm: "Business has an outdated or weak website (pre-2020 design, parked domain)"
+        cold: "Business has a professional, current website — skip"
+      search_strategy: |
+        1. Search: "<niche> <city> <state>"
+        2. For each result, verify: "<business_name> <city> website"
+        3. Default to COLD when ambiguous (protect reputation)
+
+    # What the builder stage creates
+    building:
+      type: "github_pages_demo"
+      template: "single_page_responsive"
+      required_sections:
+        - "hero with business name and tagline"
+        - "services list"
+        - "contact section with phone/address"
+        - "mobile-responsive meta tags"
+        - "schema.org LocalBusiness markup"
+      repo_naming: "${business_name_slug}-demo"
+      hosting: "github_pages"
+
+    # How the outreach stage reaches out
+    outreach:
+      channel: "email"
+      tone: "friendly, professional, not salesy"
+      max_words: 150
+      required_elements:
+        - "demo site URL as clickable link"
+        - "business name"
+        - "specific compliment about their business"
+        - "clear CTA"
+      hitl_required: true
+      testing_phase:
+        redirect_to: "jewell.will@gmail.com"
+        subject_prefix: "[TEST]"
+
+    # Success metrics for this playbook
+    metrics:
+      lead_found: "Business identified as HOT or WARM"
+      site_built: "GitHub Pages demo site is live"
+      email_sent: "Outreach email sent (after HITL approval)"
+      conversion: "Business responds positively"
+
+  # ── Playbook 2: SaaS Landing Pages (example future playbook) ──
+  saas-landing-pages:
+    name: "SaaS Landing Page Teardowns"
+    description: "Find SaaS companies with weak landing pages, build optimized alternatives, pitch redesign"
+    version: "0.1"
+    default_market:
+      vertical: "B2B SaaS"
+      stage: "seed to Series A"
+      region: "US"
+
+    prospecting:
+      method: "web_search"
+      niche_rotation:
+        - "CRM startups"
+        - "project management tools"
+        - "HR tech startups"
+        - "developer tools"
+        - "fintech startups"
+      max_niches_before_block: 3
+      min_leads_to_proceed: 1
+      qualification:
+        hot: "Landing page has no clear CTA, poor mobile design, or slow load time"
+        warm: "Landing page is functional but generic (template look, weak copy)"
+        cold: "Landing page is well-designed and converts — skip"
+      search_strategy: |
+        1. Search: "<niche> startups 2025 2026"
+        2. Visit landing page, check PageSpeed score
+        3. Evaluate: CTA clarity, mobile responsiveness, copy quality
+
+    building:
+      type: "github_pages_demo"
+      template: "saas_landing_page"
+      required_sections:
+        - "hero with value proposition"
+        - "social proof / logos"
+        - "feature grid"
+        - "pricing CTA"
+        - "mobile-responsive"
+      repo_naming: "${company_slug}-landing-redesign"
+      hosting: "github_pages"
+
+    outreach:
+      channel: "email"
+      tone: "data-driven, specific, not generic"
+      max_words: 200
+      required_elements:
+        - "specific PageSpeed / UX issue found"
+        - "demo redesign URL"
+        - "before/after comparison"
+        - "clear CTA for call"
+      hitl_required: true
+      testing_phase:
+        redirect_to: "jewell.will@gmail.com"
+        subject_prefix: "[TEST]"
+
+    metrics:
+      lead_found: "SaaS company identified with weak landing page"
+      site_built: "Redesigned landing page demo is live"
+      email_sent: "Teardown email sent"
+      conversion: "Company books a call"
+
+  # ── Playbook 3: Local SEO Audits (example future playbook) ──
+  local-seo-audits:
+    name: "Local SEO Audit & Fix"
+    description: "Find local businesses with poor Google My Business / SEO presence, offer audit + fixes"
+    version: "0.1"
+    default_market:
+      city: "Chattanooga"
+      state: "TN"
+
+    prospecting:
+      method: "web_search + google_maps"
+      niche_rotation:
+        - "dentists"
+        - "chiropractors"
+        - "auto repair shops"
+        - "restaurants"
+        - "gyms / fitness studios"
+      max_niches_before_block: 3
+      min_leads_to_proceed: 1
+      qualification:
+        hot: "No Google My Business listing OR listing has <5 reviews and no photos"
+        warm: "GMB exists but incomplete (wrong hours, no website link, stale photos)"
+        cold: "GMB is well-optimized with 50+ reviews — skip"
+
+    building:
+      type: "pdf_audit_report"
+      template: "seo_audit_report"
+      required_sections:
+        - "GMB completeness score"
+        - "website SEO score (if site exists)"
+        - "competitor comparison"
+        - "3 specific actionable fixes"
+      repo_naming: "${business_slug}-seo-audit"
+      hosting: "github_pages"
+
+    outreach:
+      channel: "email"
+      tone: "helpful expert, not salesy"
+      max_words: 150
+      required_elements:
+        - "specific SEO issue found"
+        - "link to audit report"
+        - "one quick win they could do today"
+      hitl_required: true
+
+    metrics:
+      lead_found: "Business with weak local SEO identified"
+      audit_built: "SEO audit report generated"
+      email_sent: "Audit email sent"
+      conversion: "Business responds or implements suggestions"

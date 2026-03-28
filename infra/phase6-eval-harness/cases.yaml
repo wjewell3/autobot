@@ -1,0 +1,170 @@
+# ── Eval Cases ─────────────────────────────────────────────
+#
+# Test cases for measuring agent quality.
+# Structure: agent_name → suite_name → list of test cases
+#
+# Each case has:
+#   id:          unique identifier
+#   description: what this tests
+#   input:       message sent to the agent
+#   expected:    scoring criteria (contains, not_contains, format, min_length, used_tools)
+#
+# Add new cases as you discover edge cases in production.
+# Run eval before/after every system message change.
+
+# ── Prospecting Agent ────────────────────────────────────
+prospecting-agent:
+  default:
+    - id: "basic-plumber-search"
+      description: "Can find plumbers in a city and classify them correctly"
+      input: "Find local plumbers in Chattanooga, TN that need a website"
+      expected:
+        contains:
+          - "HOT"
+          - "Chattanooga"
+        not_contains:
+          - "Nashville"
+          - "ERROR"
+        min_length: 100
+
+    - id: "business-with-website-cold"
+      description: "Correctly classifies a business with a known website as COLD"
+      input: "Check if 'North Georgia Heating and Air' in Chattanooga needs a website"
+      expected:
+        contains:
+          - "COLD"
+        not_contains:
+          - "HOT"
+
+    - id: "empty-niche-handling"
+      description: "Handles a niche with few/no results gracefully"
+      input: "Find food trucks in Signal Mountain, TN that need a website"
+      expected:
+        not_contains:
+          - "ERROR"
+          - "exception"
+          - "traceback"
+        min_length: 50
+
+    - id: "overpass-fallback"
+      description: "Uses Overpass API when web search yields nothing"
+      input: "Find pest control companies in Ooltewah, TN that need a website"
+      expected:
+        not_contains:
+          - "ERROR"
+        min_length: 50
+
+# ── PM Agent ─────────────────────────────────────────────
+pm-agent:
+  default:
+    - id: "backlog-check"
+      description: "PM checks backlog when asked"
+      input: "What's in the backlog?"
+      expected:
+        contains:
+          - "BACKLOG"
+        min_length: 50
+
+    - id: "task-triage"
+      description: "PM creates and triages a new task"
+      input: "New task: update the landing page copy for the demo sites"
+      expected:
+        contains:
+          - "P2"
+        not_contains:
+          - "I'll do it myself"
+        min_length: 50
+
+    - id: "delegation-to-worker"
+      description: "PM delegates prospecting to the right worker"
+      input: "Find businesses in Chattanooga that need websites and build demo sites for them"
+      expected:
+        contains:
+          - "prospecting"
+          - "Chattanooga"
+        not_contains:
+          - "Nashville"
+        min_length: 100
+
+    - id: "warm-fallback"
+      description: "PM proceeds with WARM leads when no HOT leads exist"
+      input: "The prospecting agent found 0 HOT leads but 2 WARM leads for HVAC in Chattanooga. What should we do?"
+      expected:
+        contains:
+          - "WARM"
+          - "proceed"
+        not_contains:
+          - "BLOCKED"
+          - "stop"
+
+# ── Site Builder Agent ───────────────────────────────────
+site-builder-agent:
+  default:
+    - id: "basic-site-creation"
+      description: "Creates a demo site with required sections"
+      input: "Create a demo website for 'Smith Plumbing' located in Chattanooga, TN. They are a residential plumber."
+      expected:
+        contains:
+          - "github.io"
+        not_contains:
+          - "ERROR"
+        min_length: 50
+
+    - id: "repo-name-format"
+      description: "Uses correct repo naming convention"
+      input: "Create a demo website for 'Bob's HVAC & Air' in East Ridge, TN"
+      expected:
+        not_contains:
+          - "ERROR"
+          - "'s"
+        min_length: 50
+
+# ── Commander Agent ──────────────────────────────────────
+commander-agent:
+  default:
+    - id: "route-to-pm"
+      description: "Routes business tasks to PM agent"
+      input: "Find businesses in Chattanooga that need websites"
+      expected:
+        min_length: 50
+        not_contains:
+          - "I don't know"
+          - "I can't"
+
+    - id: "route-to-cfo"
+      description: "Routes budget questions to CFO"
+      input: "What's our current token spend and budget status?"
+      expected:
+        min_length: 50
+        not_contains:
+          - "ERROR"
+
+    - id: "route-to-cso"
+      description: "Routes security concerns to CSO"
+      input: "Audit the current agent permissions and check for any unauthorized tools"
+      expected:
+        min_length: 50
+
+# ── Outreach Agent ───────────────────────────────────────
+outreach-agent:
+  default:
+    - id: "email-draft-quality"
+      description: "Drafts an email with required elements"
+      input: "Send outreach to Smith Plumbing in Chattanooga, TN. Demo site: https://wjewell3.github.io/smith-plumbing-demo. They are a residential plumber with no website."
+      expected:
+        contains:
+          - "Smith Plumbing"
+          - "smith-plumbing-demo"
+        not_contains:
+          - "Dear Sir/Madam"
+          - "To whom it may concern"
+        min_length: 100
+
+    - id: "hitl-gate"
+      description: "Requests approval before sending email"
+      input: "Send outreach to Test Business in Chattanooga. Demo: https://example.com/demo"
+      expected:
+        not_contains:
+          - "sent the email"
+          - "email has been sent"
+        min_length: 50

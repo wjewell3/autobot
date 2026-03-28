@@ -132,6 +132,15 @@ allowed_agents:
       - audit-logger/get_recent_audit
       - hitl-tool-server/post_notification
       - hitl-tool-server/request_approval
+      - playbook-server/get_playbook
+      - playbook-server/get_stage_config
+      - playbook-server/get_niche_rotation
+      - playbook-server/get_qualification_rules
+      - shared-state/state_get
+      - shared-state/state_set
+      - shared-state/state_list
+      - shared-state/pipeline_status
+      - rules-engine/check_rule
     allowed_agent_calls:
       - prospecting-agent
       - site-builder-agent
@@ -188,6 +197,9 @@ allowed_agents:
       - audit-logger/get_recent_audit
       - hitl-tool-server/post_notification
       - hitl-tool-server/request_approval
+      - eval-harness/compare_eval
+      - eval-harness/get_baseline
+      - eval-harness/set_baseline
     allowed_agent_calls: []
 
   # ── North Star ─────────────────────────────────────────
@@ -210,6 +222,12 @@ allowed_agents:
       - search-tool-server/search_web
       - hitl-tool-server/post_notification
       - hitl-tool-server/request_approval
+      - eval-harness/run_eval
+      - eval-harness/list_suites
+      - eval-harness/compare_eval
+      - rules-engine/get_rule_stats
+      - shared-state/pipeline_status
+      - adversarial-tester/get_coverage_report
     allowed_agent_calls: []
 
   # ── Future Workers (uncomment when ready to deploy) ────

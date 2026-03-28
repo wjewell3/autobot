@@ -1,0 +1,83 @@
+---
+# Phase 8: Shared State Server — Blackboard pattern for agent coordination
+#
+# Agents coordinate via shared state instead of just A2A message passing.
+# Enables real drift detection, pipeline visibility, and cross-agent memory.
+#
+# ConfigMap populated by:
+#   kubectl create configmap shared-state-code \
+#     --from-file=server.py=infra/phase8-shared-state/shared-state.py \
+#     --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shared-state
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shared-state
+  template:
+    metadata:
+      labels:
+        app: shared-state
+    spec:
+      containers:
+        - name: shared-state
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn mcp anyio --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8097
+          env:
+            - name: SHARED_STATE_PORT
+              value: "8097"
+            - name: STATE_PERSIST_PATH
+              value: "/data/state.json"
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "128Mi"
+              cpu: "50m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: shared-state-code
+        - name: data
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shared-state
+  namespace: kagent
+spec:
+  selector:
+    app: shared-state
+  ports:
+    - port: 8097
+      targetPort: 8097
+
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: shared-state
+  namespace: kagent
+spec:
+  description: "Shared state blackboard — agents read/write coordination state. Tools: state_get, state_set, state_list, pipeline_status, acquire_lock, release_lock"
+  protocol: STREAMABLE_HTTP
+  url: http://shared-state.kagent.svc.cluster.local:8097/mcp

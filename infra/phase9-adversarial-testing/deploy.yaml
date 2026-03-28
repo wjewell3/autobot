@@ -1,0 +1,93 @@
+---
+# Phase 9: Adversarial Pipeline Testing — Prove governance works
+#
+# Doesn't wait for production failures. Proactively feeds bad inputs
+# through the pipeline and verifies agents handle them correctly.
+#
+# ConfigMap populated by:
+#   kubectl create configmap adversarial-tester-code \
+#     --from-file=server.py=infra/phase9-adversarial-testing/adversarial-tester.py \
+#     --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+#
+# Tests ConfigMap:
+#   kubectl create configmap adversarial-tests \
+#     --from-file=tests.yaml=infra/phase9-adversarial-testing/tests.yaml \
+#     --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adversarial-tester
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: adversarial-tester
+  template:
+    metadata:
+      labels:
+        app: adversarial-tester
+    spec:
+      containers:
+        - name: adversarial-tester
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn mcp httpx pyyaml anyio --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8098
+          env:
+            - name: ADVERSARIAL_TESTER_PORT
+              value: "8098"
+            - name: ADVERSARIAL_TESTS_PATH
+              value: "/etc/adversarial/tests.yaml"
+            - name: KAGENT_API_URL
+              value: "http://kagent-controller.kagent.svc.cluster.local:8083"
+            - name: AUDIT_LOGGER_URL
+              value: "http://audit-logger.kagent.svc.cluster.local:8092"
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+            - name: tests
+              mountPath: /etc/adversarial
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "25m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: adversarial-tester-code
+        - name: tests
+          configMap:
+            name: adversarial-tests
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adversarial-tester
+  namespace: kagent
+spec:
+  selector:
+    app: adversarial-tester
+  ports:
+    - port: 8098
+      targetPort: 8098
+
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: adversarial-tester
+  namespace: kagent
+spec:
+  description: "Adversarial pipeline tester — feeds bad inputs to prove governance works. Tools: run_adversarial_suite, run_single_test, get_coverage_report, list_tests"
+  protocol: STREAMABLE_HTTP
+  url: http://adversarial-tester.kagent.svc.cluster.local:8098/mcp

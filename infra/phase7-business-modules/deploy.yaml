@@ -1,0 +1,92 @@
+---
+# Phase 7: Business Module Abstraction — Decouple agents from the PoC
+#
+# Turns a bot into a platform. PM/workers read from playbook config
+# instead of hardcoding business logic.
+#
+# To switch business models: update playbooks.yaml, apply ConfigMap.
+# No agent YAMLs need to change.
+#
+# ConfigMap populated by:
+#   kubectl create configmap playbook-server-code \
+#     --from-file=server.py=infra/phase7-business-modules/playbook-server.py \
+#     --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+#
+# Playbooks ConfigMap:
+#   kubectl create configmap business-playbooks \
+#     --from-file=playbooks.yaml=infra/phase7-business-modules/playbooks.yaml \
+#     --namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playbook-server
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: playbook-server
+  template:
+    metadata:
+      labels:
+        app: playbook-server
+    spec:
+      containers:
+        - name: playbook-server
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn mcp httpx pyyaml anyio --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8099
+          env:
+            - name: PLAYBOOK_SERVER_PORT
+              value: "8099"
+            - name: PLAYBOOKS_PATH
+              value: "/etc/playbooks/playbooks.yaml"
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+            - name: playbooks
+              mountPath: /etc/playbooks
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "128Mi"
+              cpu: "50m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: playbook-server-code
+        - name: playbooks
+          configMap:
+            name: business-playbooks
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: playbook-server
+  namespace: kagent
+spec:
+  selector:
+    app: playbook-server
+  ports:
+    - port: 8099
+      targetPort: 8099
+
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: playbook-server
+  namespace: kagent
+spec:
+  description: "Business playbook server — agents read pipeline config instead of hardcoding business logic. Tools: get_playbook, get_stage_config, get_niche_rotation, get_qualification_rules, list_playbooks"
+  protocol: STREAMABLE_HTTP
+  url: http://playbook-server.kagent.svc.cluster.local:8099/mcp

@@ -66,9 +66,11 @@ spec:
       - Agent coverage: Do all planned agents exist and function?
       - Safety maturity: All 4 phases deployed? HITL working? Enforcement active?
       - Pipeline completeness: Can prospecting→site-build→outreach→follow-up run end-to-end?
-      - Hardening velocity: Are rules accumulating? Is the LLM surface shrinking?
+      - Hardening velocity: Are rules accumulating? Is the LLM surface shrinking? Check get_rule_stats for hit rate.
       - R&D effectiveness: Are PRs being created, reviewed, merged? Quality improving?
-      - Operational health: Any stuck/crashed agents? Recurring failures?
+      - Eval scores: Are agent eval scores improving? Check run_eval/compare_eval. Regressions = urgent.
+      - Operational health: Any stuck/crashed agents? Recurring failures? Check pipeline_status for stuck runs.
+      - Adversarial coverage: Are governance controls tested? Check get_coverage_report for gaps.
       - **Agent quality standard**: How many agents pass ALL 7 items of the Agent Creation Standard?
 
       ### Step 2.5: AGENT QUALITY AUDIT (new — mandatory)
@@ -102,9 +104,11 @@ spec:
       ├─ Agent Coverage:     ⬛⬛⬛⬛⬜ 4/5
       ├─ Safety Maturity:    ⬛⬛⬛⬛⬛ 5/5
       ├─ Pipeline Complete:  ⬛⬛⬛⬜⬜ 3/5
-      ├─ Hardening Velocity: ⬛⬛⬜⬜⬜ 2/5
+      ├─ Hardening Velocity: ⬛⬛⬜⬜⬜ 2/5  (N active rules, M% hit rate)
       ├─ R&D Effectiveness:  ⬛⬛⬛⬜⬜ 3/5
+      ├─ Eval Scores:        ⬛⬛⬛⬜⬜ 3/5  (avg N%, M regressions)
       ├─ Ops Health:         ⬛⬛⬛⬛⬜ 4/5
+      ├─ Adversarial Cov:    ⬛⬛⬜⬜⬜ 2/5  (N/M failure modes tested)
       └─ Agent Quality:      ⬛⬛⬛⬜⬜ 3/5  (N/M agents meet standard)
 
       OVERALL: <direction emoji> <one-line verdict>
@@ -246,6 +250,40 @@ spec:
         toolNames:
         - get_recent_audit
         - write_audit
+    # Eval harness — measure agent quality
+    - type: McpServer
+      mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: eval-harness
+        toolNames:
+        - run_eval
+        - list_suites
+        - compare_eval
+    # Rules engine — check compounding progress
+    - type: McpServer
+      mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: rules-engine
+        toolNames:
+        - get_rule_stats
+    # Shared state — check pipeline coordination
+    - type: McpServer
+      mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: shared-state
+        toolNames:
+        - pipeline_status
+    # Adversarial tester — check governance coverage
+    - type: McpServer
+      mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: adversarial-tester
+        toolNames:
+        - get_coverage_report
     # Slack — report + HITL approval requests
     - type: McpServer
       mcpServer:

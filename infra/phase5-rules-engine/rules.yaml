@@ -1,0 +1,53 @@
+# ── Rules Engine — Active Rules ──────────────────────────
+#
+# Rules that have been approved and are executing at runtime.
+# The hardening-agent PROPOSES rules. This file EXECUTES them.
+#
+# Rule lifecycle: proposed → shadow → active → retired
+#   proposed: not executed, just visible
+#   shadow:   runs alongside LLM, output compared, logged (not replacing)
+#   active:   replaces LLM decision entirely — deterministic
+#   retired:  no longer matched
+#
+# Rule types:
+#   deterministic:  returns a fixed output string
+#   fixed_response: same as deterministic (alias)
+#   template:       output with ${var} substitution from context
+#   decision_table: list of condition→output rows
+#
+# Agents call check_rule(agent, action, context) BEFORE LLM decisions.
+# If matched=true → use the output. If matched=false → proceed with LLM.
+#
+# Example rules:
+#
+# rules:
+#   - id: "prospect-classify-directory-only"
+#     pattern: "prospecting-agent:classify_lead"
+#     status: active
+#     rule_type: decision_table
+#     description: "Classify leads based on search results — skip LLM for obvious cases"
+#     table:
+#       - conditions: {has_real_website: false, only_directories: true}
+#         output: "HOT"
+#       - conditions: {has_real_website: true, outdated: true}
+#         output: "WARM"
+#       - conditions: {has_real_website: true, outdated: false}
+#         output: "COLD"
+#
+#   - id: "commander-route-prospecting"
+#     pattern: "commander-agent:route_request"
+#     status: shadow
+#     rule_type: template
+#     description: "Route prospecting requests to PM agent"
+#     conditions:
+#       intent: "find_businesses"
+#     template: "Delegate to pm-agent: ${original_request}"
+#
+#   - id: "site-builder-repo-name"
+#     pattern: "site-builder-agent:generate_repo_name"
+#     status: active
+#     rule_type: template
+#     description: "Standardize repo naming — no LLM creativity needed"
+#     template: "${business_name_slug}-demo"
+
+rules: []
