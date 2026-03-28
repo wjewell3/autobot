@@ -20,7 +20,7 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | Public tunnel | Localtonet (ct0nsvobr7.localto.net) | Free (persistent URL) |
 | CORS proxy | nginx in-cluster | Free |
 | K8s API proxy | kubectl proxy in-cluster | Free |
-| Dashboard | Vercel (autobot-chi-tawny.vercel.app) | Free |
+| Dashboard | Vercel (autobot1.vercel.app) | Free |
 
 ---
 
@@ -36,10 +36,10 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | **PM** | Breaks work into tasks, sequences them, manages dependencies, handles blockers. | ✅ deployed |
 | **Hardening Agent** | Watches patterns across all agents. Progressively converts repetitive LLM decisions into deterministic rules. **v2 deployed — L1 frequency counting (threshold=10) + L2 failure pattern analysis (threshold=3). Creates PRs via github-mcp.** | ✅ deployed |
 
-> **Commander refactor note:** The current commander is doing too much — CEO + COO + PM + router simultaneously. As C-suite agents are added, commander should become a thin protocol dispatcher: it knows how to reach agents and manages A2A mechanics, but has zero opinion about *what* to do. All intent lives in CEO, all sequencing lives in PM. Plan this refactor before scaling worker agents.
+> **Commander status (2026-03-27):** ✅ Refactored. Commander is now a thin protocol dispatcher — routes to CEO/PM/COO/CSO, handles HITL_RESUME routing, manages agent lifecycle. Zero opinions about what to do.
 
 ### Worker Agents (narrow, single-purpose, no awareness of bigger picture)
-- Prospecting agent — scrapes Google Maps / LinkedIn for business targets ✅ deployed
+- Prospecting agent — finds local businesses needing websites via SearXNG + Overpass API. Double-search website verification (defaults to COLD when ambiguous). ✅ deployed
 - Site builder agent — creates demo GitHub Pages websites for prospects ✅ deployed + tested (created live site)
 - Outreach agent — sends HITL-gated cold emails with demo site URLs ✅ deployed (TESTING phase — all emails → operator)
 - R&D agent — continuously researches best practices and proposes system message upgrades via GitHub PRs ✅ deployed (hourly CronJob). **PRs now posted to #hitl-approvals — approve in Slack = auto-merge. Dedup check prevents duplicate PRs.**
@@ -396,8 +396,8 @@ Key schema notes:
 | `coo-agent` | Ops oversight — audit read + Slack notifications | ✅ |
 | `cso-agent` | Security enforcement — AUDIT/ENFORCE/EXECUTE modes, HITL-gated | ✅ |
 | `cfo-agent` | Token limits, context windows, cluster resources, action budgets (READ-ONLY) | ✅ |
-| `pm-agent` | Project manager — backlog, triage, delegates to workers. Worker output validation (skeptic mode). | ✅ |
-| `prospecting-agent` | Finds local businesses needing websites (SearXNG primary, Overpass fallback) | ✅ |
+| `pm-agent` | Project manager — backlog, triage, delegates to workers. Worker output validation (skeptic mode). Niche rotation (tries up to 3 niches before blocking). Lead accumulation across niches (1 lead = proceed). | ✅ |
+| `prospecting-agent` | Finds local businesses needing websites (SearXNG primary, Overpass fallback). Double-search website verification — defaults to COLD (skip) when ambiguous to avoid emailing businesses that already have sites. | ✅ |
 | `site-builder-agent` | Creates demo GitHub Pages sites for prospects | ✅ |
 | `outreach-agent` | Sends HITL-gated cold outreach emails with demo site URLs (TESTING/PRODUCTION phase toggle) | ✅ |
 | `rd-agent` | R&D — researches best practices, proposes system message upgrades via GitHub PRs. Hourly CronJob. Self-improving. PRs go through HITL approval. | ✅ |
@@ -415,7 +415,7 @@ Key schema notes:
 
 ## Dashboard (Vercel)
 
-- **URL:** https://autobot-chi-tawny.vercel.app
+- **URL:** https://autobot1.vercel.app
 - **Repo:** https://github.com/wjewell3/autobot
 - **Features:** Live agent diagram, agent list, metrics panel, commander chat
 - **Polls:** Kubernetes API every 3 seconds via Vercel serverless proxy
@@ -423,7 +423,7 @@ Key schema notes:
 
 ### Architecture
 ```
-Browser → Vercel (autobot-chi-tawny.vercel.app)
+Browser → Vercel (autobot1.vercel.app)
             ↓ /api/proxy → kubectl-proxy → k8s API (agent list)
             ↓ /api/chat  → localtonet → cors-proxy → kagent-controller A2A
 ```
