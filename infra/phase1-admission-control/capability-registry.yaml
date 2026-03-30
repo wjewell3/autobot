@@ -157,6 +157,11 @@ allowed_agents:
       - search-tool-server/search_web
       - audit-logger/write_audit
       - hitl-tool-server/post_notification
+      # Compiled deterministic tools (prospecting-mcp, port 8101)
+      - prospecting-mcp/classify_lead
+      - prospecting-mcp/check_website_exists
+      - prospecting-mcp/normalize_business_name
+      - prospecting-mcp/deduplicate_businesses
     allowed_agent_calls: []
 
   site-builder-agent:
@@ -169,6 +174,10 @@ allowed_agents:
       - github-tool-server/github_create_branch
       - audit-logger/write_audit
       - hitl-tool-server/post_notification
+      # Compiled deterministic tools (site-builder-mcp, port 8102)
+      - site-builder-mcp/render_site_template
+      - site-builder-mcp/generate_repo_name
+      - site-builder-mcp/validate_html
     allowed_agent_calls: []
 
   outreach-agent:
@@ -178,6 +187,9 @@ allowed_agents:
       - audit-logger/write_audit
       - hitl-tool-server/request_approval
       - hitl-tool-server/post_notification
+      # Compiled deterministic tools (outreach-mcp, port 8103)
+      - outreach-mcp/render_email
+      - outreach-mcp/validate_email_draft
     allowed_agent_calls: []
 
   # ── R&D ────────────────────────────────────────────────

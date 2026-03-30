@@ -1,0 +1,277 @@
+# ── Compiled Deterministic Microservices — Phase 10 ──────────────────────────
+#
+# Three MCP servers compiled from LLM-based agents:
+#   prospecting-mcp  (port 8101) — lead classification, website checks, slug gen
+#   site-builder-mcp (port 8102) — full HTML template rendering, repo naming
+#   outreach-mcp     (port 8103) — email rendering with phase enforcement
+#
+# Deploy procedure:
+#   1. Load code ConfigMaps (run ONCE, then use the apply commands below for updates):
+#
+#      kubectl create configmap prospecting-mcp-code \
+#        --from-file=server.py=infra/phase10-codegen/services/prospecting-mcp.py \
+#        -n kagent --dry-run=client -o yaml | kubectl apply -f -
+#
+#      kubectl create configmap site-builder-mcp-code \
+#        --from-file=server.py=infra/phase10-codegen/services/site-builder-mcp.py \
+#        -n kagent --dry-run=client -o yaml | kubectl apply -f -
+#
+#      kubectl create configmap outreach-mcp-code \
+#        --from-file=server.py=infra/phase10-codegen/services/outreach-mcp.py \
+#        -n kagent --dry-run=client -o yaml | kubectl apply -f -
+#
+#   2. Apply this file:
+#      kubectl apply -f infra/phase10-codegen/services/deploy.yaml
+#
+#   3. After updating service code, restart pods to pick up new ConfigMap:
+#      kubectl delete pod -l app=prospecting-mcp -n kagent
+#      kubectl delete pod -l app=site-builder-mcp -n kagent
+#      kubectl delete pod -l app=outreach-mcp -n kagent
+#
+#   4. Force kagent MCP re-discovery:
+#      for svc in prospecting-mcp site-builder-mcp outreach-mcp; do
+#        kubectl annotate remotemcpserver $svc -n kagent retry=$(date +%s) --overwrite
+#      done
+
+# ── prospecting-mcp ───────────────────────────────────────────────────────────
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prospecting-mcp
+  namespace: kagent
+  labels:
+    app: prospecting-mcp
+    codegen-managed: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prospecting-mcp
+  template:
+    metadata:
+      labels:
+        app: prospecting-mcp
+        codegen-managed: "true"
+    spec:
+      containers:
+        - name: prospecting-mcp
+          image: docker.io/python:3.12-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn mcp httpx anyio --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8101
+          env:
+            - name: PROSPECTING_MCP_PORT
+              value: "8101"
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "10m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: prospecting-mcp-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prospecting-mcp
+  namespace: kagent
+  labels:
+    codegen-managed: "true"
+spec:
+  selector:
+    app: prospecting-mcp
+  ports:
+    - port: 8101
+      targetPort: 8101
+      protocol: TCP
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: prospecting-mcp
+  namespace: kagent
+  labels:
+    codegen-managed: "true"
+spec:
+  description: >
+    Deterministic lead classification for prospecting-agent. Compiled from LLM calls.
+    Tools: classify_lead (HOT/WARM/COLD from URL analysis), check_website_exists (HTTP HEAD),
+    normalize_business_name (DNS-safe slug), deduplicate_businesses (fuzzy name dedup).
+    Port 8101. Replaces ~800 tokens/business in prospecting-agent.
+  protocol: STREAMABLE_HTTP
+  url: http://prospecting-mcp.kagent.svc.cluster.local:8101/mcp
+
+# ── site-builder-mcp ──────────────────────────────────────────────────────────
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: site-builder-mcp
+  namespace: kagent
+  labels:
+    app: site-builder-mcp
+    codegen-managed: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: site-builder-mcp
+  template:
+    metadata:
+      labels:
+        app: site-builder-mcp
+        codegen-managed: "true"
+    spec:
+      containers:
+        - name: site-builder-mcp
+          image: docker.io/python:3.12-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn mcp anyio --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8102
+          env:
+            - name: SITE_BUILDER_MCP_PORT
+              value: "8102"
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "10m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: site-builder-mcp-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: site-builder-mcp
+  namespace: kagent
+  labels:
+    codegen-managed: "true"
+spec:
+  selector:
+    app: site-builder-mcp
+  ports:
+    - port: 8102
+      targetPort: 8102
+      protocol: TCP
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: site-builder-mcp
+  namespace: kagent
+  labels:
+    codegen-managed: "true"
+spec:
+  description: >
+    Deterministic HTML template rendering for site-builder-agent. Compiled from LLM calls.
+    Tools: render_site_template (complete HTML for all 10 PM niches), generate_repo_name
+    (GitHub-safe slug), validate_html (quality checklist). Port 8102.
+    Replaces ~2000 token HTML generation call in site-builder-agent.
+  protocol: STREAMABLE_HTTP
+  url: http://site-builder-mcp.kagent.svc.cluster.local:8102/mcp
+
+# ── outreach-mcp ──────────────────────────────────────────────────────────────
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outreach-mcp
+  namespace: kagent
+  labels:
+    app: outreach-mcp
+    codegen-managed: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: outreach-mcp
+  template:
+    metadata:
+      labels:
+        app: outreach-mcp
+        codegen-managed: "true"
+    spec:
+      containers:
+        - name: outreach-mcp
+          image: docker.io/python:3.12-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn mcp anyio --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8103
+          env:
+            - name: OUTREACH_MCP_PORT
+              value: "8103"
+            - name: OPERATOR_EMAIL
+              value: "jewell.will@gmail.com"
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "10m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: outreach-mcp-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: outreach-mcp
+  namespace: kagent
+  labels:
+    codegen-managed: "true"
+spec:
+  selector:
+    app: outreach-mcp
+  ports:
+    - port: 8103
+      targetPort: 8103
+      protocol: TCP
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: outreach-mcp
+  namespace: kagent
+  labels:
+    codegen-managed: "true"
+spec:
+  description: >
+    Deterministic email rendering with hard phase enforcement for outreach-agent.
+    Tools: render_email (full HTML email, TESTING forces recipient=operator),
+    validate_email_draft (quality checklist). Port 8103.
+    Phase enforcement is in code — cannot be reasoned around by LLM.
+    Replaces ~600 token email generation in outreach-agent.
+  protocol: STREAMABLE_HTTP
+  url: http://outreach-mcp.kagent.svc.cluster.local:8103/mcp

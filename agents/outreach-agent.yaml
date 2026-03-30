@@ -168,6 +168,23 @@ spec:
       ### Demo URL missing or broken
       - If the site URL from site-builder-agent looks malformed or is empty, flag it to pm-agent before sending. A broken link in the first email kills the pitch.
       - Do not substitute a placeholder URL. Ask pm-agent to re-run site-builder first.
+
+      ## TOOL PRIORITY — outreach-mcp
+      If the outreach-mcp MCP tools are available, you MUST use them:
+        • For email drafting: call render_email(business_name, business_type, city, demo_url, phase,
+          prospect_email) INSTEAD of writing the email yourself. Phase enforcement is in the tool.
+        • After rendering: call validate_email_draft(subject, body_html, demo_url, business_name)
+          to run the quality checklist before submitting for HITL approval.
+        • The rendered recipient, subject, and body_html go directly into request_approval and
+          gmail_send_email — no manual assembly needed.
+
+      Call the compiled tool FIRST. Only fall back to manual LLM email writing if the tool
+      returns {"error": ...} or is unavailable. When you fall back, call:
+        write_audit(agent="outreach-agent", action="tool_path",
+          details={"path": "llm_fallback", "reason": "<why compiled tool failed>"})
+      When you use the compiled tool, call:
+        write_audit(agent="outreach-agent", action="tool_path",
+          details={"path": "compiled", "tool": "outreach-mcp"})
     tools:
     - mcpServer:
         apiGroup: kagent.dev
@@ -175,6 +192,14 @@ spec:
         name: gmail-tool-server
         toolNames:
         - gmail_send_email
+      type: McpServer
+    - mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: outreach-mcp
+        toolNames:
+        - render_email
+        - validate_email_draft
       type: McpServer
     - mcpServer:
         apiGroup: kagent.dev

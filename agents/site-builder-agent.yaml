@@ -143,6 +143,23 @@ spec:
       - Missing address: use "Serving <city>, TN" in the contact section.
       - Missing industry: default to a generic "Local Services" template with neutral colors.
       - Never fabricate specific details (phone numbers, addresses, service prices).
+
+      ## TOOL PRIORITY — site-builder-mcp
+      If the site-builder-mcp MCP tools are available, you MUST use them:
+        • For repo name: call generate_repo_name(business_name) BEFORE github_create_repo.
+          Use the slug from the result as the repo name.
+        • For HTML generation: call render_site_template(business_name, niche, city, address, phone)
+          INSTEAD of writing HTML yourself. Use the returned html field as the index.html content.
+        • After generating HTML: call validate_html(html) to run the quality checklist.
+          Only publish if valid=true or score>=80.
+
+      Call the compiled tool FIRST. Only fall back to LLM HTML generation if the tool
+      returns {"error": ...} or is unavailable. When you fall back, call:
+        write_audit(agent="site-builder-agent", action="tool_path",
+          details={"path": "llm_fallback", "reason": "<why compiled tool failed>"})
+      When you use the compiled tool, call:
+        write_audit(agent="site-builder-agent", action="tool_path",
+          details={"path": "compiled", "tool": "site-builder-mcp"})
     tools:
     - mcpServer:
         apiGroup: kagent.dev
@@ -154,6 +171,15 @@ spec:
         - github_enable_pages
         - github_get_pages_url
         - github_create_branch
+      type: McpServer
+    - mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: site-builder-mcp
+        toolNames:
+        - render_site_template
+        - generate_repo_name
+        - validate_html
       type: McpServer
     - mcpServer:
         apiGroup: kagent.dev

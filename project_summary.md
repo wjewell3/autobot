@@ -67,6 +67,9 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | `shared-state` | **Blackboard pattern for agent coordination.** Agents read/write shared state instead of relying only on A2A. Enables real drift detection, pipeline visibility, distributed locks. MCP tools: `state_get`, `state_set`, `state_list`, `pipeline_status`, `acquire_lock`, `release_lock` | ✅ Running + Accepted |
 | `adversarial-tester` | **Feeds bad inputs to prove governance works** before production failures find gaps. Tests: data quality, prompt injection, boundary cases, governance bypass. MCP tools: `run_adversarial_suite`, `run_single_test`, `get_coverage_report`, `list_tests` | ✅ Running + Accepted |
 | `codegen-mcp` | **LLM distillation tools for codegen-agent.** Spawns ephemeral K8s Jobs to run pytest suites (`run_test_suite`), deploys approved compiled microservices (`deploy_microservice`), and manages human-approved service locks in shared-state (`lock_service`, `get_lock_status`). Port: 8100. Has dedicated ServiceAccount + RBAC for cluster writes. | ✅ Running + Accepted |
+| `prospecting-mcp` | **Deterministic lead classification.** Compiled from prospecting-agent LLM calls. Tools: `classify_lead` (HOT/WARM/COLD from URL analysis), `check_website_exists` (HTTP HEAD), `normalize_business_name` (DNS slug), `deduplicate_businesses` (fuzzy dedup). Port: 8101. ~800 tokens/business eliminated. | ✅ Running + Accepted |
+| `site-builder-mcp` | **Deterministic HTML template rendering.** Compiled from site-builder-agent LLM calls. Tools: `render_site_template` (full HTML for all 10 PM niches), `generate_repo_name` (GitHub-safe slug), `validate_html` (quality checklist). Port: 8102. ~2000 token HTML generation eliminated. | ✅ Running + Accepted |
+| `outreach-mcp` | **Deterministic email rendering with hard phase enforcement.** Compiled from outreach-agent LLM calls. Tools: `render_email` (TESTING forces recipient=operator in code, not prompt), `validate_email_draft` (quality gate). Port: 8103. ~600 token email generation eliminated. | ✅ Running + Accepted |
 | `kagent-grafana-mcp` | Metrics (intentionally disabled) | ❌ Disabled in helm |
 
 ### MCP Server Port Allocation
@@ -82,9 +85,9 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | 8098 | `adversarial-tester` |
 | 8099 | `playbook-server` |
 | 8100 | `codegen-mcp` |
-| 8101 | `prospecting-mcp` *(reserved — compiled by codegen-agent)* |
-| 8102 | `site-builder-mcp` *(reserved)* |
-| 8103 | `outreach-mcp` *(reserved)* |
+| 8101 | `prospecting-mcp` *(compiled — live ✅)* |
+| 8102 | `site-builder-mcp` *(compiled — live ✅)* |
+| 8103 | `outreach-mcp` *(compiled — live ✅)* |
 | 8104 | `pm-mcp` *(reserved)* |
 | 8105 | `rd-mcp` *(reserved)* |
 | 8106 | `hardening-mcp` *(reserved)* |
@@ -435,6 +438,8 @@ Key schema notes:
 | `north-star-agent` | Trajectory assessor — scores system against project vision, identifies drift/gaps/wins. 6-hour CronJob. READ-ONLY. | ✅ |
 | `codegen-agent` | LLM distillation — compiles repeatable agent tasks into deterministic Python microservices. Priority queue through all 9 agents. Inner test loop → HITL gate → deploy + lock. | ✅ |
 
+> **Compiled services (2026-03-30):** prospecting-mcp (8101), site-builder-mcp (8102), outreach-mcp (8103) are live and accepted. Agents carry TOOL PRIORITY instructions to use compiled tools first with LLM fallback. codegen queue state initialized; agents 4-9 (pm→cfo) remain queued.
+
 **Legacy demo agents deleted by CSO on 2026-03-26:** number-agent-1/2/3, sum-agent, researcher-agent, critic-agent, writer-agent, publisher-agent, send-email-test
 
 ### Commander Capabilities
@@ -496,6 +501,13 @@ Browser → Vercel (autobot1.vercel.app)
 | `infra/phase6-eval-harness/set-baselines-job.yaml` | K8s Job — captures eval baselines for all 5 agents on deploy (auto-runs via deploy script) |
 | `infra/phase9-adversarial-testing/adversarial-cronjob.yaml` | Weekly CronJob — runs full adversarial suite every Monday 3am UTC, posts to #agent-workers |
 | `infra/phase10-codegen/codegen-mcp.py` | Codegen MCP server — K8s Job runner for pytest suites + microservice deployer + lock/unlock tools |
+| `infra/phase10-codegen/services/prospecting-mcp.py` | **Compiled** prospecting-agent service — HOT/WARM/COLD classification, HTTP website checks, slug gen, dedup |
+| `infra/phase10-codegen/services/site-builder-mcp.py` | **Compiled** site-builder-agent service — full HTML templates for all 10 niches, repo name gen, HTML validation |
+| `infra/phase10-codegen/services/outreach-mcp.py` | **Compiled** outreach-agent service — email rendering with hard phase enforcement (TESTING→operator in code) |
+| `infra/phase10-codegen/services/deploy.yaml` | K8s manifests for compiled services (Deployments + Services + RemoteMCPServers for ports 8101-8103) |
+| `infra/phase10-codegen/services/tests/test_prospecting_mcp.py` | pytest suite for prospecting-mcp (sacred + eval-grounded + edge cases) |
+| `infra/phase10-codegen/services/tests/test_site_builder_mcp.py` | pytest suite for site-builder-mcp (sacred + eval-grounded + all 10 niches) |
+| `infra/phase10-codegen/services/tests/test_outreach_mcp.py` | pytest suite for outreach-mcp (sacred + phase enforcement + spam detection) |
 | `infra/phase10-codegen/deploy.yaml` | codegen-mcp ServiceAccount + RBAC + Deployment + Service + RemoteMCPServer (port 8100) |
 | `agents/codegen-agent.yaml` | codegen-agent — priority queue, inner test loop, HITL gating, post-approval deploy + lock + PR |
 | `infra/deploy-phases-5-9.sh` | Bootstrap script to deploy all Phase 5-9 infrastructure |
@@ -641,6 +653,7 @@ systemMessage: |
 - [x] Phase 8: Shared State — ✅ deployed 2026-03-27. pm-agent writes pipeline state to `pipeline/<run-id>` namespace automatically. Ask pm-agent to `pipeline_status` to see active runs.
 - [x] Phase 9: Adversarial Testing — ✅ deployed 2026-03-27. Weekly CronJob (`adversarial-sweep`) runs every Monday 3am UTC, posts results to #agent-workers. Manual trigger: `kubectl create job adversarial-sweep-manual --from=cronjob/adversarial-sweep -n kagent`
 - [x] Phase 10: LLM Distillation (codegen-agent) — ✅ deployed. codegen-mcp (port 8100) provides `run_test_suite` (K8s ephemeral Job runner), `deploy_microservice`, `lock_service`, `get_lock_status`. codegen-agent works through a 9-agent priority queue, compiling repeatable tasks into deterministic Python microservices. Inner loop: classify → write → run tests → fix → surface. Quality gate: all tests pass + eval ≥ baseline. Human-gated deployment via HITL. Locks prevent re-compilation after approval. Compiled service ports: 8101 (prospecting-mcp) → 8109 (cfo-mcp).
+- [x] **prospecting-mcp, site-builder-mcp, outreach-mcp** — ✅ compiled + deployed 2026-03-30. All three ACCEPTED by kagent. Agents carry TOOL PRIORITY instructions — compiled tools run first, LLM is fallback only. Total LLM tokens eliminated per pipeline run: ~3400 tokens (800 prospecting + 2000 site HTML + 600 email). Test suites in `infra/phase10-codegen/services/tests/`. Capability registry updated, agent YAMLs updated.
 - [ ] Install Calico CNI for NetworkPolicy enforcement (Flannel doesn't enforce)
 
 ### Infrastructure

@@ -75,6 +75,22 @@ spec:
       - Call write_audit with action="prospecting_complete", details=summary
       - Call post_notification with results to Slack (channel: agent-workers)
 
+      ## TOOL PRIORITY — prospecting-mcp
+      If the prospecting-mcp MCP tools are available, you MUST use them:
+        • Before classifying any lead, call classify_lead(business_name, search_results_json)
+          instead of reasoning about URLs yourself.
+        • For repo name generation, call normalize_business_name(business_name).
+        • Before deduplicating businesses, call deduplicate_businesses(businesses_json).
+        • To verify a specific URL is live, call check_website_exists(url).
+
+      Call the compiled tool FIRST. Only fall back to manual LLM reasoning if the tool
+      returns {"error": ...} or is unavailable. When you fall back, call:
+        write_audit(agent="prospecting-agent", action="tool_path",
+          details={"path": "llm_fallback", "reason": "<why compiled tool failed>"})
+      When you use the compiled tool, call:
+        write_audit(agent="prospecting-agent", action="tool_path",
+          details={"path": "compiled", "tool": "prospecting-mcp"})
+
       ## OUTPUT FORMAT — always return results in this exact structure:
       ```
       PROSPECTS FOUND: <count>
@@ -141,6 +157,16 @@ spec:
         toolNames:
         - search_find_businesses
         - search_web
+      type: McpServer
+    - mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: prospecting-mcp
+        toolNames:
+        - classify_lead
+        - check_website_exists
+        - normalize_business_name
+        - deduplicate_businesses
       type: McpServer
     - mcpServer:
         apiGroup: kagent.dev
