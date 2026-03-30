@@ -1,0 +1,50 @@
+2026-03-30 14:01:49,258 INFO Terminating session: 282b8fb046ae44268c78a881f6874eb9
+INFO:     10.244.0.8:55528 - "DELETE /mcp HTTP/1.1" 200 OK
+2026-03-30 14:02:49,260 INFO Created new transport with session ID: 728a0f0cc3524a4aa855928d36cd32c7
+INFO:     10.244.0.8:55534 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:55534 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:56208 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     10.244.0.8:56208 - "POST /mcp HTTP/1.1" 200 OK
+2026-03-30 14:02:49,273 INFO Processing request of type ListToolsRequest
+2026-03-30 14:02:49,274 INFO Terminating session: 728a0f0cc3524a4aa855928d36cd32c7
+INFO:     10.244.0.8:56208 - "DELETE /mcp HTTP/1.1" 200 OK
+2026-03-30 14:03:49,288 INFO Created new transport with session ID: 2dbcd8b3ab6b4e339ab144a32b8b30e0
+INFO:     10.244.0.8:56204 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:56204 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:42588 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     10.244.0.8:42588 - "POST /mcp HTTP/1.1" 200 OK
+2026-03-30 14:03:49,301 INFO Processing request of type ListToolsRequest
+2026-03-30 14:03:49,302 INFO Terminating session: 2dbcd8b3ab6b4e339ab144a32b8b30e0
+INFO:     10.244.0.8:42588 - "DELETE /mcp HTTP/1.1" 200 OK
+2026-03-30 14:04:49,379 INFO Created new transport with session ID: b680181eae2d44f8ad60935b8b9ff928
+INFO:     10.244.0.8:42592 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:42592 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:59668 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     10.244.0.8:59668 - "POST /mcp HTTP/1.1" 200 OK
+2026-03-30 14:04:49,392 INFO Processing request of type ListToolsRequest
+2026-03-30 14:04:49,393 INFO Terminating session: b680181eae2d44f8ad60935b8b9ff928
+INFO:     10.244.0.8:59668 - "DELETE /mcp HTTP/1.1" 200 OK
+2026-03-30 14:05:49,474 INFO Created new transport with session ID: 6b43bf9ff09c4bd2b44216c3ea7cba43
+INFO:     10.244.0.8:47062 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:47062 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:47090 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     10.244.0.8:47090 - "POST /mcp HTTP/1.1" 200 OK
+2026-03-30 14:05:49,483 INFO Processing request of type ListToolsRequest
+2026-03-30 14:05:49,484 INFO Terminating session: 6b43bf9ff09c4bd2b44216c3ea7cba43
+INFO:     10.244.0.8:47090 - "DELETE /mcp HTTP/1.1" 200 OK
+2026-03-30 14:06:49,659 INFO Created new transport with session ID: a1031dbee1e443ffaf9bb46b71513110
+INFO:     10.244.0.8:47078 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:47078 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:40684 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     10.244.0.8:40684 - "POST /mcp HTTP/1.1" 200 OK
+2026-03-30 14:06:49,673 INFO Processing request of type ListToolsRequest
+2026-03-30 14:06:49,674 INFO Terminating session: a1031dbee1e443ffaf9bb46b71513110
+INFO:     10.244.0.8:40684 - "DELETE /mcp HTTP/1.1" 200 OK
+2026-03-30 14:07:49,780 INFO Created new transport with session ID: b21f1edca0ec4f2f903f064c75eb5033
+INFO:     10.244.0.8:40686 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:40686 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:45300 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     10.244.0.8:45300 - "POST /mcp HTTP/1.1" 200 OK
+2026-03-30 14:07:49,795 INFO Processing request of type ListToolsRequest
+2026-03-30 14:07:49,796 INFO Terminating session: b21f1edca0ec4f2f903f064c75eb5033
+INFO:     10.244.0.8:45300 - "DELETE /mcp HTTP/1.1" 200 OK

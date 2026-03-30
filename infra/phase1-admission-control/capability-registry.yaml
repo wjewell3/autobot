@@ -80,6 +80,7 @@ allowed_agents:
       - outreach-agent
       - rd-agent
       - north-star-agent
+      - codegen-agent
 
   # ── C-Suite ────────────────────────────────────────────
 
@@ -232,3 +233,37 @@ allowed_agents:
     allowed_agent_calls: []
 
   # ── Future Workers (uncomment when ready to deploy) ────
+
+  # ── Phase 10: LLM Distillation ────────────────────────
+
+  codegen-agent:
+    description: "Systematically eliminates LLM calls fleet-wide by compiling repeatable agent tasks into deterministic Python microservices. Works through a priority queue, inner test loop, HITL gating, and immutable service locks."
+    allowed_tools:
+      # Queue + lock state management
+      - shared-state/state_get
+      - shared-state/state_set
+      - shared-state/state_list
+      # Core codegen tools — test runner + deployer
+      - codegen-mcp/run_test_suite
+      - codegen-mcp/deploy_microservice
+      - codegen-mcp/lock_service
+      - codegen-mcp/get_lock_status
+      # Read target agent system messages from cluster
+      - kagent-tool-server/k8s_get_resource_yaml
+      - kagent-tool-server/k8s_get_resources
+      # Push service code and integration PRs to GitHub
+      - github-tool-server/github_create_branch
+      - github-tool-server/github_push_file
+      - github-tool-server/github_create_pr
+      - github-tool-server/github_list_prs
+      # Quality gate before HITL
+      - eval-harness/run_eval
+      - eval-harness/compare_eval
+      - eval-harness/get_baseline
+      # HITL — surface for approval + notify on deployment
+      - hitl-tool-server/request_approval
+      - hitl-tool-server/post_notification
+      # Audit trail
+      - audit-logger/write_audit
+      - audit-logger/get_recent_audit
+    allowed_agent_calls: []

@@ -1,0 +1,485 @@
+apiVersion: v1
+items:
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"batch/v1","kind":"CronJob","metadata":{"annotations":{},"name":"adversarial-sweep","namespace":"kagent"},"spec":{"concurrencyPolicy":"Forbid","failedJobsHistoryLimit":2,"jobTemplate":{"spec":{"backoffLimit":1,"template":{"metadata":{"labels":{"app":"adversarial-sweep"}},"spec":{"containers":[{"args":["pip install mcp httpx --quiet 2\u003e/dev/null\npython - \u003c\u003c'PYEOF'\nimport asyncio, json, datetime\nfrom mcp.client.streamable_http import streamablehttp_client\nfrom mcp import ClientSession\n\nADVERSARIAL_URL = \"http://adversarial-tester.kagent.svc.cluster.local:8098\"\nHITL_URL = \"http://hitl-tool-server.kagent.svc.cluster.local:8091\"\nCATEGORIES = [\"data_quality\", \"injection\", \"boundary\", \"governance\"]\n\nasync def main():\n    results = {}\n    coverage = None\n\n    async with streamablehttp_client(f\"{ADVERSARIAL_URL}/mcp\") as (read, write, _):\n        async with ClientSession(read, write) as session:\n            await session.initialize()\n            for cat in CATEGORIES:\n                try:\n                    r = await session.call_tool(\"run_adversarial_suite\", {\"category\": cat})\n                    results[cat] = json.loads(r.content[0].text) if r.content else {}\n                    passed = results[cat].get(\"passed\", 0)\n                    total = results[cat].get(\"total\", 0)\n                    print(f\"[{cat}] {passed}/{total} passed\")\n                except Exception as e:\n                    results[cat] = {\"error\": str(e)}\n                    print(f\"[{cat}] ERROR: {e}\")\n\n            try:\n                cr = await session.call_tool(\"get_coverage_report\", {})\n                coverage = cr.content[0].text if cr.content else None\n            except Exception as e:\n                coverage = f\"coverage report failed: {e}\"\n\n    # Build summary\n    date = datetime.datetime.utcnow().strftime(\"%Y-%m-%d\")\n    lines = [f\"*Weekly adversarial sweep* ({date})\"]\n    all_pass = True\n    for cat, res in results.items():\n        if \"error\" in res:\n            lines.append(f\"  ❌ {cat}: error — {res['error']}\")\n            all_pass = False\n        else:\n            passed = res.get(\"passed\", 0)\n            total = res.get(\"total\", 0)\n            failures = res.get(\"failures\", [])\n            icon = \"✅\" if passed == total else \"⚠️\"\n            if passed != total:\n                all_pass = False\n            lines.append(f\"  {icon} {cat}: {passed}/{total}\")\n            for f in failures:\n                lines.append(f\"      • FAIL: {f}\")\n    if coverage:\n        lines.append(f\"\\n{coverage}\")\n    lines.append(\"_governance controls verified_\" if all_pass else \"_⚠️ review failures above_\")\n    message = \"\\n\".join(lines)\n    print(message)\n\n    # Post to Slack\n    try:\n        async with streamablehttp_client(f\"{HITL_URL}/mcp\") as (r2, w2, _):\n            async with ClientSession(r2, w2) as s2:\n                await s2.initialize()\n                await s2.call_tool(\"post_notification\", {\n                    \"message\": message,\n                    \"channel\": \"agent-workers\"\n                })\n        print(\"[OK] Slack notification sent\")\n    except Exception as e:\n        print(f\"[WARN] Slack notify failed (non-fatal): {e}\")\n\nasyncio.run(main())\nPYEOF\n"],"command":["/bin/sh","-c"],"image":"docker.io/python:3.11-slim","name":"adversarial-sweep"}],"restartPolicy":"OnFailure"}}}},"schedule":"0 3 * * 1","successfulJobsHistoryLimit":3}}
+    creationTimestamp: "2026-03-28T01:43:34Z"
+    generation: 2
+    name: adversarial-sweep
+    namespace: kagent
+    resourceVersion: "5209813"
+    uid: a9c1846b-3069-4c71-9644-edcae544ebe1
+  spec:
+    concurrencyPolicy: Forbid
+    failedJobsHistoryLimit: 1
+    jobTemplate:
+      metadata: {}
+      spec:
+        backoffLimit: 1
+        template:
+          metadata:
+            labels:
+              app: adversarial-sweep
+          spec:
+            containers:
+            - args:
+              - |
+                pip install mcp httpx --quiet 2>/dev/null
+                python - <<'PYEOF'
+                import asyncio, json, datetime
+                from mcp.client.streamable_http import streamablehttp_client
+                from mcp import ClientSession
+
+                ADVERSARIAL_URL = "http://adversarial-tester.kagent.svc.cluster.local:8098"
+                HITL_URL = "http://hitl-tool-server.kagent.svc.cluster.local:8091"
+                CATEGORIES = ["data_quality", "injection", "boundary", "governance"]
+
+                async def main():
+                    results = {}
+                    coverage = None
+
+                    async with streamablehttp_client(f"{ADVERSARIAL_URL}/mcp") as (read, write, _):
+                        async with ClientSession(read, write) as session:
+                            await session.initialize()
+                            for cat in CATEGORIES:
+                                try:
+                                    r = await session.call_tool("run_adversarial_suite", {"category": cat})
+                                    results[cat] = json.loads(r.content[0].text) if r.content else {}
+                                    passed = results[cat].get("passed", 0)
+                                    total = results[cat].get("total", 0)
+                                    print(f"[{cat}] {passed}/{total} passed")
+                                except Exception as e:
+                                    results[cat] = {"error": str(e)}
+                                    print(f"[{cat}] ERROR: {e}")
+
+                            try:
+                                cr = await session.call_tool("get_coverage_report", {})
+                                coverage = cr.content[0].text if cr.content else None
+                            except Exception as e:
+                                coverage = f"coverage report failed: {e}"
+
+                    # Build summary
+                    date = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+                    lines = [f"*Weekly adversarial sweep* ({date})"]
+                    all_pass = True
+                    for cat, res in results.items():
+                        if "error" in res:
+                            lines.append(f"  ❌ {cat}: error — {res['error']}")
+                            all_pass = False
+                        else:
+                            passed = res.get("passed", 0)
+                            total = res.get("total", 0)
+                            failures = res.get("failures", [])
+                            icon = "✅" if passed == total else "⚠️"
+                            if passed != total:
+                                all_pass = False
+                            lines.append(f"  {icon} {cat}: {passed}/{total}")
+                            for f in failures:
+                                lines.append(f"      • FAIL: {f}")
+                    if coverage:
+                        lines.append(f"\n{coverage}")
+                    lines.append("_governance controls verified_" if all_pass else "_⚠️ review failures above_")
+                    message = "\n".join(lines)
+                    print(message)
+
+                    # Post to Slack
+                    try:
+                        async with streamablehttp_client(f"{HITL_URL}/mcp") as (r2, w2, _):
+                            async with ClientSession(r2, w2) as s2:
+                                await s2.initialize()
+                                await s2.call_tool("post_notification", {
+                                    "message": message,
+                                    "channel": "agent-workers"
+                                })
+                        print("[OK] Slack notification sent")
+                    except Exception as e:
+                        print(f"[WARN] Slack notify failed (non-fatal): {e}")
+
+                asyncio.run(main())
+                PYEOF
+              command:
+              - /bin/sh
+              - -c
+              image: docker.io/python:3.11-slim
+              imagePullPolicy: IfNotPresent
+              name: adversarial-sweep
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+            dnsPolicy: ClusterFirst
+            restartPolicy: OnFailure
+            schedulerName: default-scheduler
+            securityContext: {}
+            terminationGracePeriodSeconds: 30
+    schedule: 0 3 * * 1
+    successfulJobsHistoryLimit: 3
+    suspend: false
+  status:
+    lastScheduleTime: "2026-03-30T03:00:00Z"
+    lastSuccessfulTime: "2026-03-30T03:10:19Z"
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"batch/v1","kind":"CronJob","metadata":{"annotations":{},"name":"north-star-assessment","namespace":"kagent"},"spec":{"concurrencyPolicy":"Forbid","failedJobsHistoryLimit":3,"jobTemplate":{"spec":{"activeDeadlineSeconds":300,"backoffLimit":1,"template":{"spec":{"containers":[{"command":["sh","-c","curl -sS -m 240 -X POST \\\n  http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/north-star-agent/ \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"jsonrpc\":\"2.0\",\"method\":\"message/send\",\"id\":\"north-star-scheduled\",\"params\":{\"message\":{\"role\":\"user\",\"parts\":[{\"kind\":\"text\",\"text\":\"Run trajectory assessment cycle. Compare current system state against the project vision. Score each dimension, identify trends, flag drift, and post your report to Slack.\"}]}}}'\n"],"image":"docker.io/curlimages/curl:8.5.0","name":"trigger"}],"restartPolicy":"Never"}}}},"schedule":"0 */6 * * *","successfulJobsHistoryLimit":3}}
+    creationTimestamp: "2026-03-27T18:20:28Z"
+    generation: 2
+    name: north-star-assessment
+    namespace: kagent
+    resourceVersion: "5386988"
+    uid: 6989a521-c93c-461b-b822-2fe60daad59c
+  spec:
+    concurrencyPolicy: Forbid
+    failedJobsHistoryLimit: 1
+    jobTemplate:
+      metadata: {}
+      spec:
+        activeDeadlineSeconds: 300
+        backoffLimit: 1
+        template:
+          metadata: {}
+          spec:
+            containers:
+            - command:
+              - sh
+              - -c
+              - |
+                curl -sS -m 240 -X POST \
+                  http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/north-star-agent/ \
+                  -H 'Content-Type: application/json' \
+                  -d '{"jsonrpc":"2.0","method":"message/send","id":"north-star-scheduled","params":{"message":{"role":"user","parts":[{"kind":"text","text":"Run trajectory assessment cycle. Compare current system state against the project vision. Score each dimension, identify trends, flag drift, and post your report to Slack."}]}}}'
+              image: docker.io/curlimages/curl:8.5.0
+              imagePullPolicy: IfNotPresent
+              name: trigger
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+            dnsPolicy: ClusterFirst
+            restartPolicy: Never
+            schedulerName: default-scheduler
+            securityContext: {}
+            terminationGracePeriodSeconds: 30
+    schedule: 0 */6 * * *
+    successfulJobsHistoryLimit: 3
+    suspend: false
+  status:
+    lastScheduleTime: "2026-03-30T12:00:00Z"
+    lastSuccessfulTime: "2026-03-30T12:01:52Z"
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"batch/v1","kind":"CronJob","metadata":{"annotations":{},"name":"rd-evolution-cycle","namespace":"kagent"},"spec":{"concurrencyPolicy":"Forbid","failedJobsHistoryLimit":3,"jobTemplate":{"spec":{"activeDeadlineSeconds":600,"backoffLimit":1,"template":{"spec":{"containers":[{"command":["sh","-c","curl -sS -X POST \\\n  \"http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/rd-agent/\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"message/send\",\n    \"id\": \"rd-cron-'\"$(date +%s)\"'\",\n    \"params\": {\n      \"message\": {\n        \"role\": \"user\",\n        \"parts\": [{\"kind\": \"text\", \"text\": \"Run evolution cycle: inventory all agents, research best practices for the weakest agents, and propose system message improvements via GitHub PRs. Check your memory for previous cycles to avoid repeating proposals.\"}]\n      }\n    }\n  }'\n"],"image":"docker.io/curlimages/curl:8.5.0","name":"trigger"}],"restartPolicy":"Never"}}}},"schedule":"0 * * * *","successfulJobsHistoryLimit":3}}
+    creationTimestamp: "2026-03-27T14:44:12Z"
+    generation: 5
+    name: rd-evolution-cycle
+    namespace: kagent
+    resourceVersion: "5427114"
+    uid: 8c8ca03d-1ee5-4b14-b816-e2a10f5e236b
+  spec:
+    concurrencyPolicy: Forbid
+    failedJobsHistoryLimit: 1
+    jobTemplate:
+      metadata: {}
+      spec:
+        activeDeadlineSeconds: 600
+        backoffLimit: 1
+        template:
+          metadata: {}
+          spec:
+            containers:
+            - command:
+              - sh
+              - -c
+              - |
+                curl -sS -X POST \
+                  "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/rd-agent/" \
+                  -H "Content-Type: application/json" \
+                  -d '{
+                    "jsonrpc": "2.0",
+                    "method": "message/send",
+                    "id": "rd-cron-'"$(date +%s)"'",
+                    "params": {
+                      "message": {
+                        "role": "user",
+                        "parts": [{"kind": "text", "text": "Run evolution cycle: inventory all agents, research best practices for the weakest agents, and propose system message improvements via GitHub PRs. Check your memory for previous cycles to avoid repeating proposals."}]
+                      }
+                    }
+                  }'
+              image: docker.io/curlimages/curl:8.5.0
+              imagePullPolicy: IfNotPresent
+              name: trigger
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+            dnsPolicy: ClusterFirst
+            restartPolicy: Never
+            schedulerName: default-scheduler
+            securityContext: {}
+            terminationGracePeriodSeconds: 30
+    schedule: 0 * * * *
+    successfulJobsHistoryLimit: 3
+    suspend: false
+  status:
+    lastScheduleTime: "2026-03-30T14:00:00Z"
+    lastSuccessfulTime: "2026-03-30T14:02:30Z"
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"batch/v1","kind":"CronJob","metadata":{"annotations":{},"name":"scheduler-cfo-check","namespace":"kagent"},"spec":{"concurrencyPolicy":"Forbid","failedJobsHistoryLimit":3,"jobTemplate":{"spec":{"activeDeadlineSeconds":300,"backoffLimit":1,"template":{"spec":{"containers":[{"args":["pip install httpx --quiet \u0026\u0026 python /app/scheduler.py"],"command":["/bin/sh","-c"],"env":[{"name":"TASK_TYPE","value":"cfo-resource-check"}],"image":"docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4","name":"scheduler","resources":{"limits":{"cpu":"100m","memory":"128Mi"},"requests":{"cpu":"25m","memory":"64Mi"}},"volumeMounts":[{"mountPath":"/app","name":"code"}]}],"restartPolicy":"Never","volumes":[{"configMap":{"name":"scheduler-code"},"name":"code"}]}}}},"schedule":"0 */2 * * *","successfulJobsHistoryLimit":3}}
+    creationTimestamp: "2026-03-27T20:02:00Z"
+    generation: 2
+    name: scheduler-cfo-check
+    namespace: kagent
+    resourceVersion: "5426612"
+    uid: ae6bab56-7d6c-47c0-a40d-e168d6578676
+  spec:
+    concurrencyPolicy: Forbid
+    failedJobsHistoryLimit: 1
+    jobTemplate:
+      metadata: {}
+      spec:
+        activeDeadlineSeconds: 300
+        backoffLimit: 1
+        template:
+          metadata: {}
+          spec:
+            containers:
+            - args:
+              - pip install httpx --quiet && python /app/scheduler.py
+              command:
+              - /bin/sh
+              - -c
+              env:
+              - name: TASK_TYPE
+                value: cfo-resource-check
+              image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+              imagePullPolicy: IfNotPresent
+              name: scheduler
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+              - mountPath: /app
+                name: code
+            dnsPolicy: ClusterFirst
+            restartPolicy: Never
+            schedulerName: default-scheduler
+            securityContext: {}
+            terminationGracePeriodSeconds: 30
+            volumes:
+            - configMap:
+                defaultMode: 420
+                name: scheduler-code
+              name: code
+    schedule: 0 */2 * * *
+    successfulJobsHistoryLimit: 3
+    suspend: false
+  status:
+    lastScheduleTime: "2026-03-30T14:00:00Z"
+    lastSuccessfulTime: "2026-03-30T14:01:01Z"
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"batch/v1","kind":"CronJob","metadata":{"annotations":{},"name":"scheduler-coo-status","namespace":"kagent"},"spec":{"concurrencyPolicy":"Forbid","failedJobsHistoryLimit":3,"jobTemplate":{"spec":{"activeDeadlineSeconds":300,"backoffLimit":1,"template":{"spec":{"containers":[{"args":["pip install httpx --quiet \u0026\u0026 python /app/scheduler.py"],"command":["/bin/sh","-c"],"env":[{"name":"TASK_TYPE","value":"coo-status-check"}],"image":"docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4","name":"scheduler","resources":{"limits":{"cpu":"100m","memory":"128Mi"},"requests":{"cpu":"25m","memory":"64Mi"}},"volumeMounts":[{"mountPath":"/app","name":"code"}]}],"restartPolicy":"Never","volumes":[{"configMap":{"name":"scheduler-code"},"name":"code"}]}}}},"schedule":"0 */4 * * *","successfulJobsHistoryLimit":3}}
+    creationTimestamp: "2026-03-26T00:51:22Z"
+    generation: 3
+    name: scheduler-coo-status
+    namespace: kagent
+    resourceVersion: "5386608"
+    uid: 0ce5f55d-dcf7-48a8-a3dd-895688722711
+  spec:
+    concurrencyPolicy: Forbid
+    failedJobsHistoryLimit: 1
+    jobTemplate:
+      metadata: {}
+      spec:
+        activeDeadlineSeconds: 300
+        backoffLimit: 1
+        template:
+          metadata: {}
+          spec:
+            containers:
+            - args:
+              - pip install httpx --quiet && python /app/scheduler.py
+              command:
+              - /bin/sh
+              - -c
+              env:
+              - name: TASK_TYPE
+                value: coo-status-check
+              image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+              imagePullPolicy: IfNotPresent
+              name: scheduler
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+              - mountPath: /app
+                name: code
+            dnsPolicy: ClusterFirst
+            restartPolicy: Never
+            schedulerName: default-scheduler
+            securityContext: {}
+            terminationGracePeriodSeconds: 30
+            volumes:
+            - configMap:
+                defaultMode: 420
+                name: scheduler-code
+              name: code
+    schedule: 0 */4 * * *
+    successfulJobsHistoryLimit: 3
+    suspend: false
+  status:
+    lastScheduleTime: "2026-03-30T12:00:00Z"
+    lastSuccessfulTime: "2026-03-30T12:00:51Z"
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"batch/v1","kind":"CronJob","metadata":{"annotations":{},"name":"scheduler-cso-audit","namespace":"kagent"},"spec":{"concurrencyPolicy":"Forbid","failedJobsHistoryLimit":3,"jobTemplate":{"spec":{"activeDeadlineSeconds":300,"backoffLimit":1,"template":{"spec":{"containers":[{"args":["pip install httpx --quiet \u0026\u0026 python /app/scheduler.py"],"command":["/bin/sh","-c"],"env":[{"name":"TASK_TYPE","value":"cso-security-audit"}],"image":"docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4","name":"scheduler","resources":{"limits":{"cpu":"100m","memory":"128Mi"},"requests":{"cpu":"25m","memory":"64Mi"}},"volumeMounts":[{"mountPath":"/app","name":"code"}]}],"restartPolicy":"Never","volumes":[{"configMap":{"name":"scheduler-code"},"name":"code"}]}}}},"schedule":"0 */6 * * *","successfulJobsHistoryLimit":3}}
+    creationTimestamp: "2026-03-26T00:51:21Z"
+    generation: 3
+    name: scheduler-cso-audit
+    namespace: kagent
+    resourceVersion: "5386732"
+    uid: 018b4f20-1607-469c-98d0-3d957b70670a
+  spec:
+    concurrencyPolicy: Forbid
+    failedJobsHistoryLimit: 1
+    jobTemplate:
+      metadata: {}
+      spec:
+        activeDeadlineSeconds: 300
+        backoffLimit: 1
+        template:
+          metadata: {}
+          spec:
+            containers:
+            - args:
+              - pip install httpx --quiet && python /app/scheduler.py
+              command:
+              - /bin/sh
+              - -c
+              env:
+              - name: TASK_TYPE
+                value: cso-security-audit
+              image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+              imagePullPolicy: IfNotPresent
+              name: scheduler
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+              - mountPath: /app
+                name: code
+            dnsPolicy: ClusterFirst
+            restartPolicy: Never
+            schedulerName: default-scheduler
+            securityContext: {}
+            terminationGracePeriodSeconds: 30
+            volumes:
+            - configMap:
+                defaultMode: 420
+                name: scheduler-code
+              name: code
+    schedule: 0 */6 * * *
+    successfulJobsHistoryLimit: 3
+    suspend: false
+  status:
+    lastScheduleTime: "2026-03-30T12:00:00Z"
+    lastSuccessfulTime: "2026-03-30T12:01:10Z"
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"batch/v1","kind":"CronJob","metadata":{"annotations":{},"name":"scheduler-pm-pipeline","namespace":"kagent"},"spec":{"concurrencyPolicy":"Forbid","failedJobsHistoryLimit":3,"jobTemplate":{"spec":{"activeDeadlineSeconds":900,"backoffLimit":1,"template":{"spec":{"containers":[{"args":["pip install httpx --quiet \u0026\u0026 python /app/scheduler.py"],"command":["/bin/sh","-c"],"env":[{"name":"TASK_TYPE","value":"pm-full-pipeline"}],"image":"docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4","name":"scheduler","resources":{"limits":{"cpu":"100m","memory":"128Mi"},"requests":{"cpu":"25m","memory":"64Mi"}},"volumeMounts":[{"mountPath":"/app","name":"code"}]}],"restartPolicy":"Never","volumes":[{"configMap":{"name":"scheduler-code"},"name":"code"}]}}}},"schedule":"0 */8 * * *","successfulJobsHistoryLimit":3}}
+    creationTimestamp: "2026-03-27T20:02:00Z"
+    generation: 2
+    name: scheduler-pm-pipeline
+    namespace: kagent
+    resourceVersion: "5306982"
+    uid: 7a11d079-8d11-422d-80b9-75d0b38db22a
+  spec:
+    concurrencyPolicy: Forbid
+    failedJobsHistoryLimit: 1
+    jobTemplate:
+      metadata: {}
+      spec:
+        activeDeadlineSeconds: 900
+        backoffLimit: 1
+        template:
+          metadata: {}
+          spec:
+            containers:
+            - args:
+              - pip install httpx --quiet && python /app/scheduler.py
+              command:
+              - /bin/sh
+              - -c
+              env:
+              - name: TASK_TYPE
+                value: pm-full-pipeline
+              image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+              imagePullPolicy: IfNotPresent
+              name: scheduler
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+              - mountPath: /app
+                name: code
+            dnsPolicy: ClusterFirst
+            restartPolicy: Never
+            schedulerName: default-scheduler
+            securityContext: {}
+            terminationGracePeriodSeconds: 30
+            volumes:
+            - configMap:
+                defaultMode: 420
+                name: scheduler-code
+              name: code
+    schedule: 0 */8 * * *
+    successfulJobsHistoryLimit: 3
+    suspend: false
+  status:
+    lastScheduleTime: "2026-03-30T08:00:00Z"
+    lastSuccessfulTime: "2026-03-30T08:01:59Z"
+kind: List
+metadata:
+  resourceVersion: ""

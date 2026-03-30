@@ -1,0 +1,50 @@
+INFO:     10.244.0.8:41296 - "DELETE /mcp HTTP/1.1" 200 OK
+2026-03-30 14:03:49,206 INFO Created new transport with session ID: 03fa87803f3345fda6d9de9b54178775
+INFO:     10.244.0.8:41282 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:41282 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:56272 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     10.244.0.8:56272 - "POST /mcp HTTP/1.1" 200 OK
+2026-03-30 14:03:49,225 INFO Processing request of type ListToolsRequest
+2026-03-30 14:03:49,226 INFO Terminating session: 03fa87803f3345fda6d9de9b54178775
+INFO:     10.244.0.8:56272 - "DELETE /mcp HTTP/1.1" 200 OK
+2026-03-30 14:04:49,311 INFO Created new transport with session ID: e74f9a6bc6ea4f3d8ca0101eab9518e4
+INFO:     10.244.0.8:60812 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:60812 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:60826 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     10.244.0.8:60826 - "POST /mcp HTTP/1.1" 200 OK
+2026-03-30 14:04:49,320 INFO Processing request of type ListToolsRequest
+2026-03-30 14:04:49,321 INFO Terminating session: e74f9a6bc6ea4f3d8ca0101eab9518e4
+INFO:     10.244.0.8:60826 - "DELETE /mcp HTTP/1.1" 200 OK
+2026-03-30 14:05:49,399 INFO Created new transport with session ID: f114425084304955889dbe3e66a3aca5
+INFO:     10.244.0.8:60828 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:60828 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:42874 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     10.244.0.8:42874 - "POST /mcp HTTP/1.1" 200 OK
+2026-03-30 14:05:49,412 INFO Processing request of type ListToolsRequest
+2026-03-30 14:05:49,413 INFO Terminating session: f114425084304955889dbe3e66a3aca5
+INFO:     10.244.0.8:42874 - "DELETE /mcp HTTP/1.1" 200 OK
+2026-03-30 14:06:07,040 INFO HTTP Request: POST http://audit-logger.kagent.svc.cluster.local:8092/mcp "HTTP/1.1 200 OK"
+2026-03-30 14:06:07,040 INFO Received session ID: 66fee3969d0d450aa4260955d3d0a7c2
+2026-03-30 14:06:07,041 INFO Negotiated protocol version: 2025-11-25
+2026-03-30 14:06:07,047 INFO HTTP Request: GET http://audit-logger.kagent.svc.cluster.local:8092/mcp "HTTP/1.1 200 OK"
+2026-03-30 14:06:07,048 INFO HTTP Request: POST http://audit-logger.kagent.svc.cluster.local:8092/mcp "HTTP/1.1 202 Accepted"
+2026-03-30 14:06:07,129 INFO HTTP Request: POST http://audit-logger.kagent.svc.cluster.local:8092/mcp "HTTP/1.1 200 OK"
+2026-03-30 14:06:07,140 INFO HTTP Request: POST http://audit-logger.kagent.svc.cluster.local:8092/mcp "HTTP/1.1 200 OK"
+2026-03-30 14:06:07,233 INFO HTTP Request: DELETE http://audit-logger.kagent.svc.cluster.local:8092/mcp "HTTP/1.1 200 OK"
+2026-03-30 14:06:07,235 INFO No new patterns. Analyzed 100 entries. (L1 threshold=10, L2 threshold=3)
+2026-03-30 14:06:49,595 INFO Created new transport with session ID: 731aeed8b24842779d44e01826fd1ace
+INFO:     10.244.0.8:42890 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:42890 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:39910 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     10.244.0.8:39910 - "POST /mcp HTTP/1.1" 200 OK
+2026-03-30 14:06:49,608 INFO Processing request of type ListToolsRequest
+2026-03-30 14:06:49,609 INFO Terminating session: 731aeed8b24842779d44e01826fd1ace
+INFO:     10.244.0.8:39910 - "DELETE /mcp HTTP/1.1" 200 OK
+2026-03-30 14:07:49,699 INFO Created new transport with session ID: 0d1f974e3f894b93a0110368b785197a
+INFO:     10.244.0.8:39908 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:39908 - "GET /mcp HTTP/1.1" 200 OK
+INFO:     10.244.0.8:34964 - "POST /mcp HTTP/1.1" 202 Accepted
+INFO:     10.244.0.8:34964 - "POST /mcp HTTP/1.1" 200 OK
+2026-03-30 14:07:49,727 INFO Processing request of type ListToolsRequest
+2026-03-30 14:07:49,728 INFO Terminating session: 0d1f974e3f894b93a0110368b785197a
+INFO:     10.244.0.8:34964 - "DELETE /mcp HTTP/1.1" 200 OK

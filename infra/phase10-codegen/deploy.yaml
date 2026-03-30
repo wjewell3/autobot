@@ -1,0 +1,146 @@
+---
+# Phase 10: Codegen MCP Server — test runner + microservice deployer for codegen-agent.
+#
+# codegen-mcp needs its own ServiceAccount + RBAC because it directly calls the K8s API
+# to spawn ephemeral test Jobs and deploy compiled microservices (Deployments/Services/
+# RemoteMCPServers). Unlike other MCP servers that call external APIs (Slack, GitHub),
+# this one drives the cluster programmatically.
+#
+# Port: 8100
+#
+# Populate code ConfigMap with:
+#   kubectl create configmap codegen-mcp-code \
+#     --from-file=server.py=infra/phase10-codegen/codegen-mcp.py \
+#     -n kagent --dry-run=client -o yaml | kubectl apply -f -
+
+# ── RBAC ─────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: codegen-mcp
+  namespace: kagent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: codegen-mcp
+  namespace: kagent
+rules:
+  # ConfigMaps — store test code and compiled service code
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  # Services — expose compiled microservices
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  # Pods — find job pods by label selector, read their logs
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  # Deployments — deploy compiled microservices
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  # Jobs — ephemeral pytest job runner
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "create", "delete"]
+  # RemoteMCPServer CRDs — register compiled services so agents can discover them
+  - apiGroups: ["kagent.dev"]
+    resources: ["remotemcpservers"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: codegen-mcp
+  namespace: kagent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: codegen-mcp
+subjects:
+  - kind: ServiceAccount
+    name: codegen-mcp
+    namespace: kagent
+
+# ── Deployment ────────────────────────────────────────────────────────────────
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: codegen-mcp
+  namespace: kagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: codegen-mcp
+  template:
+    metadata:
+      labels:
+        app: codegen-mcp
+    spec:
+      serviceAccountName: codegen-mcp
+      containers:
+        - name: codegen-mcp
+          image: docker.io/python:3.12-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install fastapi uvicorn mcp httpx anyio --quiet && \
+              python /app/server.py
+          ports:
+            - containerPort: 8100
+          env:
+            - name: CODEGEN_MCP_PORT
+              value: "8100"
+            - name: NAMESPACE
+              value: "kagent"
+            - name: SHARED_STATE_URL
+              value: "http://shared-state.kagent.svc.cluster.local:8097"
+          volumeMounts:
+            - name: server-code
+              mountPath: /app
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "10m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: server-code
+          configMap:
+            name: codegen-mcp-code
+
+# ── Service ───────────────────────────────────────────────────────────────────
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: codegen-mcp
+  namespace: kagent
+spec:
+  selector:
+    app: codegen-mcp
+  ports:
+    - port: 8100
+      targetPort: 8100
+      protocol: TCP
+
+# ── RemoteMCPServer ───────────────────────────────────────────────────────────
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: codegen-mcp
+  namespace: kagent
+spec:
+  description: "Test runner + microservice deployer for codegen-agent. Spawns ephemeral K8s Jobs to run pytest suites and deploys approved services directly to the cluster. Tools: run_test_suite, deploy_microservice, lock_service, get_lock_status."
+  protocol: STREAMABLE_HTTP
+  url: http://codegen-mcp.kagent.svc.cluster.local:8100/mcp

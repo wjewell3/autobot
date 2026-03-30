@@ -2,3 +2,5 @@ venv/
 .vercel
 node_modules/
 dist/
+agent-viz/dist/
+agent-viz/node_modules/

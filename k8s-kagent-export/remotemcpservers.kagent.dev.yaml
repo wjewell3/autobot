@@ -5,13 +5,53 @@ items:
   metadata:
     annotations:
       kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"adversarial-tester","namespace":"kagent"},"spec":{"description":"Adversarial pipeline tester — feeds bad inputs to prove governance works. Tools: run_adversarial_suite, run_single_test, get_coverage_report, list_tests","protocol":"STREAMABLE_HTTP","url":"http://adversarial-tester.kagent.svc.cluster.local:8098/mcp"}}
+    creationTimestamp: "2026-03-28T01:31:48Z"
+    generation: 1
+    name: adversarial-tester
+    namespace: kagent
+    resourceVersion: "4218300"
+    uid: c45b6f84-8855-46e9-98a1-30db44906fb0
+  spec:
+    description: 'Adversarial pipeline tester — feeds bad inputs to prove governance
+      works. Tools: run_adversarial_suite, run_single_test, get_coverage_report, list_tests'
+    protocol: STREAMABLE_HTTP
+    terminateOnClose: true
+    url: http://adversarial-tester.kagent.svc.cluster.local:8098/mcp
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-28T01:32:48Z"
+      message: Remote MCP server configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    discoveredTools:
+    - description: "\n    Run all adversarial tests in a category.\n\n    Args:\n
+        \       category: Test category — \"data_quality\", \"injection\", \"overload\",
+        \"boundary\", \"governance\"\n    "
+      name: run_adversarial_suite
+    - description: "\n    Run a single adversarial test by ID.\n\n    Args:\n        test_id:
+        Unique test identifier from tests.yaml\n    "
+      name: run_single_test
+    - description: "\n    Get a coverage report: which failure modes are tested and
+        which have gaps?\n    "
+      name: get_coverage_report
+    - description: List all available adversarial tests grouped by category.
+      name: list_tests
+    observedGeneration: 1
+- apiVersion: kagent.dev/v1alpha2
+  kind: RemoteMCPServer
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"audit-logger","namespace":"kagent"},"spec":{"description":"Audit trail - write_audit and get_recent_audit tools","protocol":"STREAMABLE_HTTP","url":"http://audit-logger.kagent.svc.cluster.local:8092/mcp"}}
       retry: "1774479332"
     creationTimestamp: "2026-03-25T22:47:41Z"
     generation: 1
     name: audit-logger
     namespace: kagent
-    resourceVersion: "3257885"
+    resourceVersion: "3740391"
     uid: e8f05663-517c-40ba-98ac-92c16d5cad72
   spec:
     description: Audit trail - write_audit and get_recent_audit tools
@@ -20,7 +60,7 @@ items:
     url: http://audit-logger.kagent.svc.cluster.local:8092/mcp
   status:
     conditions:
-    - lastTransitionTime: "2026-03-26T01:35:54Z"
+    - lastTransitionTime: "2026-03-27T01:41:40Z"
       message: Remote MCP server configuration accepted
       observedGeneration: 1
       reason: Reconciled
@@ -43,13 +83,147 @@ items:
   metadata:
     annotations:
       kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"codegen-mcp","namespace":"kagent"},"spec":{"description":"Test runner + microservice deployer for codegen-agent. Spawns ephemeral K8s Jobs to run pytest suites and deploys approved services directly to the cluster. Tools: run_test_suite, deploy_microservice, lock_service, get_lock_status.","protocol":"STREAMABLE_HTTP","url":"http://codegen-mcp.kagent.svc.cluster.local:8100/mcp"}}
+    creationTimestamp: "2026-03-30T11:21:33Z"
+    generation: 1
+    name: codegen-mcp
+    namespace: kagent
+    resourceVersion: "5373731"
+    uid: 23a46daa-e7a9-4d75-a95a-7a14f7192ac1
+  spec:
+    description: 'Test runner + microservice deployer for codegen-agent. Spawns ephemeral
+      K8s Jobs to run pytest suites and deploys approved services directly to the
+      cluster. Tools: run_test_suite, deploy_microservice, lock_service, get_lock_status.'
+    protocol: STREAMABLE_HTTP
+    terminateOnClose: true
+    url: http://codegen-mcp.kagent.svc.cluster.local:8100/mcp
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-30T11:22:33Z"
+      message: Remote MCP server configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    discoveredTools:
+    - description: "\n    Run a pytest test suite against generated service code in
+        an ephemeral K8s Job.\n\n    Mounts service_code as service.py and test_code
+        as test_service.py into the job\n    container via ConfigMap. Installs dependencies,
+        runs pytest -v --tb=short, fetches\n    stdout, parses passed/failed counts,
+        and cleans up the Job+ConfigMap.\n\n    Args:\n        service_name:  Short
+        identifier used in K8s resource names (e.g. \"prospecting-mcp\").\n                       Must
+        be DNS-label safe (lowercase, no spaces).\n        service_code:  Full Python
+        source of the service module (imported as `service`).\n        test_code:
+        \    Full Python source of the pytest file. Import service with:\n                       `from
+        service import <function>` since service.py is in the same dir.\n        requirements:
+        \ Space-separated pip packages needed beyond pytest\n                       (e.g.
+        \"httpx requests beautifulsoup4\").\n\n    Returns:\n        JSON: {\n          \"passed\":
+        int,\n          \"failed\": int,\n          \"total\": int,\n          \"exit_zero\":
+        bool,        # True if job pod exited 0\n          \"output\": str,            #
+        Last 4000 chars of pytest stdout\n          \"iteration_hint\": str     #
+        \"all_passing\" | \"improving\" | \"stuck\" | \"no_tests_found\"\n        }\n
+        \   "
+      name: run_test_suite
+    - description: "\n    Deploy a generated Python MCP microservice to the cluster.\n\n
+        \   Creates four K8s resources:\n      1. ConfigMap <name>-code — contains
+        server.py\n      2. Deployment <name>    — python:3.12-slim, pip install +
+        python /app/server.py\n      3. Service <name>       — ClusterIP on <port>\n
+        \     4. RemoteMCPServer <name> — STREAMABLE_HTTP pointing to http://<name>.kagent.svc.cluster.local:<port>/mcp\n\n
+        \   All resources get label codegen-managed=true.\n    ONLY call this after
+        receiving HITL approval — never pre-deploy.\n\n    Args:\n        name:         DNS-safe
+        resource name (e.g. \"prospecting-mcp\").\n        code:         Full Python
+        source. MUST follow the FastMCP server template\n                      (see
+        project_summary.md). Use `anyio.run(uvicorn.Server(config).serve)`.\n        port:
+        \        Container port. Use next free port from allocation table (8101+).\n
+        \       requirements: Space-separated pip packages (fastapi uvicorn mcp httpx
+        anyio included).\n        description:  Human-readable description for the
+        RemoteMCPServer CR.\n\n    Returns:\n        JSON: {\n          \"name\":
+        str,\n          \"endpoint\": str,        # MCP endpoint URL\n          \"resources\":
+        {configmap, deployment, service, remotemcpserver},\n          \"next_steps\":
+        [str]      # Manual steps to complete the integration\n        }\n    "
+      name: deploy_microservice
+    - description: "\n    Write an immutable lock record to shared-state for a compiled
+        service.\n\n    Locked services are protected — codegen-agent, rd-agent, and
+        hardening-agent\n    all check lock status before modifying anything related
+        to that agent.\n    Only a human can request a revisit (\"revisit <agent-name>\"
+        message to codegen-agent).\n\n    Args:\n        agent_name:  Target agent
+        name (e.g. \"prospecting-agent\").\n        version:     Git tag or iteration
+        label (e.g. \"v4\" or \"iteration-7\").\n        approved_by: Human identifier
+        from HITL payload (e.g. \"user\" or Slack handle).\n        notes:       Optional
+        notes from the approval — e.g. feedback incorporated.\n\n    Returns:\n        JSON:
+        {\"locked\": bool, \"agent\": str, \"version\": str}\n    "
+      name: lock_service
+    - description: "\n    Check whether a compiled service is locked for a given agent.\n\n
+        \   Args:\n        agent_name: Target agent name (e.g. \"prospecting-agent\").\n\n
+        \   Returns:\n        JSON lock record if locked: {\"status\": \"locked\",
+        \"version\": ..., \"approved_by\": ..., ...}\n        {\"status\": \"unlocked\"}
+        if no lock exists.\n        {\"status\": \"unknown\", \"error\": ...} if shared-state
+        is unreachable.\n    "
+      name: get_lock_status
+    observedGeneration: 1
+- apiVersion: kagent.dev/v1alpha2
+  kind: RemoteMCPServer
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"eval-harness","namespace":"kagent"},"spec":{"description":"Eval harness — measures agent quality before/after changes. Tools: run_eval, compare_eval, set_baseline, get_baseline, list_suites","protocol":"STREAMABLE_HTTP","url":"http://eval-harness.kagent.svc.cluster.local:8096/mcp"}}
+    creationTimestamp: "2026-03-28T01:31:35Z"
+    generation: 1
+    name: eval-harness
+    namespace: kagent
+    resourceVersion: "4218219"
+    uid: 0a6ae5d7-6e0c-4cc0-a43b-a01fc0a94ca9
+  spec:
+    description: 'Eval harness — measures agent quality before/after changes. Tools:
+      run_eval, compare_eval, set_baseline, get_baseline, list_suites'
+    protocol: STREAMABLE_HTTP
+    terminateOnClose: true
+    url: http://eval-harness.kagent.svc.cluster.local:8096/mcp
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-28T01:32:35Z"
+      message: Remote MCP server configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    discoveredTools:
+    - description: "\n    Run an eval suite against an agent and return detailed scores.\n\n
+        \   Args:\n        agent: Agent name (e.g. \"prospecting-agent\")\n        suite:
+        Eval suite name from cases.yaml (default: \"default\")\n\n    Returns:\n        JSON
+        with per-case scores and overall average\n    "
+      name: run_eval
+    - description: "\n    Get the current baseline scores for an agent.\n    Baselines
+        represent \"known good\" performance to compare against.\n    "
+      name: get_baseline
+    - description: "\n    Run the eval suite and save the results as the new baseline.\n
+        \   Call this after deploying a known-good version of an agent.\n\n    Args:\n
+        \       agent: Agent name\n        suite: Eval suite to establish baseline
+        for\n    "
+      name: set_baseline
+    - description: "\n    Run eval suite and compare against baseline. Returns improvement/regression.\n\n
+        \   This is what rd-agent calls before proposing a system message change:\n
+        \     1. Run eval → get current score\n      2. Apply proposed change (in
+        shadow)\n      3. Run eval again → get new score\n      4. If regression →
+        reject change. If improvement → proceed with PR.\n\n    Returns:\n        JSON
+        with {baseline_score, current_score, delta, verdict: \"improvement\"|\"regression\"|\"neutral\"}\n
+        \   "
+      name: compare_eval
+    - description: List all available eval suites and their case counts.
+      name: list_suites
+    observedGeneration: 1
+- apiVersion: kagent.dev/v1alpha2
+  kind: RemoteMCPServer
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"github-tool-server","namespace":"kagent"},"spec":{"description":"GitHub API - create repos, push files, enable Pages","protocol":"STREAMABLE_HTTP","url":"http://github-mcp.kagent:8087/mcp"}}
-      retry: "1774479413"
+      retry: "1774635545"
     creationTimestamp: "2026-03-21T18:33:14Z"
     generation: 2
     name: github-tool-server
     namespace: kagent
-    resourceVersion: "3203896"
+    resourceVersion: "4072771"
     uid: e5d2f19b-a2d3-4d08-8df2-73e7f1a72726
   spec:
     description: GitHub API - create repos, push files, enable Pages
@@ -81,6 +255,22 @@ items:
       name: github_create_branch
     - description: Create a pull request. Returns PR URL and number for review.
       name: github_create_pr
+    - description: Create a GitHub issue. Use labels for agent tracking e.g. 'agent:pm-agent'.
+      name: github_create_issue
+    - description: List issues in a repo. Filter by state and labels.
+      name: github_list_issues
+    - description: Get details of a specific issue including body and comments.
+      name: github_get_issue
+    - description: Update an issue's title, body, state, labels, or assignees.
+      name: github_update_issue
+    - description: Add a comment to an issue. Agents use this for status updates.
+      name: github_add_comment
+    - description: Merge a pull request. Use after HITL approval. Supports squash,
+        merge, or rebase.
+      name: github_merge_pr
+    - description: List pull requests on a repo. Use to check for existing open PRs
+        before creating duplicates.
+      name: github_list_prs
     observedGeneration: 2
 - apiVersion: kagent.dev/v1alpha2
   kind: RemoteMCPServer
@@ -123,12 +313,12 @@ items:
     annotations:
       kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"hardening-agent","namespace":"kagent"},"spec":{"description":"Hardening loop - pattern analysis and rule proposals","protocol":"STREAMABLE_HTTP","url":"http://hardening-agent.kagent.svc.cluster.local:8094/mcp"}}
-      retry: "1774479897"
+      retry: "1774614114"
     creationTimestamp: "2026-03-25T22:59:19Z"
     generation: 1
     name: hardening-agent
     namespace: kagent
-    resourceVersion: "3206669"
+    resourceVersion: "3953453"
     uid: c21f785a-8cb5-4152-a224-7fea5c5a999e
   spec:
     description: Hardening loop - pattern analysis and rule proposals
@@ -137,7 +327,7 @@ items:
     url: http://hardening-agent.kagent.svc.cluster.local:8094/mcp
   status:
     conditions:
-    - lastTransitionTime: "2026-03-25T23:04:58Z"
+    - lastTransitionTime: "2026-03-27T12:21:36Z"
       message: Remote MCP server configuration accepted
       observedGeneration: 1
       reason: Reconciled
@@ -147,6 +337,10 @@ items:
     - description: "\n    Get current decision patterns detected across all agents.\n
         \   Shows frequency of each (agent, action) pair.\n    "
       name: get_patterns
+    - description: "\n    Get failure patterns detected across all agents.\n    Shows
+        recurring errors, warnings, and output rejections grouped by\n    (agent,
+        failure_category). These drive Level 2 system message fix proposals.\n    "
+      name: get_failure_patterns
     - description: Get the current set of approved hardening rules.
       name: get_active_rules
     observedGeneration: 1
@@ -168,7 +362,7 @@ items:
       helm.sh/chart: kagent-0.7.23
     name: hitl-tool-server
     namespace: kagent
-    resourceVersion: "2068917"
+    resourceVersion: "4234834"
     uid: eab0ce03-f5e1-4693-83dd-0e0b79060f2c
   spec:
     description: Slack HITL approval tools — request_approval and post_notification
@@ -178,7 +372,7 @@ items:
     url: http://hitl-tool-server.kagent.svc.cluster.local:8091/mcp
   status:
     conditions:
-    - lastTransitionTime: "2026-03-23T13:34:39Z"
+    - lastTransitionTime: "2026-03-28T02:21:37Z"
       message: Remote MCP server configuration accepted
       observedGeneration: 2
       reason: Reconciled
@@ -554,12 +748,66 @@ items:
   metadata:
     annotations:
       kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"playbook-server","namespace":"kagent"},"spec":{"description":"Business playbook server — agents read pipeline config instead of hardcoding business logic. Tools: get_playbook, get_stage_config, get_niche_rotation, get_qualification_rules, list_playbooks","protocol":"STREAMABLE_HTTP","url":"http://playbook-server.kagent.svc.cluster.local:8099/mcp"}}
+      retry: "1774661669"
+    creationTimestamp: "2026-03-28T01:31:40Z"
+    generation: 1
+    name: playbook-server
+    namespace: kagent
+    resourceVersion: "4219010"
+    uid: 2796aa91-ed3b-49dc-adfc-68c2d03c7eef
+  spec:
+    description: 'Business playbook server — agents read pipeline config instead of
+      hardcoding business logic. Tools: get_playbook, get_stage_config, get_niche_rotation,
+      get_qualification_rules, list_playbooks'
+    protocol: STREAMABLE_HTTP
+    terminateOnClose: true
+    url: http://playbook-server.kagent.svc.cluster.local:8099/mcp
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-28T01:34:30Z"
+      message: Remote MCP server configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    discoveredTools:
+    - description: "\n    Get the full active playbook configuration.\n    Returns
+        the complete playbook including prospecting rules,\n    building config, outreach
+        config, and success metrics.\n    "
+      name: get_playbook
+    - description: "\n    Get configuration for a specific pipeline stage.\n\n    Args:\n
+        \       stage: One of \"prospecting\", \"building\", \"outreach\", \"metrics\"\n
+        \   "
+      name: get_stage_config
+    - description: List all available playbooks with name, description, and active
+        status.
+      name: list_playbooks
+    - description: "\n    Switch the active playbook. Requires updating the ConfigMap.\n
+        \   Returns the new playbook config for verification.\n\n    NOTE: This only
+        returns what WOULD change. The actual switch requires\n    updating the ConfigMap
+        and restarting. Use this to preview before switching.\n\n    Args:\n        name:
+        Playbook ID to switch to (e.g. \"saas-landing-pages\")\n    "
+      name: switch_playbook
+    - description: "\n    Get the niche rotation list for the current playbook's prospecting
+        stage.\n    PM-agent calls this instead of hardcoding niches.\n    "
+      name: get_niche_rotation
+    - description: "\n    Get HOT/WARM/COLD qualification rules for the current playbook.\n
+        \   Prospecting-agent calls this instead of hardcoding classification logic.\n
+        \   "
+      name: get_qualification_rules
+    observedGeneration: 1
+- apiVersion: kagent.dev/v1alpha2
+  kind: RemoteMCPServer
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"resource-governor","namespace":"kagent"},"spec":{"description":"Budget enforcement — per-agent and global action limits","protocol":"STREAMABLE_HTTP","url":"http://resource-governor.kagent.svc.cluster.local:8093/mcp"}}
     creationTimestamp: "2026-03-26T00:48:50Z"
     generation: 1
     name: resource-governor
     namespace: kagent
-    resourceVersion: "3242149"
+    resourceVersion: "3715160"
     uid: 8521181d-7f5c-4041-8e3e-f2f2f2582074
   spec:
     description: Budget enforcement — per-agent and global action limits
@@ -568,7 +816,7 @@ items:
     url: http://resource-governor.kagent.svc.cluster.local:8093/mcp
   status:
     conditions:
-    - lastTransitionTime: "2026-03-26T00:49:57Z"
+    - lastTransitionTime: "2026-03-27T00:27:21Z"
       message: Remote MCP server configuration accepted
       observedGeneration: 1
       reason: Reconciled
@@ -588,12 +836,62 @@ items:
   metadata:
     annotations:
       kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"rules-engine","namespace":"kagent"},"spec":{"description":"Rules engine — executes approved hardening rules at runtime. Agents call check_rule() before LLM decisions.","protocol":"STREAMABLE_HTTP","url":"http://rules-engine.kagent.svc.cluster.local:8095/mcp"}}
+    creationTimestamp: "2026-03-28T01:31:29Z"
+    generation: 1
+    name: rules-engine
+    namespace: kagent
+    resourceVersion: "4218576"
+    uid: 6ff90e35-720f-4ab9-bcff-d5a035c72689
+  spec:
+    description: Rules engine — executes approved hardening rules at runtime. Agents
+      call check_rule() before LLM decisions.
+    protocol: STREAMABLE_HTTP
+    terminateOnClose: true
+    url: http://rules-engine.kagent.svc.cluster.local:8095/mcp
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-28T01:33:30Z"
+      message: Remote MCP server configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    discoveredTools:
+    - description: "\n    Check if a deterministic rule exists for this agent+action+context.\n\n
+        \   Call this BEFORE making an LLM decision. If matched=true, use the\n    returned
+        output instead of calling the LLM. This is how the hardening\n    loop compounds
+        — approved rules skip the LLM entirely.\n\n    Args:\n        agent: Agent
+        name (e.g. \"prospecting-agent\")\n        action: Action being taken (e.g.
+        \"classify_lead\", \"search_query\")\n        context: JSON string with decision
+        context (e.g. {\"niche\": \"plumbers\", \"city\": \"Chattanooga\"})\n\n    Returns:\n
+        \       JSON with {matched, rule_id, status, output} or {matched: false}\n
+        \   "
+      name: check_rule
+    - description: "\n    Get hit/miss statistics for all rules.\n    Use this to
+        measure how much LLM surface has been replaced by deterministic rules.\n    "
+      name: get_rule_stats
+    - description: Force reload rules from ConfigMap. Call after updating the rules
+        ConfigMap.
+      name: reload_rules
+    - description: "\n    Promote a rule's status: proposed → shadow → active, or
+        active → retired.\n\n    This is the lifecycle progression. shadow mode lets
+        you compare rule\n    output vs LLM output before going fully deterministic.\n\n
+        \   Args:\n        rule_id: The rule ID or pattern to promote\n        new_status:
+        Target status (shadow, active, retired)\n    "
+      name: promote_rule
+    observedGeneration: 1
+- apiVersion: kagent.dev/v1alpha2
+  kind: RemoteMCPServer
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"search-tool-server","namespace":"kagent"},"spec":{"description":"Free web search via Jina (primary) and DuckDuckGo (fallback)","protocol":"STREAMABLE_HTTP","url":"http://search-mcp.kagent:8086/mcp"}}
     creationTimestamp: "2026-03-21T11:32:42Z"
     generation: 1
     name: search-tool-server
     namespace: kagent
-    resourceVersion: "1679040"
+    resourceVersion: "3758772"
     uid: 5f5f987b-6ca9-46a4-b5cf-8453cb9856b8
   spec:
     description: Free web search via Jina (primary) and DuckDuckGo (fallback)
@@ -617,7 +915,64 @@ items:
     - description: |-
         Find local businesses using OpenStreetMap Overpass API.
             Returns name, address, phone, website. Businesses with no website are prime prospects.
+            NOTE: OSM has limited coverage for US small businesses. Use search_web as primary source.
       name: search_find_businesses
+    observedGeneration: 1
+- apiVersion: kagent.dev/v1alpha2
+  kind: RemoteMCPServer
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kagent.dev/v1alpha2","kind":"RemoteMCPServer","metadata":{"annotations":{},"name":"shared-state","namespace":"kagent"},"spec":{"description":"Shared state blackboard — agents read/write coordination state. Tools: state_get, state_set, state_list, pipeline_status, acquire_lock, release_lock","protocol":"STREAMABLE_HTTP","url":"http://shared-state.kagent.svc.cluster.local:8097/mcp"}}
+      retry: "1774661670"
+    creationTimestamp: "2026-03-28T01:31:43Z"
+    generation: 1
+    name: shared-state
+    namespace: kagent
+    resourceVersion: "4219017"
+    uid: 580cf6e2-3b1b-4c42-8c95-794c9d86c617
+  spec:
+    description: 'Shared state blackboard — agents read/write coordination state.
+      Tools: state_get, state_set, state_list, pipeline_status, acquire_lock, release_lock'
+    protocol: STREAMABLE_HTTP
+    terminateOnClose: true
+    url: http://shared-state.kagent.svc.cluster.local:8097/mcp
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-28T01:34:31Z"
+      message: Remote MCP server configuration accepted
+      observedGeneration: 1
+      reason: Reconciled
+      status: "True"
+      type: Accepted
+    discoveredTools:
+    - description: "\n    Read a value from shared state.\n\n    Args:\n        namespace:
+        State namespace (e.g. \"pipeline/run-123\", \"leads\", \"config\")\n        key:
+        Key within the namespace\n    "
+      name: state_get
+    - description: "\n    Write a value to shared state. Creates or overwrites.\n\n
+        \   Args:\n        namespace: State namespace (e.g. \"pipeline/run-123\",
+        \"leads\", \"metrics\")\n        key: Key within the namespace\n        value:
+        Value to store (string or JSON string)\n        updated_by: Agent name that
+        set this value\n    "
+      name: state_set
+    - description: "\n    List all keys in a namespace with metadata.\n\n    Args:\n
+        \       namespace: State namespace to list\n    "
+      name: state_list
+    - description: "\n    Delete a key from shared state.\n\n    Args:\n        namespace:
+        State namespace\n        key: Key to delete\n    "
+      name: state_delete
+    - description: "\n    Get a summary of all active pipeline runs.\n    COO/PM/north-star
+        use this for drift detection and progress tracking.\n    "
+      name: pipeline_status
+    - description: "\n    Acquire a distributed lock. Prevents concurrent pipeline
+        steps.\n\n    Args:\n        name: Lock name (e.g. \"site-builder-github-push\")\n
+        \       holder: Who's acquiring (agent name)\n        ttl_seconds: Lock auto-expires
+        after this many seconds (default: 300)\n    "
+      name: acquire_lock
+    - description: "\n    Release a distributed lock.\n\n    Args:\n        name:
+        Lock name\n        holder: Must match the original acquirer\n    "
+      name: release_lock
     observedGeneration: 1
 kind: List
 metadata:

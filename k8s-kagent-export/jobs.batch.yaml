@@ -1,0 +1,2314 @@
+apiVersion: v1
+items:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T03:00:00Z"
+    creationTimestamp: "2026-03-30T03:00:00Z"
+    generation: 1
+    labels:
+      app: adversarial-sweep
+      batch.kubernetes.io/controller-uid: 08d25b92-d734-43c9-8c31-123a618a7628
+      batch.kubernetes.io/job-name: adversarial-sweep-29580660
+      controller-uid: 08d25b92-d734-43c9-8c31-123a618a7628
+      job-name: adversarial-sweep-29580660
+    name: adversarial-sweep-29580660
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: adversarial-sweep
+      uid: a9c1846b-3069-4c71-9644-edcae544ebe1
+    resourceVersion: "5209812"
+    uid: 08d25b92-d734-43c9-8c31-123a618a7628
+  spec:
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 08d25b92-d734-43c9-8c31-123a618a7628
+    suspend: false
+    template:
+      metadata:
+        labels:
+          app: adversarial-sweep
+          batch.kubernetes.io/controller-uid: 08d25b92-d734-43c9-8c31-123a618a7628
+          batch.kubernetes.io/job-name: adversarial-sweep-29580660
+          controller-uid: 08d25b92-d734-43c9-8c31-123a618a7628
+          job-name: adversarial-sweep-29580660
+      spec:
+        containers:
+        - args:
+          - |
+            pip install mcp httpx --quiet 2>/dev/null
+            python - <<'PYEOF'
+            import asyncio, json, datetime
+            from mcp.client.streamable_http import streamablehttp_client
+            from mcp import ClientSession
+
+            ADVERSARIAL_URL = "http://adversarial-tester.kagent.svc.cluster.local:8098"
+            HITL_URL = "http://hitl-tool-server.kagent.svc.cluster.local:8091"
+            CATEGORIES = ["data_quality", "injection", "boundary", "governance"]
+
+            async def main():
+                results = {}
+                coverage = None
+
+                async with streamablehttp_client(f"{ADVERSARIAL_URL}/mcp") as (read, write, _):
+                    async with ClientSession(read, write) as session:
+                        await session.initialize()
+                        for cat in CATEGORIES:
+                            try:
+                                r = await session.call_tool("run_adversarial_suite", {"category": cat})
+                                results[cat] = json.loads(r.content[0].text) if r.content else {}
+                                passed = results[cat].get("passed", 0)
+                                total = results[cat].get("total", 0)
+                                print(f"[{cat}] {passed}/{total} passed")
+                            except Exception as e:
+                                results[cat] = {"error": str(e)}
+                                print(f"[{cat}] ERROR: {e}")
+
+                        try:
+                            cr = await session.call_tool("get_coverage_report", {})
+                            coverage = cr.content[0].text if cr.content else None
+                        except Exception as e:
+                            coverage = f"coverage report failed: {e}"
+
+                # Build summary
+                date = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+                lines = [f"*Weekly adversarial sweep* ({date})"]
+                all_pass = True
+                for cat, res in results.items():
+                    if "error" in res:
+                        lines.append(f"  ❌ {cat}: error — {res['error']}")
+                        all_pass = False
+                    else:
+                        passed = res.get("passed", 0)
+                        total = res.get("total", 0)
+                        failures = res.get("failures", [])
+                        icon = "✅" if passed == total else "⚠️"
+                        if passed != total:
+                            all_pass = False
+                        lines.append(f"  {icon} {cat}: {passed}/{total}")
+                        for f in failures:
+                            lines.append(f"      • FAIL: {f}")
+                if coverage:
+                    lines.append(f"\n{coverage}")
+                lines.append("_governance controls verified_" if all_pass else "_⚠️ review failures above_")
+                message = "\n".join(lines)
+                print(message)
+
+                # Post to Slack
+                try:
+                    async with streamablehttp_client(f"{HITL_URL}/mcp") as (r2, w2, _):
+                        async with ClientSession(r2, w2) as s2:
+                            await s2.initialize()
+                            await s2.call_tool("post_notification", {
+                                "message": message,
+                                "channel": "agent-workers"
+                            })
+                    print("[OK] Slack notification sent")
+                except Exception as e:
+                    print(f"[WARN] Slack notify failed (non-fatal): {e}")
+
+            asyncio.run(main())
+            PYEOF
+          command:
+          - /bin/sh
+          - -c
+          image: docker.io/python:3.11-slim
+          imagePullPolicy: IfNotPresent
+          name: adversarial-sweep
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: OnFailure
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    completionTime: "2026-03-30T03:10:19Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T03:10:19Z"
+      lastTransitionTime: "2026-03-30T03:10:19Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T03:10:19Z"
+      lastTransitionTime: "2026-03-30T03:10:19Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T03:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-28T12:00:00Z"
+    creationTimestamp: "2026-03-28T12:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: debf72fb-717a-443e-92ed-5b2569d1aa47
+      batch.kubernetes.io/job-name: north-star-assessment-29578320
+      controller-uid: debf72fb-717a-443e-92ed-5b2569d1aa47
+      job-name: north-star-assessment-29578320
+    name: north-star-assessment-29578320
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: north-star-assessment
+      uid: 6989a521-c93c-461b-b822-2fe60daad59c
+    resourceVersion: "4429263"
+    uid: debf72fb-717a-443e-92ed-5b2569d1aa47
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: debf72fb-717a-443e-92ed-5b2569d1aa47
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: debf72fb-717a-443e-92ed-5b2569d1aa47
+          batch.kubernetes.io/job-name: north-star-assessment-29578320
+          controller-uid: debf72fb-717a-443e-92ed-5b2569d1aa47
+          job-name: north-star-assessment-29578320
+      spec:
+        containers:
+        - command:
+          - sh
+          - -c
+          - |
+            curl -sS -m 240 -X POST \
+              http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/north-star-agent/ \
+              -H 'Content-Type: application/json' \
+              -d '{"jsonrpc":"2.0","method":"message/send","id":"north-star-scheduled","params":{"message":{"role":"user","parts":[{"kind":"text","text":"Run trajectory assessment cycle. Compare current system state against the project vision. Score each dimension, identify trends, flag drift, and post your report to Slack."}]}}}'
+          image: docker.io/curlimages/curl:8.5.0
+          imagePullPolicy: IfNotPresent
+          name: trigger
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    conditions:
+    - lastProbeTime: "2026-03-28T12:05:00Z"
+      lastTransitionTime: "2026-03-28T12:05:00Z"
+      message: Job was active longer than specified deadline
+      reason: DeadlineExceeded
+      status: "True"
+      type: FailureTarget
+    - lastProbeTime: "2026-03-28T12:05:03Z"
+      lastTransitionTime: "2026-03-28T12:05:03Z"
+      message: Job was active longer than specified deadline
+      reason: DeadlineExceeded
+      status: "True"
+      type: Failed
+    failed: 2
+    ready: 0
+    startTime: "2026-03-28T12:00:00Z"
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T00:00:00Z"
+    creationTimestamp: "2026-03-30T00:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: f743748d-da48-4afc-b4c0-86df870a8eb3
+      batch.kubernetes.io/job-name: north-star-assessment-29580480
+      controller-uid: f743748d-da48-4afc-b4c0-86df870a8eb3
+      job-name: north-star-assessment-29580480
+    name: north-star-assessment-29580480
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: north-star-assessment
+      uid: 6989a521-c93c-461b-b822-2fe60daad59c
+    resourceVersion: "5147452"
+    uid: f743748d-da48-4afc-b4c0-86df870a8eb3
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: f743748d-da48-4afc-b4c0-86df870a8eb3
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: f743748d-da48-4afc-b4c0-86df870a8eb3
+          batch.kubernetes.io/job-name: north-star-assessment-29580480
+          controller-uid: f743748d-da48-4afc-b4c0-86df870a8eb3
+          job-name: north-star-assessment-29580480
+      spec:
+        containers:
+        - command:
+          - sh
+          - -c
+          - |
+            curl -sS -m 240 -X POST \
+              http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/north-star-agent/ \
+              -H 'Content-Type: application/json' \
+              -d '{"jsonrpc":"2.0","method":"message/send","id":"north-star-scheduled","params":{"message":{"role":"user","parts":[{"kind":"text","text":"Run trajectory assessment cycle. Compare current system state against the project vision. Score each dimension, identify trends, flag drift, and post your report to Slack."}]}}}'
+          image: docker.io/curlimages/curl:8.5.0
+          imagePullPolicy: IfNotPresent
+          name: trigger
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    completionTime: "2026-03-30T00:02:56Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T00:02:56Z"
+      lastTransitionTime: "2026-03-30T00:02:56Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T00:02:56Z"
+      lastTransitionTime: "2026-03-30T00:02:56Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T00:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T06:00:00Z"
+    creationTimestamp: "2026-03-30T06:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: bac9f0dd-4722-4c78-82be-06109e44079f
+      batch.kubernetes.io/job-name: north-star-assessment-29580840
+      controller-uid: bac9f0dd-4722-4c78-82be-06109e44079f
+      job-name: north-star-assessment-29580840
+    name: north-star-assessment-29580840
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: north-star-assessment
+      uid: 6989a521-c93c-461b-b822-2fe60daad59c
+    resourceVersion: "5266522"
+    uid: bac9f0dd-4722-4c78-82be-06109e44079f
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: bac9f0dd-4722-4c78-82be-06109e44079f
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: bac9f0dd-4722-4c78-82be-06109e44079f
+          batch.kubernetes.io/job-name: north-star-assessment-29580840
+          controller-uid: bac9f0dd-4722-4c78-82be-06109e44079f
+          job-name: north-star-assessment-29580840
+      spec:
+        containers:
+        - command:
+          - sh
+          - -c
+          - |
+            curl -sS -m 240 -X POST \
+              http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/north-star-agent/ \
+              -H 'Content-Type: application/json' \
+              -d '{"jsonrpc":"2.0","method":"message/send","id":"north-star-scheduled","params":{"message":{"role":"user","parts":[{"kind":"text","text":"Run trajectory assessment cycle. Compare current system state against the project vision. Score each dimension, identify trends, flag drift, and post your report to Slack."}]}}}'
+          image: docker.io/curlimages/curl:8.5.0
+          imagePullPolicy: IfNotPresent
+          name: trigger
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    completionTime: "2026-03-30T06:00:38Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T06:00:38Z"
+      lastTransitionTime: "2026-03-30T06:00:38Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T06:00:38Z"
+      lastTransitionTime: "2026-03-30T06:00:38Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T06:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T12:00:00Z"
+    creationTimestamp: "2026-03-30T12:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 6245a086-f0a0-4c5c-97de-60c896776003
+      batch.kubernetes.io/job-name: north-star-assessment-29581200
+      controller-uid: 6245a086-f0a0-4c5c-97de-60c896776003
+      job-name: north-star-assessment-29581200
+    name: north-star-assessment-29581200
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: north-star-assessment
+      uid: 6989a521-c93c-461b-b822-2fe60daad59c
+    resourceVersion: "5386984"
+    uid: 6245a086-f0a0-4c5c-97de-60c896776003
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 6245a086-f0a0-4c5c-97de-60c896776003
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 6245a086-f0a0-4c5c-97de-60c896776003
+          batch.kubernetes.io/job-name: north-star-assessment-29581200
+          controller-uid: 6245a086-f0a0-4c5c-97de-60c896776003
+          job-name: north-star-assessment-29581200
+      spec:
+        containers:
+        - command:
+          - sh
+          - -c
+          - |
+            curl -sS -m 240 -X POST \
+              http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/north-star-agent/ \
+              -H 'Content-Type: application/json' \
+              -d '{"jsonrpc":"2.0","method":"message/send","id":"north-star-scheduled","params":{"message":{"role":"user","parts":[{"kind":"text","text":"Run trajectory assessment cycle. Compare current system state against the project vision. Score each dimension, identify trends, flag drift, and post your report to Slack."}]}}}'
+          image: docker.io/curlimages/curl:8.5.0
+          imagePullPolicy: IfNotPresent
+          name: trigger
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    completionTime: "2026-03-30T12:01:52Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T12:01:52Z"
+      lastTransitionTime: "2026-03-30T12:01:52Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T12:01:52Z"
+      lastTransitionTime: "2026-03-30T12:01:52Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T12:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-27T17:00:00Z"
+    creationTimestamp: "2026-03-27T17:41:32Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 74b91afb-27a0-4827-8126-9200d309a9ef
+      batch.kubernetes.io/job-name: rd-evolution-cycle-29577180
+      controller-uid: 74b91afb-27a0-4827-8126-9200d309a9ef
+      job-name: rd-evolution-cycle-29577180
+    name: rd-evolution-cycle-29577180
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: rd-evolution-cycle
+      uid: 8c8ca03d-1ee5-4b14-b816-e2a10f5e236b
+    resourceVersion: "4063400"
+    uid: 74b91afb-27a0-4827-8126-9200d309a9ef
+  spec:
+    activeDeadlineSeconds: 600
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 74b91afb-27a0-4827-8126-9200d309a9ef
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 74b91afb-27a0-4827-8126-9200d309a9ef
+          batch.kubernetes.io/job-name: rd-evolution-cycle-29577180
+          controller-uid: 74b91afb-27a0-4827-8126-9200d309a9ef
+          job-name: rd-evolution-cycle-29577180
+      spec:
+        containers:
+        - command:
+          - sh
+          - -c
+          - |
+            curl -sS -X POST \
+              "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/rd-agent/" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "message/send",
+                "id": "rd-cron-'"$(date +%s)"'",
+                "params": {
+                  "message": {
+                    "role": "user",
+                    "parts": [{"kind": "text", "text": "Run evolution cycle: inventory all agents, research best practices for the weakest agents, and propose system message improvements via GitHub PRs. Check your memory for previous cycles to avoid repeating proposals."}]
+                  }
+                }
+              }'
+          image: docker.io/curlimages/curl:8.5.0
+          imagePullPolicy: IfNotPresent
+          name: trigger
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    conditions:
+    - lastProbeTime: "2026-03-27T17:51:32Z"
+      lastTransitionTime: "2026-03-27T17:51:32Z"
+      message: Job was active longer than specified deadline
+      reason: DeadlineExceeded
+      status: "True"
+      type: FailureTarget
+    - lastProbeTime: "2026-03-27T17:51:34Z"
+      lastTransitionTime: "2026-03-27T17:51:34Z"
+      message: Job was active longer than specified deadline
+      reason: DeadlineExceeded
+      status: "True"
+      type: Failed
+    failed: 1
+    ready: 0
+    startTime: "2026-03-27T17:41:32Z"
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T12:00:00Z"
+    creationTimestamp: "2026-03-30T12:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 893d72a1-33d0-497b-ae73-929d365ed113
+      batch.kubernetes.io/job-name: rd-evolution-cycle-29581200
+      controller-uid: 893d72a1-33d0-497b-ae73-929d365ed113
+      job-name: rd-evolution-cycle-29581200
+    name: rd-evolution-cycle-29581200
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: rd-evolution-cycle
+      uid: 8c8ca03d-1ee5-4b14-b816-e2a10f5e236b
+    resourceVersion: "5386876"
+    uid: 893d72a1-33d0-497b-ae73-929d365ed113
+  spec:
+    activeDeadlineSeconds: 600
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 893d72a1-33d0-497b-ae73-929d365ed113
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 893d72a1-33d0-497b-ae73-929d365ed113
+          batch.kubernetes.io/job-name: rd-evolution-cycle-29581200
+          controller-uid: 893d72a1-33d0-497b-ae73-929d365ed113
+          job-name: rd-evolution-cycle-29581200
+      spec:
+        containers:
+        - command:
+          - sh
+          - -c
+          - |
+            curl -sS -X POST \
+              "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/rd-agent/" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "message/send",
+                "id": "rd-cron-'"$(date +%s)"'",
+                "params": {
+                  "message": {
+                    "role": "user",
+                    "parts": [{"kind": "text", "text": "Run evolution cycle: inventory all agents, research best practices for the weakest agents, and propose system message improvements via GitHub PRs. Check your memory for previous cycles to avoid repeating proposals."}]
+                  }
+                }
+              }'
+          image: docker.io/curlimages/curl:8.5.0
+          imagePullPolicy: IfNotPresent
+          name: trigger
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    completionTime: "2026-03-30T12:01:34Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T12:01:34Z"
+      lastTransitionTime: "2026-03-30T12:01:34Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T12:01:34Z"
+      lastTransitionTime: "2026-03-30T12:01:34Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T12:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T13:00:00Z"
+    creationTimestamp: "2026-03-30T13:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 9743d667-feeb-4756-b5a8-ba5430e4d9e6
+      batch.kubernetes.io/job-name: rd-evolution-cycle-29581260
+      controller-uid: 9743d667-feeb-4756-b5a8-ba5430e4d9e6
+      job-name: rd-evolution-cycle-29581260
+    name: rd-evolution-cycle-29581260
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: rd-evolution-cycle
+      uid: 8c8ca03d-1ee5-4b14-b816-e2a10f5e236b
+    resourceVersion: "5408290"
+    uid: 9743d667-feeb-4756-b5a8-ba5430e4d9e6
+  spec:
+    activeDeadlineSeconds: 600
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 9743d667-feeb-4756-b5a8-ba5430e4d9e6
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 9743d667-feeb-4756-b5a8-ba5430e4d9e6
+          batch.kubernetes.io/job-name: rd-evolution-cycle-29581260
+          controller-uid: 9743d667-feeb-4756-b5a8-ba5430e4d9e6
+          job-name: rd-evolution-cycle-29581260
+      spec:
+        containers:
+        - command:
+          - sh
+          - -c
+          - |
+            curl -sS -X POST \
+              "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/rd-agent/" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "message/send",
+                "id": "rd-cron-'"$(date +%s)"'",
+                "params": {
+                  "message": {
+                    "role": "user",
+                    "parts": [{"kind": "text", "text": "Run evolution cycle: inventory all agents, research best practices for the weakest agents, and propose system message improvements via GitHub PRs. Check your memory for previous cycles to avoid repeating proposals."}]
+                  }
+                }
+              }'
+          image: docker.io/curlimages/curl:8.5.0
+          imagePullPolicy: IfNotPresent
+          name: trigger
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    completionTime: "2026-03-30T13:05:56Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T13:05:56Z"
+      lastTransitionTime: "2026-03-30T13:05:56Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T13:05:56Z"
+      lastTransitionTime: "2026-03-30T13:05:56Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T13:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T14:00:00Z"
+    creationTimestamp: "2026-03-30T14:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 64a69ba1-2b07-4391-b8b5-783ed9b2265f
+      batch.kubernetes.io/job-name: rd-evolution-cycle-29581320
+      controller-uid: 64a69ba1-2b07-4391-b8b5-783ed9b2265f
+      job-name: rd-evolution-cycle-29581320
+    name: rd-evolution-cycle-29581320
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: rd-evolution-cycle
+      uid: 8c8ca03d-1ee5-4b14-b816-e2a10f5e236b
+    resourceVersion: "5427110"
+    uid: 64a69ba1-2b07-4391-b8b5-783ed9b2265f
+  spec:
+    activeDeadlineSeconds: 600
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 64a69ba1-2b07-4391-b8b5-783ed9b2265f
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 64a69ba1-2b07-4391-b8b5-783ed9b2265f
+          batch.kubernetes.io/job-name: rd-evolution-cycle-29581320
+          controller-uid: 64a69ba1-2b07-4391-b8b5-783ed9b2265f
+          job-name: rd-evolution-cycle-29581320
+      spec:
+        containers:
+        - command:
+          - sh
+          - -c
+          - |
+            curl -sS -X POST \
+              "http://kagent-controller.kagent.svc.cluster.local:8083/api/a2a/kagent/rd-agent/" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "jsonrpc": "2.0",
+                "method": "message/send",
+                "id": "rd-cron-'"$(date +%s)"'",
+                "params": {
+                  "message": {
+                    "role": "user",
+                    "parts": [{"kind": "text", "text": "Run evolution cycle: inventory all agents, research best practices for the weakest agents, and propose system message improvements via GitHub PRs. Check your memory for previous cycles to avoid repeating proposals."}]
+                  }
+                }
+              }'
+          image: docker.io/curlimages/curl:8.5.0
+          imagePullPolicy: IfNotPresent
+          name: trigger
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+  status:
+    completionTime: "2026-03-30T14:02:30Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T14:02:30Z"
+      lastTransitionTime: "2026-03-30T14:02:30Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T14:02:30Z"
+      lastTransitionTime: "2026-03-30T14:02:30Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T14:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T10:00:00Z"
+    creationTimestamp: "2026-03-30T10:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: ae1cca5b-900c-4d0d-9f92-376f04f9a33f
+      batch.kubernetes.io/job-name: scheduler-cfo-check-29581080
+      controller-uid: ae1cca5b-900c-4d0d-9f92-376f04f9a33f
+      job-name: scheduler-cfo-check-29581080
+    name: scheduler-cfo-check-29581080
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-cfo-check
+      uid: ae6bab56-7d6c-47c0-a40d-e168d6578676
+    resourceVersion: "5346452"
+    uid: ae1cca5b-900c-4d0d-9f92-376f04f9a33f
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: ae1cca5b-900c-4d0d-9f92-376f04f9a33f
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: ae1cca5b-900c-4d0d-9f92-376f04f9a33f
+          batch.kubernetes.io/job-name: scheduler-cfo-check-29581080
+          controller-uid: ae1cca5b-900c-4d0d-9f92-376f04f9a33f
+          job-name: scheduler-cfo-check-29581080
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: cfo-resource-check
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-30T10:00:42Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T10:00:42Z"
+      lastTransitionTime: "2026-03-30T10:00:42Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T10:00:42Z"
+      lastTransitionTime: "2026-03-30T10:00:42Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T10:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T12:00:00Z"
+    creationTimestamp: "2026-03-30T12:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 93f3437a-51d9-4cf6-9780-d00773355aca
+      batch.kubernetes.io/job-name: scheduler-cfo-check-29581200
+      controller-uid: 93f3437a-51d9-4cf6-9780-d00773355aca
+      job-name: scheduler-cfo-check-29581200
+    name: scheduler-cfo-check-29581200
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-cfo-check
+      uid: ae6bab56-7d6c-47c0-a40d-e168d6578676
+    resourceVersion: "5386534"
+    uid: 93f3437a-51d9-4cf6-9780-d00773355aca
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 93f3437a-51d9-4cf6-9780-d00773355aca
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 93f3437a-51d9-4cf6-9780-d00773355aca
+          batch.kubernetes.io/job-name: scheduler-cfo-check-29581200
+          controller-uid: 93f3437a-51d9-4cf6-9780-d00773355aca
+          job-name: scheduler-cfo-check-29581200
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: cfo-resource-check
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-30T12:00:41Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T12:00:41Z"
+      lastTransitionTime: "2026-03-30T12:00:41Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T12:00:41Z"
+      lastTransitionTime: "2026-03-30T12:00:41Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T12:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T14:00:00Z"
+    creationTimestamp: "2026-03-30T14:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: e8e8fe0a-4279-428b-8dad-8eabd2714bbb
+      batch.kubernetes.io/job-name: scheduler-cfo-check-29581320
+      controller-uid: e8e8fe0a-4279-428b-8dad-8eabd2714bbb
+      job-name: scheduler-cfo-check-29581320
+    name: scheduler-cfo-check-29581320
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-cfo-check
+      uid: ae6bab56-7d6c-47c0-a40d-e168d6578676
+    resourceVersion: "5426608"
+    uid: e8e8fe0a-4279-428b-8dad-8eabd2714bbb
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: e8e8fe0a-4279-428b-8dad-8eabd2714bbb
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: e8e8fe0a-4279-428b-8dad-8eabd2714bbb
+          batch.kubernetes.io/job-name: scheduler-cfo-check-29581320
+          controller-uid: e8e8fe0a-4279-428b-8dad-8eabd2714bbb
+          job-name: scheduler-cfo-check-29581320
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: cfo-resource-check
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-30T14:01:01Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T14:01:01Z"
+      lastTransitionTime: "2026-03-30T14:01:01Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T14:01:01Z"
+      lastTransitionTime: "2026-03-30T14:01:01Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T14:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-26T08:00:00Z"
+    creationTimestamp: "2026-03-26T08:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 00deaa8e-66f5-4ed1-837e-fcf5eba4705c
+      batch.kubernetes.io/job-name: scheduler-coo-status-29575200
+      controller-uid: 00deaa8e-66f5-4ed1-837e-fcf5eba4705c
+      job-name: scheduler-coo-status-29575200
+    name: scheduler-coo-status-29575200
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-coo-status
+      uid: 0ce5f55d-dcf7-48a8-a3dd-895688722711
+    resourceVersion: "3387523"
+    uid: 00deaa8e-66f5-4ed1-837e-fcf5eba4705c
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 00deaa8e-66f5-4ed1-837e-fcf5eba4705c
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 00deaa8e-66f5-4ed1-837e-fcf5eba4705c
+          batch.kubernetes.io/job-name: scheduler-coo-status-29575200
+          controller-uid: 00deaa8e-66f5-4ed1-837e-fcf5eba4705c
+          job-name: scheduler-coo-status-29575200
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: coo-status-check
+          image: docker.io/python:3.12-slim
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    conditions:
+    - lastProbeTime: "2026-03-26T08:05:00Z"
+      lastTransitionTime: "2026-03-26T08:05:00Z"
+      message: Job was active longer than specified deadline
+      reason: DeadlineExceeded
+      status: "True"
+      type: FailureTarget
+    - lastProbeTime: "2026-03-26T08:05:06Z"
+      lastTransitionTime: "2026-03-26T08:05:06Z"
+      message: Job was active longer than specified deadline
+      reason: DeadlineExceeded
+      status: "True"
+      type: Failed
+    failed: 2
+    ready: 0
+    startTime: "2026-03-26T08:00:00Z"
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T04:00:00Z"
+    creationTimestamp: "2026-03-30T04:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 062fd323-e935-410a-8ed2-34ff4f30d959
+      batch.kubernetes.io/job-name: scheduler-coo-status-29580720
+      controller-uid: 062fd323-e935-410a-8ed2-34ff4f30d959
+      job-name: scheduler-coo-status-29580720
+    name: scheduler-coo-status-29580720
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-coo-status
+      uid: 0ce5f55d-dcf7-48a8-a3dd-895688722711
+    resourceVersion: "5226927"
+    uid: 062fd323-e935-410a-8ed2-34ff4f30d959
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 062fd323-e935-410a-8ed2-34ff4f30d959
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 062fd323-e935-410a-8ed2-34ff4f30d959
+          batch.kubernetes.io/job-name: scheduler-coo-status-29580720
+          controller-uid: 062fd323-e935-410a-8ed2-34ff4f30d959
+          job-name: scheduler-coo-status-29580720
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: coo-status-check
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-30T04:01:44Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T04:01:44Z"
+      lastTransitionTime: "2026-03-30T04:01:44Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T04:01:44Z"
+      lastTransitionTime: "2026-03-30T04:01:44Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T04:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T08:00:00Z"
+    creationTimestamp: "2026-03-30T08:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 6208e8d2-d41f-4ee1-8006-6332e832da27
+      batch.kubernetes.io/job-name: scheduler-coo-status-29580960
+      controller-uid: 6208e8d2-d41f-4ee1-8006-6332e832da27
+      job-name: scheduler-coo-status-29580960
+    name: scheduler-coo-status-29580960
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-coo-status
+      uid: 0ce5f55d-dcf7-48a8-a3dd-895688722711
+    resourceVersion: "5306905"
+    uid: 6208e8d2-d41f-4ee1-8006-6332e832da27
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 6208e8d2-d41f-4ee1-8006-6332e832da27
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 6208e8d2-d41f-4ee1-8006-6332e832da27
+          batch.kubernetes.io/job-name: scheduler-coo-status-29580960
+          controller-uid: 6208e8d2-d41f-4ee1-8006-6332e832da27
+          job-name: scheduler-coo-status-29580960
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: coo-status-check
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-30T08:01:50Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T08:01:50Z"
+      lastTransitionTime: "2026-03-30T08:01:50Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T08:01:50Z"
+      lastTransitionTime: "2026-03-30T08:01:50Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T08:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T12:00:00Z"
+    creationTimestamp: "2026-03-30T12:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: c2db4b9f-ddea-49a7-beb8-69bb525418fc
+      batch.kubernetes.io/job-name: scheduler-coo-status-29581200
+      controller-uid: c2db4b9f-ddea-49a7-beb8-69bb525418fc
+      job-name: scheduler-coo-status-29581200
+    name: scheduler-coo-status-29581200
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-coo-status
+      uid: 0ce5f55d-dcf7-48a8-a3dd-895688722711
+    resourceVersion: "5386604"
+    uid: c2db4b9f-ddea-49a7-beb8-69bb525418fc
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: c2db4b9f-ddea-49a7-beb8-69bb525418fc
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: c2db4b9f-ddea-49a7-beb8-69bb525418fc
+          batch.kubernetes.io/job-name: scheduler-coo-status-29581200
+          controller-uid: c2db4b9f-ddea-49a7-beb8-69bb525418fc
+          job-name: scheduler-coo-status-29581200
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: coo-status-check
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-30T12:00:51Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T12:00:51Z"
+      lastTransitionTime: "2026-03-30T12:00:51Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T12:00:51Z"
+      lastTransitionTime: "2026-03-30T12:00:51Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T12:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-27T12:00:00Z"
+    creationTimestamp: "2026-03-27T12:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 25993056-31d2-4f5f-9313-87d2b800e805
+      batch.kubernetes.io/job-name: scheduler-cso-audit-29576880
+      controller-uid: 25993056-31d2-4f5f-9313-87d2b800e805
+      job-name: scheduler-cso-audit-29576880
+    name: scheduler-cso-audit-29576880
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-cso-audit
+      uid: 018b4f20-1607-469c-98d0-3d957b70670a
+    resourceVersion: "3947847"
+    uid: 25993056-31d2-4f5f-9313-87d2b800e805
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 25993056-31d2-4f5f-9313-87d2b800e805
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 25993056-31d2-4f5f-9313-87d2b800e805
+          batch.kubernetes.io/job-name: scheduler-cso-audit-29576880
+          controller-uid: 25993056-31d2-4f5f-9313-87d2b800e805
+          job-name: scheduler-cso-audit-29576880
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: cso-security-audit
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    conditions:
+    - lastProbeTime: "2026-03-27T12:05:00Z"
+      lastTransitionTime: "2026-03-27T12:05:00Z"
+      message: Job was active longer than specified deadline
+      reason: DeadlineExceeded
+      status: "True"
+      type: FailureTarget
+    - lastProbeTime: "2026-03-27T12:05:05Z"
+      lastTransitionTime: "2026-03-27T12:05:05Z"
+      message: Job was active longer than specified deadline
+      reason: DeadlineExceeded
+      status: "True"
+      type: Failed
+    failed: 2
+    ready: 0
+    startTime: "2026-03-27T12:00:00Z"
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T00:00:00Z"
+    creationTimestamp: "2026-03-30T00:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: ff34b0a1-0e2b-4865-a00d-de3c85b5153e
+      batch.kubernetes.io/job-name: scheduler-cso-audit-29580480
+      controller-uid: ff34b0a1-0e2b-4865-a00d-de3c85b5153e
+      job-name: scheduler-cso-audit-29580480
+    name: scheduler-cso-audit-29580480
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-cso-audit
+      uid: 018b4f20-1607-469c-98d0-3d957b70670a
+    resourceVersion: "5146894"
+    uid: ff34b0a1-0e2b-4865-a00d-de3c85b5153e
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: ff34b0a1-0e2b-4865-a00d-de3c85b5153e
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: ff34b0a1-0e2b-4865-a00d-de3c85b5153e
+          batch.kubernetes.io/job-name: scheduler-cso-audit-29580480
+          controller-uid: ff34b0a1-0e2b-4865-a00d-de3c85b5153e
+          job-name: scheduler-cso-audit-29580480
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: cso-security-audit
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-30T00:01:20Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T00:01:20Z"
+      lastTransitionTime: "2026-03-30T00:01:20Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T00:01:20Z"
+      lastTransitionTime: "2026-03-30T00:01:20Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T00:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T06:00:00Z"
+    creationTimestamp: "2026-03-30T06:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: ace7923a-c69d-4846-a864-ed731f4de08d
+      batch.kubernetes.io/job-name: scheduler-cso-audit-29580840
+      controller-uid: ace7923a-c69d-4846-a864-ed731f4de08d
+      job-name: scheduler-cso-audit-29580840
+    name: scheduler-cso-audit-29580840
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-cso-audit
+      uid: 018b4f20-1607-469c-98d0-3d957b70670a
+    resourceVersion: "5266681"
+    uid: ace7923a-c69d-4846-a864-ed731f4de08d
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: ace7923a-c69d-4846-a864-ed731f4de08d
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: ace7923a-c69d-4846-a864-ed731f4de08d
+          batch.kubernetes.io/job-name: scheduler-cso-audit-29580840
+          controller-uid: ace7923a-c69d-4846-a864-ed731f4de08d
+          job-name: scheduler-cso-audit-29580840
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: cso-security-audit
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-30T06:01:01Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T06:01:01Z"
+      lastTransitionTime: "2026-03-30T06:01:01Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T06:01:01Z"
+      lastTransitionTime: "2026-03-30T06:01:01Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T06:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T12:00:00Z"
+    creationTimestamp: "2026-03-30T12:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 1d0d7d63-692e-4980-83a2-d196d7623526
+      batch.kubernetes.io/job-name: scheduler-cso-audit-29581200
+      controller-uid: 1d0d7d63-692e-4980-83a2-d196d7623526
+      job-name: scheduler-cso-audit-29581200
+    name: scheduler-cso-audit-29581200
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-cso-audit
+      uid: 018b4f20-1607-469c-98d0-3d957b70670a
+    resourceVersion: "5386727"
+    uid: 1d0d7d63-692e-4980-83a2-d196d7623526
+  spec:
+    activeDeadlineSeconds: 300
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 1d0d7d63-692e-4980-83a2-d196d7623526
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 1d0d7d63-692e-4980-83a2-d196d7623526
+          batch.kubernetes.io/job-name: scheduler-cso-audit-29581200
+          controller-uid: 1d0d7d63-692e-4980-83a2-d196d7623526
+          job-name: scheduler-cso-audit-29581200
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: cso-security-audit
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-30T12:01:10Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T12:01:10Z"
+      lastTransitionTime: "2026-03-30T12:01:10Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T12:01:10Z"
+      lastTransitionTime: "2026-03-30T12:01:10Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T12:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-28T00:00:00Z"
+    creationTimestamp: "2026-03-28T00:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: f18091da-3d79-4b8e-b3b9-f430f31ec01b
+      batch.kubernetes.io/job-name: scheduler-pm-pipeline-29577600
+      controller-uid: f18091da-3d79-4b8e-b3b9-f430f31ec01b
+      job-name: scheduler-pm-pipeline-29577600
+    name: scheduler-pm-pipeline-29577600
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-pm-pipeline
+      uid: 7a11d079-8d11-422d-80b9-75d0b38db22a
+    resourceVersion: "4189014"
+    uid: f18091da-3d79-4b8e-b3b9-f430f31ec01b
+  spec:
+    activeDeadlineSeconds: 900
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: f18091da-3d79-4b8e-b3b9-f430f31ec01b
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: f18091da-3d79-4b8e-b3b9-f430f31ec01b
+          batch.kubernetes.io/job-name: scheduler-pm-pipeline-29577600
+          controller-uid: f18091da-3d79-4b8e-b3b9-f430f31ec01b
+          job-name: scheduler-pm-pipeline-29577600
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: pm-full-pipeline
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    conditions:
+    - lastProbeTime: "2026-03-28T00:05:09Z"
+      lastTransitionTime: "2026-03-28T00:05:09Z"
+      message: Job has reached the specified backoff limit
+      reason: BackoffLimitExceeded
+      status: "True"
+      type: FailureTarget
+    - lastProbeTime: "2026-03-28T00:05:09Z"
+      lastTransitionTime: "2026-03-28T00:05:09Z"
+      message: Job has reached the specified backoff limit
+      reason: BackoffLimitExceeded
+      status: "True"
+      type: Failed
+    failed: 2
+    ready: 0
+    startTime: "2026-03-28T00:00:00Z"
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-29T16:00:00Z"
+    creationTimestamp: "2026-03-29T16:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 9ab88c0a-f39c-41cb-b977-f3c2c5a0446c
+      batch.kubernetes.io/job-name: scheduler-pm-pipeline-29580000
+      controller-uid: 9ab88c0a-f39c-41cb-b977-f3c2c5a0446c
+      job-name: scheduler-pm-pipeline-29580000
+    name: scheduler-pm-pipeline-29580000
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-pm-pipeline
+      uid: 7a11d079-8d11-422d-80b9-75d0b38db22a
+    resourceVersion: "4987128"
+    uid: 9ab88c0a-f39c-41cb-b977-f3c2c5a0446c
+  spec:
+    activeDeadlineSeconds: 900
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 9ab88c0a-f39c-41cb-b977-f3c2c5a0446c
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 9ab88c0a-f39c-41cb-b977-f3c2c5a0446c
+          batch.kubernetes.io/job-name: scheduler-pm-pipeline-29580000
+          controller-uid: 9ab88c0a-f39c-41cb-b977-f3c2c5a0446c
+          job-name: scheduler-pm-pipeline-29580000
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: pm-full-pipeline
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-29T16:01:22Z"
+    conditions:
+    - lastProbeTime: "2026-03-29T16:01:22Z"
+      lastTransitionTime: "2026-03-29T16:01:22Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-29T16:01:22Z"
+      lastTransitionTime: "2026-03-29T16:01:22Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-29T16:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T00:00:00Z"
+    creationTimestamp: "2026-03-30T00:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 65dde01f-b30a-4b37-8140-868873365df1
+      batch.kubernetes.io/job-name: scheduler-pm-pipeline-29580480
+      controller-uid: 65dde01f-b30a-4b37-8140-868873365df1
+      job-name: scheduler-pm-pipeline-29580480
+    name: scheduler-pm-pipeline-29580480
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-pm-pipeline
+      uid: 7a11d079-8d11-422d-80b9-75d0b38db22a
+    resourceVersion: "5147701"
+    uid: 65dde01f-b30a-4b37-8140-868873365df1
+  spec:
+    activeDeadlineSeconds: 900
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 65dde01f-b30a-4b37-8140-868873365df1
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 65dde01f-b30a-4b37-8140-868873365df1
+          batch.kubernetes.io/job-name: scheduler-pm-pipeline-29580480
+          controller-uid: 65dde01f-b30a-4b37-8140-868873365df1
+          job-name: scheduler-pm-pipeline-29580480
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: pm-full-pipeline
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-30T00:03:39Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T00:03:39Z"
+      lastTransitionTime: "2026-03-30T00:03:39Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T00:03:39Z"
+      lastTransitionTime: "2026-03-30T00:03:39Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    failed: 1
+    ready: 0
+    startTime: "2026-03-30T00:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      batch.kubernetes.io/cronjob-scheduled-timestamp: "2026-03-30T08:00:00Z"
+    creationTimestamp: "2026-03-30T08:00:00Z"
+    generation: 1
+    labels:
+      batch.kubernetes.io/controller-uid: 8cc5ca4e-08ae-415d-91d6-18732ce9614b
+      batch.kubernetes.io/job-name: scheduler-pm-pipeline-29580960
+      controller-uid: 8cc5ca4e-08ae-415d-91d6-18732ce9614b
+      job-name: scheduler-pm-pipeline-29580960
+    name: scheduler-pm-pipeline-29580960
+    namespace: kagent
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: CronJob
+      name: scheduler-pm-pipeline
+      uid: 7a11d079-8d11-422d-80b9-75d0b38db22a
+    resourceVersion: "5306978"
+    uid: 8cc5ca4e-08ae-415d-91d6-18732ce9614b
+  spec:
+    activeDeadlineSeconds: 900
+    backoffLimit: 1
+    completionMode: NonIndexed
+    completions: 1
+    manualSelector: false
+    parallelism: 1
+    podReplacementPolicy: TerminatingOrFailed
+    selector:
+      matchLabels:
+        batch.kubernetes.io/controller-uid: 8cc5ca4e-08ae-415d-91d6-18732ce9614b
+    suspend: false
+    template:
+      metadata:
+        labels:
+          batch.kubernetes.io/controller-uid: 8cc5ca4e-08ae-415d-91d6-18732ce9614b
+          batch.kubernetes.io/job-name: scheduler-pm-pipeline-29580960
+          controller-uid: 8cc5ca4e-08ae-415d-91d6-18732ce9614b
+          job-name: scheduler-pm-pipeline-29580960
+      spec:
+        containers:
+        - args:
+          - pip install httpx --quiet && python /app/scheduler.py
+          command:
+          - /bin/sh
+          - -c
+          env:
+          - name: TASK_TYPE
+            value: pm-full-pipeline
+          image: docker.io/python@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+          imagePullPolicy: IfNotPresent
+          name: scheduler
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /app
+            name: code
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: scheduler-code
+          name: code
+  status:
+    completionTime: "2026-03-30T08:01:59Z"
+    conditions:
+    - lastProbeTime: "2026-03-30T08:01:59Z"
+      lastTransitionTime: "2026-03-30T08:01:59Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: SuccessCriteriaMet
+    - lastProbeTime: "2026-03-30T08:01:59Z"
+      lastTransitionTime: "2026-03-30T08:01:59Z"
+      message: Reached expected number of succeeded pods
+      reason: CompletionsReached
+      status: "True"
+      type: Complete
+    ready: 0
+    startTime: "2026-03-30T08:00:00Z"
+    succeeded: 1
+    terminating: 0
+    uncountedTerminatedPods: {}
+kind: List
+metadata:
+  resourceVersion: ""

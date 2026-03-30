@@ -1,5 +1,5 @@
 # Autobot Project Summary
-> Last updated: March 27, 2026
+> Last updated: March 30, 2026
 
 ## Vision
 A self-managing agentic software company with a pre-architected org structure. You provide high-level direction — the agent org executes, self-governs, and gets more reliable over time via a hardening loop.
@@ -17,8 +17,8 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | Event triggers | Khook | Free (built from source) |
 | Agent memory | kagent pgvector (built-in) | Free |
 | Embedding | LiteLLM → text-embedding-3-small (GitHub Copilot) | $0 extra |
-| Public tunnel | Localtonet (ct0nsvobr7.localto.net) | Free (persistent URL) |
-| CORS proxy | nginx in-cluster | Free |
+| Public endpoint | OKE Load Balancer (157.151.243.159) | Free (10 Mbps, OCI free tier) |
+| CORS proxy | nginx in-cluster (LoadBalancer service) | Free |
 | K8s API proxy | kubectl proxy in-cluster | Free |
 | Dashboard | Vercel (autobot1.vercel.app) | Free |
 
@@ -66,7 +66,31 @@ A self-managing agentic software company with a pre-architected org structure. Y
 | `playbook-server` | **Business module abstraction.** Agents read pipeline config from playbooks instead of hardcoding business logic. Switching playbooks = switching business models with zero agent changes. MCP tools: `get_playbook`, `get_stage_config`, `get_niche_rotation`, `get_qualification_rules`, `list_playbooks` | ✅ Running + Accepted |
 | `shared-state` | **Blackboard pattern for agent coordination.** Agents read/write shared state instead of relying only on A2A. Enables real drift detection, pipeline visibility, distributed locks. MCP tools: `state_get`, `state_set`, `state_list`, `pipeline_status`, `acquire_lock`, `release_lock` | ✅ Running + Accepted |
 | `adversarial-tester` | **Feeds bad inputs to prove governance works** before production failures find gaps. Tests: data quality, prompt injection, boundary cases, governance bypass. MCP tools: `run_adversarial_suite`, `run_single_test`, `get_coverage_report`, `list_tests` | ✅ Running + Accepted |
+| `codegen-mcp` | **LLM distillation tools for codegen-agent.** Spawns ephemeral K8s Jobs to run pytest suites (`run_test_suite`), deploys approved compiled microservices (`deploy_microservice`), and manages human-approved service locks in shared-state (`lock_service`, `get_lock_status`). Port: 8100. Has dedicated ServiceAccount + RBAC for cluster writes. | ✅ Running + Accepted |
 | `kagent-grafana-mcp` | Metrics (intentionally disabled) | ❌ Disabled in helm |
+
+### MCP Server Port Allocation
+| Port | Service |
+|------|---------|
+| 8091 | `hitl-tool-server` |
+| 8092 | `audit-logger` |
+| 8093 | `resource-governor` |
+| 8094 | `hardening-agent` |
+| 8095 | `rules-engine` |
+| 8096 | `eval-harness` |
+| 8097 | `shared-state` |
+| 8098 | `adversarial-tester` |
+| 8099 | `playbook-server` |
+| 8100 | `codegen-mcp` |
+| 8101 | `prospecting-mcp` *(reserved — compiled by codegen-agent)* |
+| 8102 | `site-builder-mcp` *(reserved)* |
+| 8103 | `outreach-mcp` *(reserved)* |
+| 8104 | `pm-mcp` *(reserved)* |
+| 8105 | `rd-mcp` *(reserved)* |
+| 8106 | `hardening-mcp` *(reserved)* |
+| 8107 | `cso-mcp` *(reserved)* |
+| 8108 | `coo-mcp` *(reserved)* |
+| 8109 | `cfo-mcp` *(reserved)* |
 
 ### Skills (instructional only — different risk profile from MCP servers)
 - Build a **private tiered skills repo**:
@@ -282,9 +306,7 @@ kubectl create secret generic copilot-api-key \
   --namespace kagent \
   --from-literal=key=anything
 
-kubectl create secret generic localtonet-token \
-  --namespace kagent \
-  --from-literal=token=<your-localtonet-token>
+# No tunnel secret needed — using OKE LoadBalancer service on cors-proxy (157.151.243.159:80)
 ```
 
 ### kagent Installation
@@ -330,13 +352,13 @@ EOF
 - First run requires device auth: watch logs → go to https://github.com/login/device
 
 ### Agent Memory (pgvector)
-- All 8 agents configured with `spec.declarative.memory: {modelConfig: copilot-embedding, ttlDays: 30}`
+- All 12 agents configured with `spec.declarative.memory: {modelConfig: copilot-embedding, ttlDays: 30}`
 - **`copilot-embedding` ModelConfig** → LiteLLM → `text-embedding-3-small` (GitHub Copilot)
 - **Storage:** kagent controller's built-in pgvector store — 768-dim vectors (truncated + L2-normalized from 1536)
 - **Search:** each request embeds the query → `/api/memories/search` on kagent controller — matching memories injected as `<MEMORY>` blocks
 - **Save:** async background task after session end → `/api/memories/sessions/batch`; LLM-summarized before embedding
 - **Verified end-to-end (2026-03-27):** cross-session recall confirmed — stored "OMEGA / Q2 launch" in session 1, recalled in a completely new session (different contextId) ✅
-- **Note:** The `Memory` CR (v1alpha1) with Pinecone is a separate, independent feature from `spec.declarative.memory`. Active memory uses kagent's pgvector — Pinecone is provisioned but unused. See `infra/memory/README.md`.
+- **Note:** The `Memory` CR (v1alpha1) with Pinecone is a separate, independent feature from `spec.declarative.memory`. Active memory uses kagent's pgvector — Pinecone is provisioned but unused. See `infra/memory/README.md` and gotcha note at bottom.
 
 ### CORS Proxy (nginx)
 - Listens on port 8081
@@ -348,12 +370,11 @@ EOF
 - Exposes Kubernetes API on port 8888
 - Uses `kagent-controller` service account
 
-### Localtonet Tunnel
-- Persistent URL: `ct0nsvobr7.localto.net`
-- Routes to cors-proxy ClusterIP on port 8081
-- ARM64 binary via initContainer (Docker image is x86 only)
-- Requires: `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`
-- Must send `localtonet-skip-warning: true` header in all proxy requests
+### Public Endpoint — OKE Load Balancer
+- IP: `157.151.243.159` (OCI free tier — 10 Mbps bandwidth, no time limit)
+- `cors-proxy` service type changed from `ClusterIP` to `LoadBalancer` — OCI provisions LB automatically
+- No token, no warning header, no ARM64 binary required
+- Vercel env var: `KAGENT_URL=http://157.151.243.159`
 
 ---
 
@@ -398,7 +419,7 @@ Key schema notes:
 - `spec.declarative.systemMessage` (not `systemPrompt`)
 - A2A tools: `type: Agent` with `agent.name/namespace/kind/apiGroup`
 
-### Current Agents (live as of 2026-03-27)
+### Current Agents (live as of 2026-03-30)
 | Agent | Role | Status |
 |---|---|---|
 | `commander-agent` | Thin router — dispatches to C-suite + HITL_RESUME routing | ✅ |
@@ -412,6 +433,7 @@ Key schema notes:
 | `outreach-agent` | Sends HITL-gated cold outreach emails with demo site URLs (TESTING/PRODUCTION phase toggle) | ✅ |
 | `rd-agent` | R&D — researches best practices, proposes system message upgrades via GitHub PRs. Hourly CronJob. Self-improving. PRs go through HITL approval. | ✅ |
 | `north-star-agent` | Trajectory assessor — scores system against project vision, identifies drift/gaps/wins. 6-hour CronJob. READ-ONLY. | ✅ |
+| `codegen-agent` | LLM distillation — compiles repeatable agent tasks into deterministic Python microservices. Priority queue through all 9 agents. Inner test loop → HITL gate → deploy + lock. | ✅ |
 
 **Legacy demo agents deleted by CSO on 2026-03-26:** number-agent-1/2/3, sum-agent, researcher-agent, critic-agent, writer-agent, publisher-agent, send-email-test
 
@@ -434,18 +456,18 @@ Key schema notes:
 ### Architecture
 ```
 Browser → Vercel (autobot1.vercel.app)
-            ↓ /api/proxy → kubectl-proxy → k8s API (agent list)
-            ↓ /api/chat  → localtonet → cors-proxy → kagent-controller A2A
+            ↓ /api/proxy → OKE LB (157.151.243.159) → cors-proxy → kubectl-proxy → k8s API (agent list)
+            ↓ /api/chat  → OKE LB (157.151.243.159) → cors-proxy → kagent-controller A2A
 ```
 
 ### Key Files
 | File | Purpose |
 |---|---|
 | `agent-viz/src/App.jsx` | React dashboard with chat + diagram |
-| `api/proxy.js` | Vercel proxy → localtonet (adds skip-warning header) |
+| `api/proxy.js` | Vercel proxy → OKE LB → cors-proxy → K8s API |
 | `api/chat.js` | Vercel A2A chat proxy (kind: "text" not type: "text") |
 | `vercel.json` | Build config + rewrites |
-| `deploy.yaml` | LiteLLM + nginx + kubectl-proxy + localtonet manifests |
+| `deploy.yaml` | LiteLLM + nginx (LoadBalancer) + kubectl-proxy manifests |
 | `agent_army.yaml` | Agent definitions |
 | `infra/phase1-admission-control/policy-server.py` | Admission webhook — enforce mode, forbidden_tools with allowed_tools override |
 | `infra/phase1-admission-control/capability-registry.yaml` | Per-agent tool/agent-call permissions, HITL label enforcement |
@@ -473,9 +495,12 @@ Browser → Vercel (autobot1.vercel.app)
 | `infra/phase9-adversarial-testing/tests.yaml` | Adversarial test cases (data quality, injection, boundary, governance) |
 | `infra/phase6-eval-harness/set-baselines-job.yaml` | K8s Job — captures eval baselines for all 5 agents on deploy (auto-runs via deploy script) |
 | `infra/phase9-adversarial-testing/adversarial-cronjob.yaml` | Weekly CronJob — runs full adversarial suite every Monday 3am UTC, posts to #agent-workers |
+| `infra/phase10-codegen/codegen-mcp.py` | Codegen MCP server — K8s Job runner for pytest suites + microservice deployer + lock/unlock tools |
+| `infra/phase10-codegen/deploy.yaml` | codegen-mcp ServiceAccount + RBAC + Deployment + Service + RemoteMCPServer (port 8100) |
+| `agents/codegen-agent.yaml` | codegen-agent — priority queue, inner test loop, HITL gating, post-approval deploy + lock + PR |
 | `infra/deploy-phases-5-9.sh` | Bootstrap script to deploy all Phase 5-9 infrastructure |
+| `infra/hitl-tool-server/deploy.yaml` | HITL tool server — Slack MCP server (port 8091) |
 | `.github/workflows/build-khook.yml` | ARM64 khook builder |
-| `.github/workflows/deploy.yml` | GitHub Pages deploy (legacy) |
 
 ---
 
@@ -484,8 +509,7 @@ Browser → Vercel (autobot1.vercel.app)
 - Node subnet is private — no public IP on node directly
 - LiteLLM Copilot token requires device auth on first run
 - All images need `docker.io/` prefix on Oracle Linux 8
-- Localtonet ARM64 binary needs `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`
-- Localtonet sends warning page — always include `localtonet-skip-warning: true` header
+- ~~Localtonet tunnel~~ — replaced with OKE LoadBalancer (157.151.243.159). No tunnel binary, no skip-warning header needed.
 - kagent Agent CRD is `v1alpha2` with `type: Declarative` (capital D)
 - Sessions CRD returns 403 — not in kagent 0.7.23, safely ignored
 - Do NOT set `pass_phrase` in `[DEFAULT]` OCI config profile
@@ -600,6 +624,7 @@ systemMessage: |
 - [x] Hardening agent — v2 deployed, L1 frequency + L2 failure analysis every 5 min, creates PRs via github-mcp
 - [x] CFO agent — ✅ deployed + tested 2026-03-26. Monitors token limits, cluster resources, action budgets. Uses resource-governor MCP tools.
 - [x] R&D agent — ✅ deployed 2026-03-27. Researches best practices, proposes system message upgrades via GitHub PRs. Hourly evolution cycles.
+- [x] codegen-agent — ✅ deployed. LLM distillation loop. Works through a 9-agent priority queue. codegen-mcp server provides test runner (K8s Jobs) and microservice deployer. HITL-gated deployment with immutable service locks.
 
 ### Safety
 - [x] Phase 1: Admission control webhook — deployed, **`enforce` mode** ✅ 2026-03-26
@@ -615,13 +640,14 @@ systemMessage: |
 - [x] Phase 7: Business Module Abstraction — ✅ deployed 2026-03-27. Playbook server live, pm-agent reads `local-web-services` playbook on every run. Add playbooks to `playbooks.yaml` to switch business models with zero agent changes.
 - [x] Phase 8: Shared State — ✅ deployed 2026-03-27. pm-agent writes pipeline state to `pipeline/<run-id>` namespace automatically. Ask pm-agent to `pipeline_status` to see active runs.
 - [x] Phase 9: Adversarial Testing — ✅ deployed 2026-03-27. Weekly CronJob (`adversarial-sweep`) runs every Monday 3am UTC, posts results to #agent-workers. Manual trigger: `kubectl create job adversarial-sweep-manual --from=cronjob/adversarial-sweep -n kagent`
+- [x] Phase 10: LLM Distillation (codegen-agent) — ✅ deployed. codegen-mcp (port 8100) provides `run_test_suite` (K8s ephemeral Job runner), `deploy_microservice`, `lock_service`, `get_lock_status`. codegen-agent works through a 9-agent priority queue, compiling repeatable tasks into deterministic Python microservices. Inner loop: classify → write → run tests → fix → surface. Quality gate: all tests pass + eval ≥ baseline. Human-gated deployment via HITL. Locks prevent re-compilation after approval. Compiled service ports: 8101 (prospecting-mcp) → 8109 (cfo-mcp).
 - [ ] Install Calico CNI for NetworkPolicy enforcement (Flannel doesn't enforce)
 
 ### Infrastructure
 - [x] github-mcp updated with `github_create_branch` + `github_create_pr` tools (7 total)
 - [x] api/hitl.js — 5 bugs fixed: `tasks/send`→`message/send`, `type`→`kind`, added messageId, correct URL path with namespace, added `X-API-Secret`
-- [ ] Clean up `infra/hardening-bot/` scaffold (superseded by hardening-agent + github-mcp)
+- [x] Clean up `infra/hardening-bot/` scaffold — ✅ deleted 2026-03-30 (superseded by hardening-agent + github-mcp)
 - [ ] Pin image digests for all MCP server containers
-- [x] **Enable kagent memory on all agents** — ✅ done 2026-03-27. All 8 agents using `copilot-embedding` ModelConfig (`text-embedding-3-small` via LiteLLM). pgvector-backed, 30-day TTL. Cross-session recall verified.
+- [x] **Enable kagent memory on all agents** — ✅ done 2026-03-27. All 12 agents using `copilot-embedding` ModelConfig (`text-embedding-3-small` via LiteLLM). pgvector-backed, 30-day TTL. Cross-session recall verified.
 - [ ] Add business metrics to dashboard (leads found, emails sent, revenue)
-- [ ] Get a real domain for persistent tunnel (optional but recommended)
+- [ ] Get a real domain and point it at 157.151.243.159 (optional — LB IP is stable but not human-readable)
